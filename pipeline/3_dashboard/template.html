@@ -1,11 +1,11 @@
 <!doctype html>
 <!--
-  Template do dashboard do INPC. Todo o visual mora aqui: tokens de cor e tipografia, grade, cards,
-  tabelas e o tema único dos gráficos. Os dados chegam prontos de montagem.py em window.DADOS
-  (figuras plotly sem estilo, tabelas HTML com classes, cabeçalho e frases de destaque).
-  Referência: notas de research institucional e gráficos do FT e da The Economist: dado forte,
-  moldura discreta, muito respiro. Navy como cor de marca em áreas grandes, azul como acento,
-  o resto off-white e cinzas azulados. Nenhuma cor fora do bloco :root.
+  O visual inteiro do dashboard mora aqui: as cores, a tipografia, a grade, os cards, as tabelas
+  e um tema único que aplico a todos os gráficos. Os dados chegam prontos da montagem em
+  window.DADOS; as figuras vêm sem estilo nenhum, e cada traço traz em meta o componente que
+  representa, para eu dar a cor certa sem depender da ordem. A referência que tive em mente foi a
+  nota de research e os gráficos do FT: dado forte, moldura discreta, muito respiro. Navy como
+  cor de marca em áreas grandes, azul de acento, e cinzas azulados no resto. Cor só no :root.
 -->
 <html lang="pt-BR">
 <head>
@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ==== 1. Tokens: o único lugar com cores, tamanhos e espaços ==== */
+/* ==== 1. Tokens: toda cor, tamanho e espaço está aqui, e em nenhum outro lugar ==== */
 :root {
   /* superfícies */
   --bg: #F6F7F9;                 /* fundo da página (off-white) */
@@ -39,11 +39,11 @@
   --azul-100: #E4ECF7;
   --azul-50: #F3F6FB;
 
-  /* semântica: só em deltas e sinais, nunca como cor de série */
+  /* vermelho e verde só em variação e sinal; se virassem cor de série, o leitor ia achar que é alerta */
   --pior: #B4432F;               /* inflação subindo */
   --melhor: #0E7C5A;             /* inflação caindo */
 
-  /* séries: core em azuis, não core em âmbar e verde-azulado */
+  /* séries: o que é núcleo em azuis e o que não é em âmbar e verde-azulado, para o olho separar sem ler a legenda */
   --serie-inpc: #05132A;
   --serie-subyacente: #195AB4;
   --serie-mercancias: #4E97F0;
@@ -260,16 +260,16 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 <script>/*__PLOTLY__*/</script>
 <script id="dados">/*__DADOS__*/</script>
 <script>
-// ==== 1. Tokens lidos do CSS (nenhuma cor é escrita aqui) ====
+// ==== 1. Tokens lidos do CSS: aqui eu não escrevo cor nenhuma ====
 const css = (nome) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
 
-// cor fixa de cada componente, aplicada a partir de meta.componente de cada traço
+// a cor de cada componente é sempre a mesma em todos os gráficos; o traço diz quem é pelo meta.componente
 const COR_COMPONENTE = {
   indice_general: css("--serie-inpc"), subyacente: css("--serie-subyacente"), no_subyacente: css("--serie-no-subyacente"),
   mercancias: css("--serie-mercancias"), servicios: css("--serie-servicios"), agropecuarios: css("--serie-agropecuarios"),
   energeticos_y_tarifas: css("--serie-energeticos"),
 };
-// séries que não são componentes e as medidas do momentum
+// o que não é componente (norma, difusão) e as três medidas do momentum, que são todas da subyacente
 const COR_SERIE = { norma: css("--ink"), norma_mediana: css("--ink-3"), pct_cesta_em_alta: css("--ink"), pct_cesta_anual_acima_4: css("--azul-600") };
 const COR_MEDIDA = { saar_3m: css("--azul-600"), saar_6m: css("--azul-400"), variacao_anual: css("--ink") };
 const SUFIXO = { main_contribuicoes: " pp" };
@@ -292,12 +292,12 @@ function montarFaixa(c) {
   document.getElementById("proximo").textContent = c.dias_ate_proximo === null
     ? `Próximo release: ${c.proximo}` : `Próximo ${c.proximo.replace(/\/\d{4}/, "")} (${c.dias_ate_proximo} dias)`;
   document.getElementById("atualizado").textContent = `Atualizado ${c.atualizado}`;
-  // o dashboard só é montado se a validação passar, então a pílula não tem estado de falha
+  // se a validação falha o pipeline nem chega aqui, então a pílula só precisa dizer o que foi conferido
   document.getElementById("conferido").textContent = `Conferido com o INEGI · ${c.conferido}`;
 }
 
 function sparkline(slot) {
-  // últimos 24 meses da variação anual, sem eixos: só a forma da trajetória e o ponto atual
+  // dois anos da inflação em 12 meses, sem eixo: a ideia é só mostrar se a trajetória sobe ou desce
   const traco = DADOS.graficos[slot].data[0];
   const y = traco.y.slice(-24), min = Math.min(...y), max = Math.max(...y);
   const pontos = y.map((v, i) => [i / (y.length - 1) * 100, 28 - (v - min) / (max - min || 1) * 24 + 2]);
@@ -334,7 +334,7 @@ function montarKpis(c) {
 }
 
 function montarDestaques(frases) {
-  // as frases vêm como "Rótulo: fato"; o rótulo vira o título curto em caixa-alta
+  // as frases chegam como "Rótulo: fato"; o rótulo sai da frase porque já vira o título em caixa-alta
   const rotulos = ["Inflação", "Maior incidência", "Maior surpresa", "Difusão"];
   document.getElementById("destaques").innerHTML = frases.map((f, i) =>
     `<div class="destaque"><div class="destaque-rotulo">${rotulos[i]}</div>
@@ -343,7 +343,7 @@ function montarDestaques(frases) {
 
 // ==== 4. Cards: cabeçalho com chip, corpo e rodapé ====
 function chipDoCard(slot, figura) {
-  // frequência e janela mostradas no gráfico
+  // o chip conta de cara se o gráfico é mensal ou quinzenal e que janela ele cobre
   const frequencia = DADOS.cabecalho.frequencia === "quinzenal" ? "Quinzenal" : "Mensal";
   if (RELEASE.has(slot)) return `${frequencia} · ${DADOS.cabecalho.release}`;
   if (slot === "tend_perfil_sazonal") return `Mensal · norma 2010–2019 e ${DADOS.cabecalho.ano}`;   // eixo em meses do ano
@@ -369,7 +369,7 @@ function refinarTabelas(card, slot) {
   card.querySelectorAll("table").forEach((tabela) => {
     if (slot === "main_ultimos_periodos") return tabela.querySelectorAll("td.numero").forEach((td) => td.classList.add("neutro"));   // níveis de inflação, não deltas
     const titulos = [...tabela.querySelectorAll("thead th")].map((th) => th.textContent.trim().toLowerCase());
-    // subíndice sai da coluna própria e vai para baixo do nome do genérico
+    // o subíndice sai da coluna dele e vai para baixo do nome do genérico, para a tabela ficar mais estreita
     const colunaSub = titulos.indexOf("subíndice");
     if (colunaSub >= 0) {
       tabela.querySelectorAll("tbody tr").forEach((tr) => {
@@ -383,7 +383,7 @@ function refinarTabelas(card, slot) {
     const neutras = [titulosFinais.indexOf("norma")].filter((i) => i >= 0);
     const linhas = [...tabela.querySelectorAll("tbody tr")].filter((tr) => !tr.classList.contains("grupo"));
     comBarra.forEach((coluna) => {
-      // barra fina proporcional ao módulo, na cor do sinal; o número fica em tinta neutra
+      // uma barra fina do tamanho da incidência, na cor do sinal; o número fica neutro porque a barra já diz o sinal
       const celulas = linhas.map((tr) => tr.children[coluna]);
       const maior = Math.max(...celulas.map((td) => Math.abs(lerNumero(td.textContent))));
       celulas.forEach((td) => {
@@ -403,7 +403,8 @@ function corDoTraco(t) {
 }
 
 function faixaDosValores(dados, empilhado, eixo) {
-  // range calculado dos dados com 10% de folga; barras incluem o zero
+  // o eixo vai do menor ao maior dado com 10% de folga; começar em 2% sem motivo exagerava as variações.
+  // nas barras o zero entra sempre, porque barra que não começa no zero engana
   const valores = [];
   dados.forEach((t) => {
     if (!t[eixo]) return;
@@ -426,7 +427,7 @@ function faixaDosValores(dados, empilhado, eixo) {
 }
 
 function fimDoEixoX(dados) {
-  // o eixo termina 2 meses depois do último dado, sem espaço morto até o ano seguinte
+  // o eixo acaba 2 meses depois do último dado; deixar o plotly ir até o ano seguinte deixava um vazio à direita
   const ultimas = dados.flatMap((t) => t.x || []).filter((x) => /^\d{4}-/.test(String(x))).sort();
   const fim = new Date(ultimas[ultimas.length - 1]);
   fim.setMonth(fim.getMonth() + 2);
@@ -450,7 +451,7 @@ function estilizarTraco(t, sufixo, eixo) {
     t.marker = { size: 10, color: cor, line: { color: css("--surface"), width: 2 } };
     ["error_x", "error_y"].forEach((erro) => { if (t[erro]) t[erro] = { ...t[erro], color: css("--ink-3"), thickness: 1.5, width: 6 }; });
   } else {
-    // linha de 2px com o ponto final marcado (r=4 e anel branco)
+    // linha fina com só o último ponto marcado, que é onde o olho tem de ir
     const ultimo = t.x.length - 1;
     t.mode = "lines+markers";
     t.line = { width: 2, color: cor, dash: serie === "norma_mediana" ? "dot" : "solid" };
@@ -459,8 +460,8 @@ function estilizarTraco(t, sufixo, eixo) {
 }
 
 function rotulosFinais(dados, sufixo) {
-  // um rótulo com o último valor ao lado do ponto final; o ponto destacado (última quinzena), se houver,
-  // é o único rotulado; rótulos a menos de 0,3 pp de um já escrito ficam só no tooltip e na legenda
+  // escrevo o último valor ao lado do ponto final, no lugar da legenda. Se houver ponto destacado (a última quinzena),
+  // só ele leva rótulo; e um rótulo a menos de 0,3 pp de outro já escrito fica só no tooltip, para não encavalar
   const destacado = dados.filter((t) => t.mode === "markers" && !t.error_y && !t.error_x);
   const candidatos = destacado.length ? destacado : dados.filter((t) => t.type === "scatter" && t.mode === "lines+markers" && !((t.meta || {}).serie || "").startsWith("norma"));
   const escritos = [];
@@ -477,7 +478,7 @@ function rotulosFinais(dados, sufixo) {
 }
 
 function estilizarArvore(figura) {
-  // cor pelo sinal da incidência e intensidade pelo tamanho; texto branco em fundos fortes
+  // vermelho quando puxou a inflação para cima, verde quando segurou, mais forte quanto maior a incidência
   const t = figura.data[0];
   const maior = Math.max(...t.customdata.map(Math.abs));
   const alfas = t.customdata.map((v) => 0.12 + 0.88 * Math.abs(v) / maior);
@@ -544,7 +545,7 @@ function estilizarFigura(slot, figura) {
 const desenhados = new Set();
 
 function desenharPainel(painel) {
-  // cada gráfico nasce quando a aba aparece, para ter a largura certa
+  // desenho o gráfico só quando a aba aparece; numa aba escondida o plotly não sabe a largura e erra o tamanho
   painel.querySelectorAll("[data-grafico]").forEach((div) => {
     if (desenhados.has(div)) return Plotly.Plots.resize(div);
     const { data, layout } = estilizarFigura(div.dataset.grafico, DADOS.graficos[div.dataset.grafico]);

@@ -1,9 +1,10 @@
 # Etapa 1.3: Validação
-# Antes de qualquer análise, confere se a base tratada reproduz os números oficiais do INEGI.
-# São duas checagens. A primeira compara o último release com o tabulado que o INEGI publica;
-# a segunda confere se as incidências da base somam a inflação do INPC geral. Se uma falhar,
-# o pipeline para, porque um dashboard com número errado é pior do que nenhum dashboard.
-# O resultado vai para data/processed/validacao.json, para o dashboard exibir.
+# Antes de fazer qualquer conta, confiro se a base reproduz o que o INEGI publicou. São só duas
+# checagens, escolhidas porque juntas pegam quase tudo: a primeira recalcula o último release e
+# compara com o tabulado oficial (se um dado faltar ou vier trocado, aparece aqui); a segunda vê se
+# as incidências somam a inflação do INPC, o que só acontece se índices e incidências forem coerentes.
+# Se uma falhar, paro o pipeline antes da montagem: prefiro o dashboard de ontem a um com número
+# errado. O resultado fica em validacao.json, para eu consultar depois.
 
 import json
 import sys
@@ -13,21 +14,21 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para rodar a etapa sozinha, a raiz do projeto precisa estar no caminho
 from config import parametros as p
 
 
 # ==== 1. Tabelas de apoio ====
 def tabela(series, tipo, frequencia):
-    """Série de um tipo e frequência como tabela período x componente, em ordem cronológica."""
+    """Uma frequência de índices ou de incidências como tabela período x componente, em ordem de data."""
     selecao = series[(series["tipo"] == tipo) & (series["frequencia"] == frequencia)]
     return selecao.pivot(index="periodo", columns="componente", values="valor").sort_index()
 
 
 # ==== 2. Checagens ====
 def conferir_ultimo_release(series, oficial):
-    """Nossa variação no período, variação anual e incidência dos 16 componentes vs o tabulado oficial do último release."""
-    # se a base reproduz o que o INEGI publicou, ela está completa e correta no dado mais recente
+    """Recalculo variação, anual e incidência dos 16 componentes no último release e comparo com o tabulado do INEGI."""
+    # faço a conta aqui de propósito, sem usar a etapa de métricas: a validação tem de ser independente dela
     desvios = []
     for frequencia, periodos in p.PERIODOS_POR_ANO.items():
         indices = tabela(series, "indice", frequencia)
@@ -40,8 +41,8 @@ def conferir_ultimo_release(series, oficial):
 
 
 def conferir_aditividade(series):
-    """Nos últimos 24 meses, a incidência da subyacente + a da no subyacente = variação do INPC geral."""
-    # a incidência mede quanto cada componente contribuiu para a inflação; as partes têm de somar o todo
+    """Nos últimos 24 meses, a incidência da subyacente mais a da no subyacente tem de dar a variação do INPC geral."""
+    # incidência é quanto cada parte puxou a inflação, em pontos percentuais; as partes somam o todo
     desvios = []
     for frequencia, periodos in p.PERIODOS_POR_ANO.items():
         geral = tabela(series, "indice", frequencia)["indice_general"]

@@ -1,12 +1,12 @@
 # Etapa 1.4: Dessazonalização
-# Tira o padrão sazonal do índice mensal dos 16 componentes (ex.: a alta das colegiaturas em
-# agosto ou o fim do subsídio de eletricidade no outono), para que a variação de um mês possa ser
-# lida como tendência. Método: STL do statsmodels, robusto a outliers, aplicado ao log do índice
-# de 2000 em diante. Escolhemos STL e não o X-13 porque o STL é Python puro e roda igual em
-# qualquer máquina e no GitHub Actions, sem instalar o binário do Census Bureau; o X-13 é o
-# padrão das agências oficiais e seria a evolução natural do projeto.
-# O quinzenal não é dessazonalizado: os métodos padrão não trabalham com 24 períodos por ano.
-# Para ele, a leitura sazonal é a comparação com a norma histórica, feita em metricas.py.
+# Tiro o padrão sazonal do índice mensal dos 16 componentes, para ler a variação de um mês como
+# tendência e não como calendário (as colegiaturas sobem todo agosto, a eletricidade cai todo abril
+# com o subsídio de verão). Uso o STL do statsmodels, robusto a outliers, no log do índice e só de
+# 2000 para cá, porque antes a inflação alta afoga a sazonalidade. Escolhi STL e não X-13 porque o
+# STL é Python puro e dá o mesmo resultado em qualquer máquina, sem instalar o programa do Census;
+# o X-13 é o que as agências usam e seria o próximo passo.
+# O quinzenal eu não dessazonalizo: os métodos padrão não lidam com 24 períodos por ano. Para ele a
+# leitura sazonal é a comparação com a norma histórica, que sai nas métricas.
 
 import sys
 import time
@@ -16,14 +16,14 @@ import numpy as np
 import pandas as pd
 from statsmodels.tsa.seasonal import STL
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para rodar a etapa sozinha, a raiz do projeto precisa estar no caminho
 from config import parametros as p
 
 
 # ==== 1. Ajuste sazonal ====
 def dessazonalizar(indice):
-    """Índice sem o componente sazonal estimado pelo STL (período de 12 meses, robusto)."""
-    # no log, a sazonalidade é multiplicativa: o mesmo mês pesa x% a mais todo ano, não x pontos
+    """O índice sem a parte sazonal que o STL enxerga, num ciclo de 12 meses."""
+    # no log a sazonalidade vira proporcional: agosto sobe x% a mais todo ano, e não x pontos, o que faz sentido com o índice crescendo
     ajuste = STL(np.log(indice), period=12, robust=True).fit()
     return np.exp(np.log(indice) - ajuste.seasonal)
 

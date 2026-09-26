@@ -1,11 +1,10 @@
 # Etapa 2.1: Métricas
-# Calcula os números que o economista lê no dia do release, a partir da base validada:
-# variações, incidências e contribuições dos 16 componentes; comparação de cada período com a
-# norma sazonal de 2010-2019; ritmo dessazonalizado anualizado (SAAR); as mesmas leituras para os
-# 292 genéricos nos últimos 24 meses; e um resumo para o cabeçalho do dashboard (INPC, núcleo,
-# mensal implícito no dia da 1a quinzena, difusão e destaques).
-# Lê: data/processed (series, series_dessazonalizadas, genericos, ponderadores).
-# Escreve: metricas_componentes.parquet, metricas_genericos.parquet, metricas_difusao.parquet e metricas_resumo.json.
+# Aqui estão as contas que eu faço no dia do release, já em cima da base validada. Para os 16
+# componentes: variação no período e em 12 meses, incidência, contribuição para a inflação anual,
+# comparação com o "normal" daquele mês (norma sazonal de 2010 a 2019) e o ritmo dessazonalizado
+# anualizado. Para os 292 genéricos, as mesmas leituras e a incidência de cada um. No fim monto um
+# resumo com o que vai no topo do dashboard: os números principais, o mensal implícito no dia da
+# 1a quinzena, a difusão e os genéricos que mais pesaram.
 
 import json
 import sys
@@ -14,18 +13,19 @@ from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para rodar a etapa sozinha, a raiz do projeto precisa estar no caminho
 from config import parametros as p
 
 
 # ==== 1. Variações, norma sazonal e contribuições ====
 def ler(nome):
-    """Tabela de data/processed."""
+    """Uma tabela de data/processed."""
     return pd.read_parquet(p.PASTA_PROCESSED / f"{nome}.parquet")
 
 
 def acrescentar_variacoes(tabela, chave, periodos_no_ano):
-    """Variação no período e em 12 meses (%), série a série, numa tabela em ordem cronológica."""
+    """Variação contra o período anterior e contra um ano antes, série a série; a tabela tem de estar em ordem de data."""
+    # no quinzenal "período anterior" é a quinzena de antes, não o mês; e um ano são 24 quinzenas
     anterior = tabela.groupby(chave)["indice"]
     tabela["variacao_periodo"] = (tabela["indice"] / anterior.shift(1) - 1) * 100
     tabela["variacao_anual"] = (tabela["indice"] / anterior.shift(periodos_no_ano) - 1) * 100
@@ -33,9 +33,8 @@ def acrescentar_variacoes(tabela, chave, periodos_no_ano):
 
 
 def acrescentar_norma(tabela, chave):
-    """Mediana e quartis da variação do mesmo mês (ou quinzena) do ano em 2010-2019, e o desvio do dado atual."""
-    # a norma diz quanto aquele período costuma subir; mediana e não média porque a janela tem
-    # choques atípicos (ex.: jan/2017, liberalização da gasolina) que puxariam a média
+    """Quanto aquele mês (ou quinzena) costuma subir: mediana e quartis de 2010 a 2019, e o quanto o dado de agora se afasta disso."""
+    # uso a mediana e não a média porque a janela tem choques que puxariam a média, como a liberalização da gasolina em jan/2017
     tabela["posicao_no_ano"] = tabela["periodo"].str[5:]  # "08" no mensal, "08-Q1" no quinzenal
     inicio, fim = p.ANOS_NORMA_SAZONAL
     janela = tabela[tabela["data"].dt.year.between(inicio, fim)]
@@ -47,10 +46,9 @@ def acrescentar_norma(tabela, chave):
 
 
 def acrescentar_contribuicao_anual(tabela, periodos_no_ano):
-    """Quanto cada componente contribuiu para a inflação anual do INPC geral (pp)."""
-    # somar as incidências dos últimos 12 meses é uma aproximação: cada incidência usa os preços
-    # relativos do seu próprio mês, então a soma não fecha exatamente com a variação em 12 meses
-    # (fica de fora o efeito composto); reescalamos as partes de cada nível para fecharem com o INPC
+    """Quantos pontos da inflação em 12 meses vieram de cada componente."""
+    # somo as incidências dos últimos 12 meses, mas isso é aproximado: cada incidência usa o peso relativo do seu mês,
+    # e a soma deixa de fora o efeito composto. Para fechar exatamente com a inflação anual, reescalo as partes de cada nível
     soma = tabela.groupby("componente")["incidencia_periodo"].transform(lambda serie: serie.rolling(periodos_no_ano).sum())
     total_do_nivel = soma.groupby([tabela["periodo"], tabela["nivel"]]).transform("sum")
     inflacao_anual = tabela[tabela["componente"] == "indice_general"].set_index("periodo")["variacao_anual"]
@@ -60,8 +58,9 @@ def acrescentar_contribuicao_anual(tabela, periodos_no_ano):
 
 
 def acrescentar_ritmo_dessazonalizado(tabela, dessazonalizadas):
-    """Variação mensal dessazonalizada e o SAAR de 3 e 6 meses (só no mensal)."""
-    # o SAAR é o ritmo recente da inflação sem sazonalidade, expresso como se durasse um ano inteiro
+    """Variação mensal sem sazonalidade e o SAAR de 3 e 6 meses; só existe no mensal."""
+    # o SAAR pega a alta dos últimos 3 (ou 6) meses já sem sazonalidade e mostra quanto daria se durasse um ano:
+    # ((índice hoje / índice 3 meses atrás) elevado a 12/3, menos 1). Se ele está abaixo da anual, a anual tende a cair
     sa = dessazonalizadas.sort_values(["componente", "data"]).copy()
     anterior = sa.groupby("componente")["indice_sa"]
     sa["variacao_sa_mensal"] = (sa["indice_sa"] / anterior.shift(1) - 1) * 100
@@ -72,7 +71,7 @@ def acrescentar_ritmo_dessazonalizado(tabela, dessazonalizadas):
 
 
 def metricas_componentes(series, dessazonalizadas):
-    """Tabela (componente, frequência, período) com variações, incidência, contribuição anual, norma e SAAR."""
+    """Uma linha por componente, frequência e período, com tudo o que o dashboard mostra dos componentes."""
     tabelas = []
     for frequencia, periodos_no_ano in p.PERIODOS_POR_ANO.items():
         da_frequencia = series[series["frequencia"] == frequencia]
@@ -89,20 +88,22 @@ def metricas_componentes(series, dessazonalizadas):
 
 # ==== 2. Genéricos ====
 def peso_efetivo_do_generico(tabela, pesos, inpc, frequencia):
-    """Quantos pp do INPC cada 1% de variação do genérico gera no período, com os pesos da cesta 2024."""
-    # na cesta 2024 o INPC é a média ponderada dos índices dos genéricos, cada um dividido pelo seu fator
-    # de encadeamento (índice da 2Q jul/2024 / 100); o peso efetivo é o peso da cesta corrigido pelo quanto
-    # o preço do genérico subiu em relação ao INPC desde a troca de cesta (o INEGI chama de preço relativo)
+    """Quantos pontos do INPC cada 1% de alta do genérico gera neste período."""
+    # na cesta 2024 o INPC é a média ponderada dos genéricos, cada índice dividido pelo seu fator de encadeamento
+    # (o índice da 2Q jul/2024 dividido por 100). O peso efetivo é o peso da cesta vezes o quanto o genérico subiu
+    # em relação ao INPC desde então: peso x (índice relativo do genérico no período anterior / INPC relativo no período anterior).
+    # Cuidado: não é o peso da planilha; um item que subiu mais que a média passa a pesar mais
     relativo = tabela["indice"] / tabela["codigo_generico"].map(pesos["fator_encadeamento"])
     periodo_anterior = tabela.groupby("codigo_generico")["periodo"].shift(1)
     inpc_anterior = periodo_anterior.map(inpc[frequencia]) / (inpc["quinzenal"]["2024-07-Q2"] / 100)
     relativo_anterior = relativo.groupby(tabela["codigo_generico"]).shift(1)
     peso = tabela["codigo_generico"].map(pesos["ponderador"]) * relativo_anterior / inpc_anterior / 100
+    # antes da cesta 2024 os pesos eram outros, então lá eu não calculo
     return peso.where(periodo_anterior.fillna("") >= p.INICIO_CESTA_2024[frequencia])
 
 
 def metricas_genericos(genericos, ponderadores, series):
-    """Tabela (genérico, frequência, período): variações, norma, incidência e contribuição da surpresa."""
+    """Uma linha por genérico, frequência e período: variações, norma, incidência e quanto veio da surpresa."""
     pesos = ponderadores[ponderadores["cesta"] == "2024"].set_index("codigo_generico")
     geral = series[(series["tipo"] == "indice") & (series["componente"] == "indice_general")]
     inpc = {frequencia: tabela.set_index("periodo")["valor"] for frequencia, tabela in geral.groupby("frequencia")}
@@ -113,8 +114,8 @@ def metricas_genericos(genericos, ponderadores, series):
         tabela["peso_efetivo"] = peso_efetivo_do_generico(tabela, pesos, inpc, frequencia)
         tabela["incidencia_periodo"] = tabela["peso_efetivo"] * tabela["variacao_periodo"]
         tabela = acrescentar_norma(tabela, "codigo_generico")
-        # o desvio em % favorece itens voláteis (frutas e verduras); multiplicado pelo peso efetivo,
-        # vira quantos pp do INPC vieram do movimento anormal, que é o que interessa ao analista
+        # o desvio em % sempre põe frutas e verduras no topo, porque elas oscilam muito; multiplicado pelo peso efetivo
+        # ele vira quantos pontos do INPC vieram do movimento fora do normal, que é o que interessa
         tabela["contribuicao_surpresa"] = tabela["peso_efetivo"] * tabela["desvio_norma"]
         tabelas.append(tabela)
     return pd.concat(tabelas)[["codigo_generico", "nome_generico", "subindice", "frequencia", "periodo", "rotulo_periodo", "data", "indice",
@@ -123,9 +124,9 @@ def metricas_genericos(genericos, ponderadores, series):
 
 
 def serie_difusao(genericos, ponderadores):
-    """Mês a mês: % dos genéricos e da cesta em alta, e % da cesta com inflação anual acima de 3% e de 4%."""
-    # a difusão mostra se a inflação está espalhada ou concentrada em poucos itens; 3% é a meta do Banxico
-    # e 4% o teto do intervalo. Cada mês usa os pesos da cesta vigente, renormalizados aos genéricos com dado
+    """Mês a mês, quão espalhada está a inflação: quanto da cesta subiu no mês e quanto está acima de 3% e de 4% em 12 meses."""
+    # 3% é a meta do Banxico e 4% o teto do intervalo de tolerância. Cada mês usa os pesos da cesta que valia na época,
+    # e como alguns genéricos antigos não têm série, reparto o peso só entre os que têm dado
     mensal = genericos[(genericos["frequencia"] == "mensal") & (genericos["data"].dt.year >= p.ANO_INICIO_GRAFICOS)].copy()
     cesta = mensal["periodo"].ge(p.INICIO_CESTA_2024["mensal"]).map({True: "2024", False: "2018"})
     pesos = ponderadores.dropna(subset=["codigo_generico"]).set_index(["cesta", "codigo_generico"])["ponderador"]
@@ -134,7 +135,7 @@ def serie_difusao(genericos, ponderadores):
     por_mes = mensal.groupby("periodo")
 
     def pct_da_cesta(condicao):
-        """Parte do peso da cesta, em %, dos genéricos que cumprem a condição."""
+        """Que parte do peso da cesta está nos genéricos que cumprem a condição."""
         return mensal["peso"].where(condicao, 0).groupby(mensal["periodo"]).sum() / por_mes["peso"].sum() * 100
 
     return pd.DataFrame({"data": por_mes["data"].first(), "rotulo_periodo": por_mes["rotulo_periodo"].first(),
@@ -146,12 +147,12 @@ def serie_difusao(genericos, ponderadores):
 
 # ==== 3. Resumo do último release ====
 def arredondar(valor):
-    """Número com 6 casas para o JSON; quem arredonda para a tela é a tabela ou a montagem (arredondar duas vezes erra o último dígito)."""
+    """Guardo 6 casas no JSON e deixo o arredondamento para a tela; arredondar duas vezes já me fez errar o último dígito."""
     return round(float(valor), 6)
 
 
 def numeros_principais(componentes, frequencia):
-    """INPC, subyacente e no subyacente: variação no período, anual e quanto a anual mudou contra o período anterior."""
+    """INPC, subyacente e no subyacente: variação no período, em 12 meses e quanto a de 12 meses mudou desde o período anterior."""
     resumo = {}
     for componente in p.COMPONENTES_PRINCIPAIS:
         serie = componentes[(componentes["componente"] == componente) & (componentes["frequencia"] == frequencia)].sort_values("data")
@@ -164,10 +165,11 @@ def numeros_principais(componentes, frequencia):
 
 
 def mensal_implicito(componentes, mes):
-    """Variação mensal e anual implícitas do mês corrente, no dia em que só a 1a quinzena foi publicada."""
-    # o índice mensal é a média das duas quinzenas, então no dia da 1a quinzena três quartos da informação
-    # do mês já são conhecidos; a 2a quinzena é estimada aplicando à 1a a variação histórica típica
-    # daquela 2a quinzena (mediana de 2010-2019), com o intervalo dado pelos quartis
+    """Minha estimativa do mês fechado no dia em que só a 1a quinzena saiu."""
+    # o índice mensal é a média das duas quinzenas, não a soma das variações. No dia da 1a quinzena metade da média
+    # já está publicada, e a 2a parte do mesmo nível; o único incerto é quanto ela sobe sobre a 1a. Para isso uso a
+    # mediana dessa variação em 2010-2019, e os quartis dão o intervalo:
+    # índice do mês = (1a quinzena + 1a quinzena x (1 + mediana da 2a)) / 2
     quinzenal = componentes[componentes["frequencia"] == "quinzenal"]
     mensal = componentes[componentes["frequencia"] == "mensal"].set_index(["componente", "periodo"])["indice"]
     mes_anterior, mes_do_ano_anterior = str(pd.Period(mes) - 1), str(pd.Period(mes) - 12)
@@ -175,7 +177,7 @@ def mensal_implicito(componentes, mes):
     for componente in ("indice_general", "subyacente"):
         da_serie = quinzenal[quinzenal["componente"] == componente].set_index("periodo")
         primeira = da_serie.loc[f"{mes}-Q1", "indice"]
-        norma = da_serie[da_serie.index.str.endswith(f"{mes[5:]}-Q2")].iloc[-1]  # a norma é a mesma em todos os anos
+        norma = da_serie[da_serie.index.str.endswith(f"{mes[5:]}-Q2")].iloc[-1]  # a norma é igual em todos os anos, pego qualquer linha
         resultado[componente] = {}
         for cenario, coluna in (("p25", "norma_p25"), ("mediana", "norma_mediana"), ("p75", "norma_p75")):
             indice_do_mes = (primeira + primeira * (1 + norma[coluna] / 100)) / 2
@@ -186,14 +188,14 @@ def mensal_implicito(componentes, mes):
 
 
 def registros(tabela):
-    """Linhas de genéricos como lista de dicionários para o JSON."""
+    """As linhas de genéricos que vão para o JSON."""
     colunas = ["codigo_generico", "nome_generico", "subindice", "variacao_periodo", "norma_mediana", "desvio_norma",
                "incidencia_periodo", "contribuicao_surpresa"]
     return tabela[colunas].round(6).to_dict("records")
 
 
 def destaques(genericos, frequencia):
-    """Os 5 genéricos que mais puxaram a inflação para cima e para baixo, e os 5 de maior surpresa em pp do INPC."""
+    """Os 5 que mais puxaram o índice para cima e para baixo, e os 5 cuja surpresa mais pesou no INPC."""
     da_frequencia = genericos[genericos["frequencia"] == frequencia]
     ultimo = da_frequencia[da_frequencia["periodo"] == da_frequencia["periodo"].max()]
     return {"frequencia": frequencia, "periodo": ultimo["periodo"].iloc[0], "rotulo_periodo": ultimo["rotulo_periodo"].iloc[0],
@@ -216,7 +218,8 @@ if __name__ == "__main__":
 
     ultimo = componentes.groupby("frequencia")["periodo"].max().to_dict()
     tipo = "1a_quinzena" if ultimo["quinzenal"].endswith("Q1") else "mensal_e_2a_quinzena"
-    # num release de 1a quinzena só a quinzena é nova; nos outros, o mês é o dado principal
+    # num release de 1a quinzena só a quinzena é novidade; nos outros o mês é o dado principal. Decido isso aqui, uma vez,
+    # e as etapas seguintes só leem frequencia_do_release
     frequencia_do_release = "quinzenal" if tipo == "1a_quinzena" else "mensal"
     rotulos = componentes[componentes["periodo"].isin(ultimo.values())].groupby("frequencia")["rotulo_periodo"].first().to_dict()
     resumo = {"ultimo_periodo": ultimo, "ultimo_rotulo": rotulos, "tipo_ultimo_release": tipo, "frequencia_do_release": frequencia_do_release,

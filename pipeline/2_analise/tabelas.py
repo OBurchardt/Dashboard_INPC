@@ -1,10 +1,8 @@
 # Etapa 2.2: Tabelas
-# Monta as tabelas do dashboard em HTML simples (<table class="tabela-dados">), sem estilo inline:
-# números com 2 casas e vírgula decimal, "%" nas variações e "pp" nas contribuições, e a classe
-# "positivo" ou "negativo" em cada célula numérica para o template colorir. Nada é calculado aqui:
-# os números vêm prontos de metricas.py.
-# Lê: data/processed (metricas_componentes, metricas_resumo); nomes curtos de config/parametros.py.
-# Escreve: data/processed/tabelas.json = {slot: html}.
+# Transformo em HTML as três tabelas do dashboard. Não calculo nada aqui: os números já vêm prontos
+# das métricas, e eu só escolho quais entram, formato com vírgula decimal e o sufixo certo ("%" para
+# variação, "pp" para incidência e contribuição) e marco cada número como positivo ou negativo. A cor
+# e o resto do visual ficam por conta do template, que é quem sabe o que fazer com essas classes.
 
 import html
 import json
@@ -14,25 +12,25 @@ from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para rodar a etapa sozinha, a raiz do projeto precisa estar no caminho
 from config import parametros as p
 
 
 # ==== 1. Células e tabela ====
 def celula_numero(valor, unidade, casas=2):
-    """Célula numérica com vírgula decimal, unidade e classe positivo/negativo (o INEGI publica incidências com 3 casas)."""
+    """Célula de número já no formato brasileiro; incidência vai com 3 casas porque é assim que o INEGI publica."""
     sinal = " positivo" if valor > 0 else " negativo" if valor < 0 else ""
-    texto = f"{valor:.{casas}f}".replace("-", "−").replace(".", ",") + unidade  # "−" tipográfico, como nos cartões
+    texto = f"{valor:.{casas}f}".replace("-", "−").replace(".", ",") + unidade  # "−" tipográfico, o mesmo dos cartões
     return f'<td class="numero{sinal}">{texto}</td>'
 
 
 def celula_texto(texto, classe="texto"):
-    """Célula de texto, com os caracteres especiais do HTML escapados."""
+    """Célula de texto, com o que for especial em HTML escapado."""
     return f'<td class="{classe}">{html.escape(str(texto))}</td>'
 
 
 def tabela_html(cabecalho, linhas, titulo="", grupos=()):
-    """Tabela completa: títulos das colunas, linhas já em HTML, título opcional e grupos de colunas opcionais [(texto, colunas)]."""
+    """Monta a tabela inteira; os grupos, se houver, viram uma linha de cabeçalho por cima, tipo "Variação no período"."""
     titulos = "".join(f"<th>{html.escape(texto)}</th>" for texto in cabecalho)
     agrupados = "".join(f'<th colspan="{colunas}">{html.escape(texto)}</th>' for texto, colunas in grupos)
     cabecalho_html = (f'<tr class="grupo-colunas">{agrupados}</tr>' if grupos else "") + f"<tr>{titulos}</tr>"
@@ -41,13 +39,13 @@ def tabela_html(cabecalho, linhas, titulo="", grupos=()):
 
 
 def grupo(titulo, colunas):
-    """Linha de título de um bloco dentro da tabela (ex.: maiores e menores incidências)."""
+    """Uma linha de título no meio da tabela, para separar blocos como "acima" e "abaixo" da norma."""
     return f'<tr class="grupo"><th colspan="{colunas}">{html.escape(titulo)}</th></tr>'
 
 
 # ==== 2. Tabelas do dashboard ====
 def main_ultimos_periodos(componentes, resumo, nomes):
-    """Variação no período nos 3 últimos períodos do último release e a variação em 12 meses do último."""
+    """Os três últimos períodos do release lado a lado, mais a variação em 12 meses do mais recente."""
     frequencia = resumo["frequencia_do_release"]
     da_frequencia = componentes[componentes["frequencia"] == frequencia]
     periodos = sorted(da_frequencia["periodo"].unique())[-3:]
@@ -63,7 +61,7 @@ def main_ultimos_periodos(componentes, resumo, nomes):
 
 
 def main_top_incidencias(componentes, resumo, nomes):
-    """Os 5 genéricos que mais puxaram a inflação para cima e os 5 que mais puxaram para baixo, lado a lado."""
+    """Os cinco genéricos que mais puxaram a inflação para cima e os cinco que mais seguraram, em duas tabelas."""
     tabelas = []
     for titulo, chave in (("Maiores incidências", "maiores_incidencias"), ("Menores incidências", "menores_incidencias")):
         linhas = [f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_texto(nomes[item['subindice']], 'subindice')}"

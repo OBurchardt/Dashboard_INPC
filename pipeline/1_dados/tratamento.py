@@ -1,10 +1,9 @@
 # Etapa 1.2: Tratamento
-# Transforma o bruto de data/raw em tabelas limpas em data/processed (parquet). Só organiza:
-# não calcula variação nem nada analítico. É o único lugar que interpreta os formatos do INEGI
-# ("N/E", árvore de genéricos, planilhas de ponderadores, tabulados).
-# Saídas: séries do catálogo em formato longo, índices dos 292 genéricos com a classificação
-# oficial por subíndice, ponderadores das cestas 2018 e 2024 e o tabulado oficial do último
-# release em forma de tabela.
+# Aqui o bruto vira tabela que dá para usar: tudo em formato longo (uma linha por série e período),
+# com a data certa de cada quinzena e os rótulos que vão aparecer na tela. É o único lugar que
+# entende as manias do INEGI: o "N/E" antes do começo das séries, o código de 3 dígitos no nome
+# do genérico, o X da planilha de ponderadores e o JSON do tabulado. Não calculo nada analítico
+# aqui; se eu precisar de uma variação, ela é conta da etapa de métricas.
 
 import json
 import re
@@ -16,26 +15,26 @@ from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para rodar a etapa sozinha, a raiz do projeto precisa estar no caminho
 from config import parametros as p
 
 MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
 COLUNAS_ROTULO = ["rotulo_periodo", "rotulo_curto", "rotulo_mes"]
 
-# Vigência de cada cesta: a de 2024 entrou na 2a quinzena de julho de 2024.
+# vigência de cada cesta; a de 2024 entrou na 2a quinzena de julho de 2024
 CESTAS = {"2018": ("ponderadores_2018.xlsx", "2018-07-Q2", "2024-07-Q1"),
           "2024": ("ponderadores_2024.xlsx", "2024-07-Q2", None)}
 
 
 # ==== 1. Leitura das tabelas brutas ====
 def normalizar(nome):
-    """Tira acento, maiúscula e pontuação, para casar o mesmo nome escrito de jeitos diferentes pelo INEGI."""
+    """Tiro acento, maiúscula e pontuação, porque o INEGI escreve o mesmo nome de jeitos diferentes em cada arquivo."""
     sem_acento = unicodedata.normalize("NFKD", str(nome)).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]", "", sem_acento.lower())
 
 
 def rotulos_do_periodo(periodo):
-    """Rótulos de tela de um período: completo ('1ª quinz. ago/26'), curto para cabeçalho ('1ª q. ago') e o mês ('ago/26')."""
+    """Os três jeitos de escrever um período na tela: '1ª quinz. ago/26', '1ª q. ago' para cabeçalho estreito, e só o mês."""
     mes = f"{MESES[int(periodo[5:7]) - 1]}/{periodo[2:4]}"
     if "-Q" not in periodo:
         return mes, mes, mes
@@ -43,12 +42,12 @@ def rotulos_do_periodo(periodo):
 
 
 def data_do_periodo(periodo):
-    """Data de um período: dia 1 no mensal e na 1a quinzena, dia 16 na 2a quinzena."""
+    """A 1a quinzena vai para o dia 1 e a 2a para o dia 16, para as duas caberem no mesmo eixo de datas do mensal."""
     return pd.Timestamp(periodo[:7] + ("-16" if periodo.endswith("Q2") else "-01"))
 
 
 def ler_tabela_raw(nome):
-    """Lê data/raw/<nome>.csv em formato longo (periodo, id_serie, valor); 'N/E' e 'NA' são dados que o INEGI não publica."""
+    """Abro um CSV de data/raw e passo para o formato longo; 'N/E' e 'NA' são dado que o INEGI não publica."""
     tabela = pd.read_csv(p.PASTA_RAW / f"{nome}.csv", dtype=str, keep_default_na=False, encoding="utf-8")
     longa = tabela.melt(id_vars="periodo", var_name="id_serie", value_name="valor")
     longa["valor"] = pd.to_numeric(longa["valor"].replace({"N/E": None, "NA": None}))
@@ -56,13 +55,14 @@ def ler_tabela_raw(nome):
     rotulos = {periodo: rotulos_do_periodo(periodo) for periodo in longa["periodo"].unique()}
     for posicao, coluna in enumerate(COLUNAS_ROTULO):
         longa[coluna] = longa["periodo"].map(lambda periodo: rotulos[periodo][posicao])
-    # antes do início de cada série o INEGI preenche com N/E: esses períodos saem; lacunas no meio ficam como nulo
+    # antes de uma série começar o INEGI preenche com N/E, e esses períodos eu jogo fora;
+    # um buraco no meio (como as incidências de ago/2018, que o INEGI não publicou) fica como nulo
     longa = longa.sort_values(["id_serie", "data"])
     return longa[longa["valor"].notna().groupby(longa["id_serie"]).cummax()]
 
 
 def ler_arvore(frequencia):
-    """Genéricos da árvore do app: id da série, código de 3 dígitos e nome."""
+    """Da árvore só me interessam os genéricos: o id da série, o código de 3 dígitos e o nome sem o código."""
     nos = json.loads((p.PASTA_RAW / f"arvore_genericos_{frequencia}.json").read_text(encoding="utf-8"))
     genericos = pd.DataFrame([no for no in nos if no["generico"]])
     genericos["codigo_generico"] = genericos["nome"].str[:3]
@@ -72,7 +72,7 @@ def ler_arvore(frequencia):
 
 # ==== 2. Séries do catálogo ====
 def montar_series(catalogo):
-    """Componentes e incidências nas duas frequências, com os metadados do catálogo."""
+    """Componentes e incidências nas duas frequências, com o nível e o pai de cada um tirados do catálogo."""
     tabelas = [ler_tabela_raw(f"{nome}_{frequencia}") for nome in ("componentes", "incidencias") for frequencia in ("mensal", "quinzenal")]
     series = pd.concat(tabelas).merge(catalogo[["id_serie", "tipo", "componente", "nivel", "pai", "frequencia"]], on="id_serie")
     return series[["id_serie", "tipo", "componente", "nivel", "pai", "frequencia", "periodo", *COLUNAS_ROTULO, "data", "valor"]]
@@ -80,13 +80,13 @@ def montar_series(catalogo):
 
 # ==== 3. Ponderadores e classificação dos genéricos ====
 def ler_planilha_ponderadores(arquivo, subindices_por_nome):
-    """Genéricos de um xlsx oficial: cada um tem um X na coluna do seu subíndice; a coluna 1 é o ponderador."""
+    """Na planilha do INEGI cada genérico tem um X na coluna do seu subíndice; a coluna 1 é o peso."""
     planilha = pd.read_excel(p.PASTA_RAW / arquivo, sheet_name="CCIF", header=None)
     concepto = planilha.index[planilha[0] == "Concepto"][0]
-    nomes_das_colunas = planilha.loc[concepto + 2]  # a terceira linha do cabeçalho traz os nomes dos subíndices
+    nomes_das_colunas = planilha.loc[concepto + 2]  # o cabeçalho tem três linhas; os nomes dos subíndices estão na terceira
     colunas = {coluna: subindices_por_nome[normalizar(nome)] for coluna, nome in nomes_das_colunas.items()
                if normalizar(nome) in subindices_por_nome}
-    # só a cesta 2024 tem a coluna 2 com o fator de encadeamento (índice de 2Q jul/2024 / 100)
+    # só a planilha de 2024 tem, na coluna 2, o fator de encadeamento (o índice da 2Q jul/2024 dividido por 100)
     tem_fator = str(planilha.loc[concepto, 2]).startswith("Factor")
     genericos = []
     for _, linha in planilha.iterrows():
@@ -98,7 +98,8 @@ def ler_planilha_ponderadores(arquivo, subindices_por_nome):
 
 
 def montar_ponderadores(catalogo, arvore):
-    """As duas cestas numa tabela; o código vem da árvore, casando pelo nome (na cesta 2018, só os genéricos que continuaram)."""
+    """As duas cestas numa tabela só; a planilha não traz código, então caso cada nome com o da árvore."""
+    # na cesta 2018, 28 genéricos não existem mais na cesta 2024 e ficam sem código; eles são identificados pelo nome
     subindices = catalogo[catalogo["nivel"] == 3].drop_duplicates("componente")
     subindices_por_nome = dict(zip(subindices["nome"].map(normalizar), subindices["componente"]))
     codigo_por_nome = dict(zip(arvore["nome_generico"].map(normalizar), arvore["codigo_generico"]))
@@ -116,7 +117,7 @@ def montar_ponderadores(catalogo, arvore):
 
 # ==== 4. Genéricos ====
 def montar_genericos(ponderadores):
-    """Índice de cada genérico por período, com a classificação oficial da cesta 2024."""
+    """O índice de cada genérico em cada período, já com o subíndice oficial da cesta 2024."""
     classificacao = ponderadores[ponderadores["cesta"] == "2024"][["codigo_generico", "subindice", "componente_nivel2", "componente_nivel1"]]
     tabelas = []
     for frequencia in ("mensal", "quinzenal"):
@@ -129,12 +130,13 @@ def montar_genericos(ponderadores):
 
 # ==== 5. Tabulado oficial ====
 def montar_tabulado_oficial(catalogo):
-    """Variação no período, variação anual e incidência publicadas pelo INEGI no último release, por componente."""
+    """Os números que o INEGI publicou no release (variação, anual e incidência), numa tabela que a validação só compara."""
     componente_por_nome = dict(zip(catalogo["nome"].map(normalizar), catalogo["componente"]))
     linhas = []
     for frequencia in ("mensal", "quinzenal"):
         tabulado = json.loads((p.PASTA_RAW / f"tabulado_{frequencia}.json").read_text(encoding="utf-8"))
         for linha in tabulado["Datos"]:
+            # o campo se chama "valor_mensual" também no quinzenal; é a variação contra o período anterior
             linhas.append({"frequencia": frequencia, "periodo": tabulado["periodo"], "componente": componente_por_nome[normalizar(linha["descripcion"])],
                            "variacao": float(linha["valor_mensual"]), "variacao_anual": float(linha["valor_anual"]),
                            "incidencia": float(linha["valor_incidencia"])})

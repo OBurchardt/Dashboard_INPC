@@ -1,5 +1,7 @@
-# Parâmetros do projeto: o que um humano pode querer ajustar sem mexer no código.
-# Todas as etapas leem este arquivo. Ao ser importado, ele cria as pastas de dados.
+# Tudo o que eu posso querer mudar sem abrir o código das etapas fica aqui: caminhos, endereços
+# do INEGI, ids das estruturas do app, janelas das análises e os nomes que aparecem na tela.
+# Todas as etapas importam este arquivo, e só ele. Importar já cria as pastas de dados, então
+# uma máquina nova não precisa preparar nada antes de rodar.
 
 from pathlib import Path
 
@@ -14,13 +16,13 @@ for pasta in (PASTA_RAW, PASTA_PROCESSED, PASTA_OUTPUT):
     pasta.mkdir(parents=True, exist_ok=True)
 
 # ==== 2. Tempo ====
-FUSO = "America/Mexico_City"  # o INEGI divulga às 06:00 da Cidade do México
-MESES_JANELA_ATUALIZACAO = 6  # a atualização rebaixa os últimos 6 meses; atraso maior refaz tudo
+FUSO = "America/Mexico_City"  # o INEGI divulga às 06:00 de lá, e é esse relógio que decide se já saiu dado
+MESES_JANELA_ATUALIZACAO = 6  # no dia a dia rebaixo só os últimos 6 meses; atrasado mais que isso, refaço tudo
 
 # ==== 3. Rede ====
-TENTATIVAS_REDE = 3  # o servidor do INEGI derruba conexões de vez em quando; 3 tentativas bastam
-TEMPO_LIMITE_SEGUNDOS = 120  # uma exportação de 120 genéricos com todo o histórico leva uns 15 s
-LOTE_EXPORTACAO_IDS = 120  # ids por pedido ao exportador; com os 463 de uma vez o pedido passava de 1 minuto
+TENTATIVAS_REDE = 3  # o servidor do INEGI derruba conexão de vez em quando; na terceira quase sempre vai
+TEMPO_LIMITE_SEGUNDOS = 120  # um lote de 120 genéricos com o histórico inteiro leva uns 15 s, então sobra folga
+LOTE_EXPORTACAO_IDS = 120  # pedir os 463 de uma vez passava de um minuto e às vezes caía
 
 # ==== 4. Fontes do INEGI ====
 URL_EXPORTADOR = "https://www.inegi.org.mx/app/indicesdeprecios/Exportacion.aspx?INPtipoExporta=CSV"
@@ -32,26 +34,26 @@ URLS_PONDERADORES = {
 }
 
 # ==== 5. Estruturas do app indicesdeprecios (cesta 2024) ====
-# Onde estão os 16 componentes e as 16 incidências do catálogo, por (tipo, frequência).
+# ids que achei navegando no app: onde moram os 16 componentes e as 16 incidências, por tipo e frequência
 ESTRUTURAS = {
     ("indice", "mensal"): "112001700010",
     ("indice", "quinzenal"): "112001600020",
     ("incidencia", "mensal"): "112001800030",
     ("incidencia", "quinzenal"): "112001800020",
 }
-# Árvore por objeto do gasto, que contém os 292 genéricos: (estrutura, nó raiz).
+# a árvore por objeto do gasto é a única que desce até os 292 genéricos: (estrutura, nó raiz)
 ARVORES = {
     "mensal": ("112001700030", "1120017000300010"),
     "quinzenal": ("112001600030", "1120016000300010"),
 }
-# Tabulados oficiais do último release, usados como gabarito na validação.
+# o tabulado que o INEGI publica no release é o gabarito da validação
 TABULADOS = {"mensal": "CA55_2018A", "quinzenal": "CA56_2018A"}
 
 # ==== 6. Componentes e nomes de exibição ====
-PERIODOS_POR_ANO = {"mensal": 12, "quinzenal": 24}  # fato: o INPC sai por mês e por quinzena
+PERIODOS_POR_ANO = {"mensal": 12, "quinzenal": 24}  # para a variação anual: 12 meses atrás, ou 24 quinzenas
 COMPONENTES_PRINCIPAIS = ("indice_general", "subyacente", "no_subyacente")
 COMPONENTES_NIVEL_2 = ("mercancias", "servicios", "agropecuarios", "energeticos_y_tarifas")
-# Rótulos curtos dos componentes na tela; os nomes do INEGI são longos demais para eixos e tabelas.
+# os nomes do INEGI não cabem em eixo nem em tabela; aqui ficam os que eu uso na tela
 NOMES_EXIBICAO = {
     "indice_general": "INPC geral",
     "subyacente": "Subyacente",
@@ -72,11 +74,11 @@ NOMES_EXIBICAO = {
 }
 
 # ==== 7. Janelas das análises e tolerância da validação ====
-ANO_INICIO_DESSAZONALIZACAO = 2000  # antes disso a inflação alta distorce o padrão sazonal
-ANOS_NORMA_SAZONAL = (2010, 2019)  # década de inflação estável, antes da pandemia
-ANO_INICIO_GRAFICOS = 2019  # os gráficos de histórico começam em jan/2019 (pré-pandemia)
-# Primeiro período em que o genérico e o período anterior já estão na cesta 2024 (entrou na 2Q jul/2024).
+ANO_INICIO_DESSAZONALIZACAO = 2000  # antes disso a inflação era alta e o padrão sazonal se perde no ruído
+ANOS_NORMA_SAZONAL = (2010, 2019)  # uma década de inflação comportada, antes da pandemia bagunçar tudo
+ANO_INICIO_GRAFICOS = 2019  # começo o histórico dos gráficos um ano antes da pandemia, para ter referência
+# a cesta 2024 entrou na 2a quinzena de julho de 2024; o primeiro período em que ele e o anterior já estão nela
 INICIO_CESTA_2024 = {"quinzenal": "2024-07-Q2", "mensal": "2024-08"}
-MESES_METRICAS_GENERICOS = 24  # quantos meses de métricas por genérico vão para o dashboard
-MESES_VALIDACAO_ADITIVIDADE = 24  # janela em que as incidências têm de somar o INPC
-TOLERANCIA_VALIDACAO_PP = 0.01  # o INEGI publica as variações com 2 casas decimais
+MESES_METRICAS_GENERICOS = 24  # quanto histórico de genéricos vai para o dashboard
+MESES_VALIDACAO_ADITIVIDADE = 24  # janela em que confiro se as incidências somam o INPC
+TOLERANCIA_VALIDACAO_PP = 0.01  # o INEGI publica com 2 casas, então 0,01 pp é a menor diferença que dá para ver
