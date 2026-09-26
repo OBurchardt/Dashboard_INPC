@@ -15,6 +15,9 @@ import pandas as pd
 
 from config import parametros as p
 
+MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+COLUNAS_ROTULO = ["rotulo_periodo", "rotulo_curto", "rotulo_mes"]
+
 # Vigência de cada cesta: a de 2024 entrou na 2a quinzena de julho de 2024.
 CESTAS = {"2018": ("ponderadores_2018.xlsx", "2018-07-Q2", "2024-07-Q1"),
           "2024": ("ponderadores_2024.xlsx", "2024-07-Q2", None)}
@@ -25,6 +28,14 @@ def normalizar(nome):
     """Tira acento, maiúscula e pontuação, para casar o mesmo nome escrito de jeitos diferentes pelo INEGI."""
     sem_acento = unicodedata.normalize("NFKD", str(nome)).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]", "", sem_acento.lower())
+
+
+def rotulos_do_periodo(periodo):
+    """Rótulos de tela de um período: completo ('1ª quinz. ago/26'), curto para cabeçalho ('1ª q. ago') e o mês ('ago/26')."""
+    mes = f"{MESES[int(periodo[5:7]) - 1]}/{periodo[2:4]}"
+    if "-Q" not in periodo:
+        return mes, mes, mes
+    return f"{periodo[-1]}ª quinz. {mes}", f"{periodo[-1]}ª q. {mes[:3]}", mes
 
 
 def data_do_periodo(periodo):
@@ -38,6 +49,9 @@ def ler_tabela_raw(nome):
     longa = tabela.melt(id_vars="periodo", var_name="id_serie", value_name="valor")
     longa["valor"] = pd.to_numeric(longa["valor"].replace({"N/E": None, "NA": None}))
     longa["data"] = longa["periodo"].map(data_do_periodo)
+    rotulos = {periodo: rotulos_do_periodo(periodo) for periodo in longa["periodo"].unique()}
+    for posicao, coluna in enumerate(COLUNAS_ROTULO):
+        longa[coluna] = longa["periodo"].map(lambda periodo: rotulos[periodo][posicao])
     # antes do início de cada série o INEGI preenche com N/E: esses períodos saem; lacunas no meio ficam como nulo
     longa = longa.sort_values(["id_serie", "data"])
     return longa[longa["valor"].notna().groupby(longa["id_serie"]).cummax()]
@@ -57,7 +71,7 @@ def montar_series(catalogo):
     """Componentes e incidências nas duas frequências, com os metadados do catálogo."""
     tabelas = [ler_tabela_raw(f"{nome}_{frequencia}") for nome in ("componentes", "incidencias") for frequencia in ("mensal", "quinzenal")]
     series = pd.concat(tabelas).merge(catalogo[["id_serie", "tipo", "componente", "nivel", "pai", "frequencia"]], on="id_serie")
-    return series[["id_serie", "tipo", "componente", "nivel", "pai", "frequencia", "periodo", "data", "valor"]]
+    return series[["id_serie", "tipo", "componente", "nivel", "pai", "frequencia", "periodo", *COLUNAS_ROTULO, "data", "valor"]]
 
 
 # ==== 3. Ponderadores e classificação dos genéricos ====
@@ -106,7 +120,7 @@ def montar_genericos(ponderadores):
         tabelas.append(tabela.assign(frequencia=frequencia))
     genericos = pd.concat(tabelas).merge(classificacao, on="codigo_generico").rename(columns={"valor": "indice"})
     return genericos[["codigo_generico", "nome_generico", "subindice", "componente_nivel2", "componente_nivel1",
-                      "frequencia", "periodo", "data", "indice"]]
+                      "frequencia", "periodo", *COLUNAS_ROTULO, "data", "indice"]]
 
 
 # ==== 5. Hierarquia e tabulado oficial ====

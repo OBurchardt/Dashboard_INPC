@@ -1,1 +1,569 @@
-<!-- Template HTML do dashboard do INPC: esqueleto onde montagem.py insere tabelas e gráficos. A preencher. -->
+<!doctype html>
+<!--
+  Template do dashboard do INPC. Todo o visual mora aqui: tokens de cor e tipografia, grade, cards,
+  tabelas e o tema único dos gráficos. Os dados chegam prontos de montagem.py em window.DADOS
+  (figuras plotly sem estilo, tabelas HTML com classes, cabeçalho e frases de destaque).
+  Referência: notas de research institucional e gráficos do FT e da The Economist — dado forte,
+  moldura discreta, muito respiro. Navy como cor de marca em áreas grandes, azul como acento,
+  o resto off-white e cinzas azulados. Nenhuma cor fora do bloco :root.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INPC México · Monitor do release</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ==== 1. Tokens: o único lugar com cores, tamanhos e espaços ==== */
+:root {
+  /* superfícies */
+  --bg: #F6F7F9;                 /* fundo da página (off-white) */
+  --surface: #FFFFFF;            /* cards */
+  --surface-2: #F1F4F9;          /* chips e áreas secundárias */
+  --border: #E4E8EF;             /* bordas e separadores */
+
+  /* tinta */
+  --ink: #05132A;                /* texto principal */
+  --ink-2: #3D4A5F;              /* texto secundário */
+  --ink-3: #7A869A;              /* rótulos, eixos, notas */
+
+  /* rampa azul da marca */
+  --azul-900: #05132A;
+  --azul-800: #0D336A;
+  --azul-700: #13478F;
+  --azul-600: #195AB4;
+  --azul-400: #4E97F0;
+  --azul-200: #C6D6EE;
+  --azul-100: #E4ECF7;
+  --azul-50: #F3F6FB;
+
+  /* semântica: só em deltas e sinais, nunca como cor de série */
+  --pior: #B4432F;               /* inflação subindo */
+  --melhor: #0E7C5A;             /* inflação caindo */
+
+  /* séries: core em azuis, não core em âmbar e verde-azulado */
+  --serie-inpc: #05132A;
+  --serie-subyacente: #195AB4;
+  --serie-mercancias: #4E97F0;
+  --serie-servicios: #195AB4;
+  --serie-agropecuarios: #D48A16;
+  --serie-energeticos: #0E9C8A;
+  --serie-no-subyacente: #D48A16;
+
+  /* gráficos */
+  --grade: #EEF1F5;              /* grade horizontal */
+  --zero: #D5DBE5;               /* linha de zero dos gráficos de barras */
+  --banda-meta: rgba(25, 90, 180, 0.06);   /* intervalo de 2% a 4% do Banxico */
+  --branco: #FFFFFF;             /* texto sobre fundos escuros */
+
+  /* tipografia: escala 12/13/14/16/20/32 */
+  --fonte: "Inter", "Segoe UI", system-ui, sans-serif;
+  --t-12: 12px; --t-13: 13px; --t-14: 14px; --t-16: 16px; --t-20: 20px; --t-32: 32px;
+
+  /* forma e espaço: só 8/12/16/24/32 */
+  --raio-card: 12px;
+  --raio-pilula: 999px;
+  --e-8: 8px; --e-12: 12px; --e-16: 16px; --e-24: 24px; --e-32: 32px;
+  --coluna: 1320px;              /* largura da coluna única de conteúdo */
+  --altura-grafico: 300px;
+  --altura-grafico-alta: 360px;
+}
+
+/* ==== 2. Base e coluna única ==== */
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--fonte); font-size: var(--t-13); line-height: 1.45; -webkit-font-smoothing: antialiased; }
+.coluna { max-width: var(--coluna); margin: 0 auto; padding: 0 var(--e-32); }
+
+/* faixa superior navy */
+.faixa { background: var(--azul-900); color: var(--branco); }
+.faixa .coluna { display: flex; align-items: center; gap: var(--e-24); height: 56px; white-space: nowrap; overflow-x: auto; }
+.marca { font-size: var(--t-16); font-weight: 600; letter-spacing: -0.01em; }
+.marca span { color: var(--azul-200); font-weight: 400; margin-left: var(--e-8); }
+.faixa-info { margin-left: auto; display: flex; align-items: center; gap: var(--e-16); font-size: var(--t-12); color: var(--azul-200); }
+.faixa-info strong { color: var(--branco); font-weight: 500; }
+.faixa-info .divisor { width: 1px; height: 16px; background: var(--azul-700); }
+.pilula { display: inline-flex; align-items: center; gap: 4px; border-radius: var(--raio-pilula); padding: 2px 10px; font-size: var(--t-12); font-weight: 500; font-variant-numeric: tabular-nums; }
+.pilula.validacao-ok { background: color-mix(in srgb, var(--melhor) 20%, transparent); color: var(--branco); }
+.pilula.validacao-falhou { background: color-mix(in srgb, var(--pior) 45%, transparent); color: var(--branco); }
+
+/* abas */
+.abas { background: var(--surface); border-bottom: 1px solid var(--border); }
+.abas .coluna { display: flex; gap: var(--e-24); }
+.abas button { font: inherit; font-size: var(--t-14); font-weight: 500; color: var(--ink-3); background: none; border: none; border-bottom: 2px solid transparent; padding: var(--e-12) 0; cursor: pointer; }
+.abas button.ativa { color: var(--ink); border-bottom-color: var(--azul-600); }
+
+/* grade de 12 colunas */
+main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
+.painel { display: none; }
+.painel.ativo { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--e-16); }
+.c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c6 { grid-column: span 6; }
+.c7 { grid-column: span 7; } .c12 { grid-column: span 12; }
+@media (max-width: 1100px) { .painel.ativo > * { grid-column: 1 / -1; } .destaques { grid-template-columns: 1fr 1fr; } }
+
+/* ==== 3. Cards ==== */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--raio-card); padding: 20px var(--e-24); min-width: 0; }
+.card-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--e-16); margin-bottom: var(--e-12); }
+.card h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.card .sub { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.chip { flex: none; background: var(--surface-2); color: var(--ink-3); font-size: 11px; font-weight: 500; border-radius: var(--raio-pilula); padding: 3px 10px; white-space: nowrap; }
+.fonte { margin: var(--e-8) 0 0; font-size: 11.5px; color: var(--ink-3); }
+
+/* cartões de KPI */
+.kpi { display: flex; flex-direction: column; gap: var(--e-8); padding-bottom: var(--e-16); }
+.kpi-rotulo { font-size: var(--t-13); color: var(--ink-3); }
+.kpi-linha { display: flex; align-items: baseline; gap: var(--e-12); }
+.kpi-principal { font-size: var(--t-32); font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.kpi-secundario { font-size: var(--t-20); color: var(--ink-2); font-weight: 500; }
+.kpi-secundario small { font-size: var(--t-12); color: var(--ink-3); font-weight: 400; margin-left: 4px; }
+.kpi-nota { font-size: var(--t-12); color: var(--ink-3); }
+.pilula.pior { background: color-mix(in srgb, var(--pior) 10%, transparent); color: var(--pior); align-self: flex-start; }
+.pilula.melhor { background: color-mix(in srgb, var(--melhor) 10%, transparent); color: var(--melhor); align-self: flex-start; }
+.sparkline { width: 100%; height: 32px; margin-top: auto; }
+.sparkline polyline { fill: none; stroke: var(--azul-200); stroke-width: 1.5; }
+.sparkline circle { fill: var(--azul-600); }
+
+/* faixa de destaques: 4 fatos lado a lado */
+.destaques { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.destaque { padding: 0 var(--e-24); border-left: 1px solid var(--border); }
+.destaque:first-child { padding-left: 0; border-left: none; }
+.destaque-rotulo { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 4px; }
+.destaque-texto { font-size: var(--t-14); color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* card vazio de fontes externas */
+.vazio { text-align: center; padding: var(--e-32) var(--e-24); }
+.vazio h3 { font-size: var(--t-16); }
+.vazio p { color: var(--ink-3); margin: var(--e-8) 0 0; }
+
+/* ==== 4. Tabelas ==== */
+.tabela-dados { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tabela-dados caption { text-align: left; font-size: var(--t-13); font-weight: 600; padding-bottom: var(--e-8); }
+.tabela-dados th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); text-align: right; padding: 0 var(--e-8) var(--e-8); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tabela-dados th:first-child { text-align: left; padding-left: 0; }
+.tabela-dados td { height: 36px; padding: 0 var(--e-8); border-bottom: 1px solid var(--border); color: var(--ink); }
+.tabela-dados td:first-child { padding-left: 0; }
+.tabela-dados tbody tr:last-child td { border-bottom: none; }
+.tabela-dados td.numero { text-align: right; white-space: nowrap; }
+.tabela-dados td.positivo { color: var(--pior); }
+.tabela-dados td.negativo { color: var(--melhor); }
+.tabela-dados td.neutro { color: var(--ink); }
+.tabela-dados td.generico { padding-top: 6px; padding-bottom: 6px; }
+.sub-linha { display: block; font-size: 11.5px; color: var(--ink-3); }
+.tabela-dados tr.grupo th { text-align: left; text-transform: none; letter-spacing: 0; font-size: var(--t-13); color: var(--ink); padding: var(--e-16) 0 var(--e-8); }
+.barra-inline { display: inline-block; height: 4px; border-radius: 2px; margin-right: var(--e-8); vertical-align: middle; }
+.barra-inline.positivo { background: var(--pior); }
+.barra-inline.negativo { background: var(--melhor); }
+.tabela-dados tr.grupo-colunas th { text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.tabela-dados tr.grupo-colunas th:first-child { border-bottom: none; }
+.tabela-dados td.componente { white-space: nowrap; }
+[data-card="main_ultimos_periodos"] .tabela-dados th, [data-card="main_ultimos_periodos"] .tabela-dados td { padding-left: 6px; padding-right: 6px; }
+[data-card="main_ultimos_periodos"] .tabela-dados td:first-child, [data-card="main_ultimos_periodos"] .tabela-dados th:first-child { padding-left: 0; }
+.lado-a-lado { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-32); }
+@media (max-width: 1100px) { .lado-a-lado { grid-template-columns: 1fr; } }
+
+/* rodapé */
+.rodape { border-top: 1px solid var(--border); padding: var(--e-16) 0 var(--e-32); font-size: var(--t-12); color: var(--ink-3); }
+</style>
+</head>
+<body>
+
+<header class="faixa">
+  <div class="coluna">
+    <div class="marca">INPC México<span>Monitor do release</span></div>
+    <div class="faixa-info">
+      <span id="release"></span><span class="divisor"></span>
+      <span id="proximo"></span><span class="divisor"></span>
+      <span id="atualizado"></span>
+      <span class="pilula" id="validacao"></span>
+    </div>
+  </div>
+</header>
+
+<nav class="abas">
+  <div class="coluna">
+    <button data-aba="resumo" class="ativa">Resumo</button>
+    <button data-aba="composicao">Composição</button>
+    <button data-aba="tendencia">Tendência</button>
+    <button data-aba="externas">Fontes externas</button>
+  </div>
+</nav>
+
+<main class="coluna">
+  <!-- ==== Resumo ==== -->
+  <section class="painel ativo" id="resumo">
+    <div id="kpis" style="display: contents"></div>
+    <div class="card c12"><div class="destaques" id="destaques"></div></div>
+
+    <div class="card c6" data-card="main_inpc_meta">
+      <h3>INPC geral vs meta</h3><p class="sub">Variação em 12 meses (%); ponto destacado: última quinzena</p>
+    </div>
+    <div class="card c6" data-card="main_core_meta">
+      <h3>Subyacente vs meta</h3><p class="sub">Variação em 12 meses (%); ponto destacado: última quinzena</p>
+    </div>
+    <div class="card c12" data-card="main_contribuicoes">
+      <h3>Contribuições para a inflação em 12 meses</h3><p class="sub">Componentes do nível 2 (pp) e INPC geral (%)</p>
+    </div>
+    <div class="card c7" data-card="main_vs_norma">
+      <h3>Último período vs norma sazonal</h3><p class="sub">Variação no período (%); marcador: mediana 2010–2019; traço: p25 a p75</p>
+    </div>
+    <div class="card c5" data-card="main_ultimos_periodos" data-tipo="tabela">
+      <h3>Últimos períodos</h3><p class="sub">Variação no período e em 12 meses (%)</p>
+    </div>
+    <div class="card c12" data-card="main_top_incidencias" data-tipo="tabela">
+      <h3>Incidências por genérico</h3><p class="sub">Contribuição para a variação do INPC no período (pp)</p>
+    </div>
+  </section>
+
+  <!-- ==== Composição ==== -->
+  <section class="painel" id="composicao">
+    <div class="card c12" data-card="decomp_arvore">
+      <h3>Decomposição da variação do período</h3><p class="sub">Incidência (pp); área proporcional ao tamanho da incidência de cada subíndice</p>
+    </div>
+    <div class="card c7" data-card="decomp_desvios" data-tipo="tabela">
+      <h3>Surpresas vs norma sazonal</h3><p class="sub">Genéricos cujo desvio da norma 2010–2019 mais pesou no INPC (pp)</p>
+    </div>
+    <div class="card c5" data-card="decomp_servicos_mercancias">
+      <h3>Serviços vs mercadorias</h3><p class="sub">Variação em 12 meses (%)</p>
+    </div>
+  </section>
+
+  <!-- ==== Tendência ==== -->
+  <section class="painel" id="tendencia">
+    <div class="card c6" data-card="tend_dessazonalizado">
+      <h3>Variação mensal dessazonalizada</h3><p class="sub">INPC geral e subyacente, ajuste STL (%)</p>
+    </div>
+    <div class="card c6" data-card="tend_momentum" data-nota="Últimos pontos da série dessazonalizada podem ser revisados (fim de amostra).">
+      <h3>Momentum da subyacente</h3><p class="sub">Variação dessazonalizada anualizada de 3 e 6 meses e variação em 12 meses (%)</p>
+    </div>
+    <div class="card c6" data-card="tend_perfil_sazonal">
+      <h3>Perfil sazonal do INPC</h3><p class="sub">Variação mensal (%): faixa p25 a p75 e mediana de 2010–2019; ano corrente</p>
+    </div>
+    <div class="card c6" data-card="tend_difusao">
+      <h3>Difusão</h3><p class="sub">% do peso da cesta com alta no mês e com alta acima de 4% em 12 meses</p>
+    </div>
+  </section>
+
+  <!-- ==== Fontes externas ==== -->
+  <section class="painel" id="externas">
+    <div class="card c12 vazio">
+      <h3>Em construção</h3>
+      <p>Surpresa vs consenso e projeções do Banxico.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="coluna"><div class="rodape">
+  Fonte: INEGI (Índices de Precios e tabulados oficiais). Validação: último release confere com o tabulado oficial; incidências somam o INPC.
+</div></footer>
+
+<script>/*__PLOTLY__*/</script>
+<script id="dados">/*__DADOS__*/</script>
+<script>
+// ==== 1. Tokens lidos do CSS (nenhuma cor é escrita aqui) ====
+const css = (nome) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+
+// cor fixa de cada componente, aplicada a partir de meta.componente de cada traço
+const COR_COMPONENTE = {
+  indice_general: css("--serie-inpc"), subyacente: css("--serie-subyacente"), no_subyacente: css("--serie-no-subyacente"),
+  mercancias: css("--serie-mercancias"), servicios: css("--serie-servicios"), agropecuarios: css("--serie-agropecuarios"),
+  energeticos_y_tarifas: css("--serie-energeticos"),
+};
+// séries que não são componentes e as medidas do momentum
+const COR_SERIE = { norma: css("--ink"), norma_mediana: css("--ink-3"), pct_cesta_em_alta: css("--ink"), pct_cesta_anual_acima_4: css("--azul-600") };
+const COR_MEDIDA = { saar_3m: css("--azul-600"), saar_6m: css("--azul-400"), variacao_anual: css("--ink") };
+const SUFIXO = { main_contribuicoes: " pp" };
+const ALTA = new Set(["decomp_arvore", "main_contribuicoes"]);
+const RELEASE = new Set(["main_vs_norma", "decomp_arvore"]);   // mostram só o último período do release
+
+// ==== 2. Formatação ====
+function numero(valor, casas, sufixo) {
+  const texto = Math.abs(valor).toFixed(casas).replace(".", ",") + sufixo;
+  return valor < 0 ? "−" + texto : texto;
+}
+const lerNumero = (texto) => parseFloat(texto.replace("−", "-").replace(",", "."));
+const comAlfa = (hex, alfa) => `rgba(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")}, ${alfa})`;
+const periodoCurto = (rotulo) => rotulo.replace(/\/\d{2}$/, "");   // "2ª quinz. ago/26" -> "2ª quinz. ago"
+
+// ==== 3. Faixa superior, KPIs e destaques ====
+function montarFaixa(c) {
+  document.getElementById("release").innerHTML = `<strong>${c.release}</strong> · divulgado ${c.divulgado} CDMX`;
+  document.getElementById("proximo").textContent = `Próximo ${c.proximo.replace(/\/\d{4}/, "")} (${c.dias_ate_proximo} dias)`;
+  document.getElementById("atualizado").textContent = `Atualizado ${c.atualizado}`;
+  const pilula = document.getElementById("validacao");
+  pilula.textContent = `Validação ${c.validacao}`;
+  pilula.classList.add(c.validacao_ok ? "validacao-ok" : "validacao-falhou");
+}
+
+function sparkline(slot) {
+  // últimos 24 meses da variação anual, sem eixos: só a forma da trajetória e o ponto atual
+  const traco = DADOS.graficos[slot].data[0];
+  const y = traco.y.slice(-24), min = Math.min(...y), max = Math.max(...y);
+  const pontos = y.map((v, i) => [i / (y.length - 1) * 100, 28 - (v - min) / (max - min || 1) * 24 + 2]);
+  const [ux, uy] = pontos[pontos.length - 1];
+  return `<svg class="sparkline" viewBox="0 0 104 32" preserveAspectRatio="none">
+    <polyline points="${pontos.map((p) => p.join(",")).join(" ")}" vector-effect="non-scaling-stroke"/>
+    <circle cx="${ux}" cy="${uy}" r="2.5"/></svg>`;
+}
+
+function cartaoKpi(k, slotSparkline) {
+  return `<div class="card c3 kpi">
+    <div class="kpi-rotulo">${k.nome}</div>
+    <div class="kpi-linha"><span class="kpi-principal">${k.variacao_anual}</span>
+      <span class="kpi-secundario">${k.variacao_periodo}<small>${k.rotulo_periodo}</small></span></div>
+    <span class="pilula ${k.classe === "alta" ? "pior" : "melhor"}">${k.seta} ${k.mudanca} vs ${periodoCurto(k.anterior)}</span>
+    ${slotSparkline ? sparkline(slotSparkline) : ""}
+  </div>`;
+}
+
+function cartaoMensalImplicito(m) {
+  return `<div class="card c3 kpi" title="Subyacente implícita: ${m.subyacente}">
+    <div class="kpi-rotulo">Mensal implícito · ${m.mes}</div>
+    <div class="kpi-linha"><span class="kpi-principal">${m.variacao_mensal}</span>
+      <span class="kpi-secundario">${m.variacao_anual}<small>em 12 meses</small></span></div>
+    <div class="kpi-nota">intervalo ${m.intervalo_mensal.replace(" a ", "–")} · 2ª quinzena pela mediana sazonal</div>
+  </div>`;
+}
+
+function montarKpis(c) {
+  const sparklines = ["main_inpc_meta", "main_core_meta", null];   // no subyacente não tem série no graficos.json
+  document.getElementById("kpis").innerHTML = c.kpis.map((k, i) => cartaoKpi(k, sparklines[i])).join("")
+    + (c.mensal_implicito ? cartaoMensalImplicito(c.mensal_implicito) : "");
+  if (!c.mensal_implicito) document.querySelectorAll("#kpis .c3").forEach((el) => el.classList.replace("c3", "c4"));
+}
+
+function montarDestaques(frases) {
+  // as frases vêm como "Rótulo: fato"; o rótulo vira o título curto em caixa-alta
+  const rotulos = ["Inflação", "Maior incidência", "Maior surpresa", "Difusão"];
+  document.getElementById("destaques").innerHTML = frases.map((f, i) =>
+    `<div class="destaque"><div class="destaque-rotulo">${rotulos[i]}</div>
+     <div class="destaque-texto">${f.includes(": ") ? f.slice(f.indexOf(": ") + 2) : f}</div></div>`).join("");
+}
+
+// ==== 4. Cards: cabeçalho com chip, corpo e rodapé ====
+function chipDoCard(slot, figura) {
+  // frequência e janela mostradas no gráfico
+  const frequencia = DADOS.cabecalho.frequencia === "quinzenal" ? "Quinzenal" : "Mensal";
+  if (RELEASE.has(slot)) return `${frequencia} · ${DADOS.cabecalho.release}`;
+  if (slot === "tend_perfil_sazonal") return `Mensal · norma 2010–2019 e ${DADOS.cabecalho.ano}`;   // eixo em meses do ano
+  const datas = figura.data.flatMap((t) => (t.x || [])).filter((x) => /^\d{4}-/.test(String(x)));
+  if (!datas.length) return `Mensal · ${DADOS.cabecalho.ano}`;
+  const anos = datas.map((x) => String(x).slice(0, 4)).sort();
+  return `Mensal · ${anos[0]}–${anos[anos.length - 1]}`;
+}
+
+function montarCard(card) {
+  const slot = card.dataset.card;
+  const titulo = card.innerHTML;
+  const figura = DADOS.graficos[slot];
+  const chip = figura ? `<span class="chip">${chipDoCard(slot, figura)}</span>` : "";
+  const nota = card.dataset.nota ? ` ${card.dataset.nota}` : "";
+  const corpo = card.dataset.tipo === "tabela" ? `<div class="tabela">${DADOS.tabelas[slot]}</div>` : `<div class="grafico" data-grafico="${slot}"></div>`;
+  card.innerHTML = `<div class="card-topo"><div>${titulo}</div>${chip}</div>${corpo}<p class="fonte">Fonte: INEGI. Elaboração própria.${nota}</p>`;
+  if (card.dataset.tipo === "tabela") refinarTabelas(card, slot);
+}
+
+// ==== 5. Tabelas: subíndice sob o nome, barras de incidência e cor só nas variações ====
+function refinarTabelas(card, slot) {
+  card.querySelectorAll("table").forEach((tabela) => {
+    if (slot === "main_ultimos_periodos") return tabela.querySelectorAll("td.numero").forEach((td) => td.classList.add("neutro"));   // níveis de inflação, não deltas
+    const titulos = [...tabela.querySelectorAll("thead th")].map((th) => th.textContent.trim().toLowerCase());
+    // subíndice sai da coluna própria e vai para baixo do nome do genérico
+    const colunaSub = titulos.indexOf("subíndice");
+    if (colunaSub >= 0) {
+      tabela.querySelectorAll("tbody tr").forEach((tr) => {
+        const sub = tr.querySelector("td.subindice");
+        if (sub) { tr.querySelector("td.generico").insertAdjacentHTML("beforeend", `<span class="sub-linha">${sub.textContent}</span>`); sub.remove(); }
+      });
+      tabela.querySelectorAll("thead th")[colunaSub].remove();
+    }
+    const titulosFinais = [...tabela.querySelectorAll("thead th")].map((th) => th.textContent.trim().toLowerCase());
+    const comBarra = ["incidência", "contribuição da surpresa"].map((t) => titulosFinais.indexOf(t)).filter((i) => i >= 0);
+    const neutras = [titulosFinais.indexOf("norma")].filter((i) => i >= 0);
+    const linhas = [...tabela.querySelectorAll("tbody tr")].filter((tr) => !tr.classList.contains("grupo"));
+    comBarra.forEach((coluna) => {
+      // barra fina proporcional ao módulo, na cor do sinal; o número fica em tinta neutra
+      const celulas = linhas.map((tr) => tr.children[coluna]);
+      const maior = Math.max(...celulas.map((td) => Math.abs(lerNumero(td.textContent))));
+      celulas.forEach((td) => {
+        const valor = lerNumero(td.textContent);
+        td.insertAdjacentHTML("afterbegin", `<span class="barra-inline ${valor > 0 ? "positivo" : "negativo"}" style="width:${Math.round(Math.abs(valor) / maior * 48)}px"></span>`);
+        td.classList.add("neutro");
+      });
+    });
+    neutras.forEach((coluna) => linhas.forEach((tr) => tr.children[coluna] && tr.children[coluna].classList.add("neutro")));
+  });
+}
+
+// ==== 6. Tema único dos gráficos ====
+function corDoTraco(t) {
+  const meta = t.meta || {};
+  return COR_MEDIDA[meta.medida] || COR_COMPONENTE[meta.componente] || COR_SERIE[meta.serie] || css("--ink");
+}
+
+function faixaDosValores(dados, empilhado, eixo) {
+  // range calculado dos dados com 10% de folga; barras incluem o zero
+  const valores = [];
+  dados.forEach((t) => {
+    if (!t[eixo]) return;
+    const erro = t[`error_${eixo}`];
+    t[eixo].forEach((v, i) => {
+      if (v === null) return;
+      valores.push(v);
+      if (erro) valores.push(v + erro.array[i], v - erro.arrayminus[i]);
+    });
+  });
+  const barras = dados.filter((t) => t.type === "bar");
+  if (empilhado && barras.length) {
+    barras[0][eixo].forEach((_, i) => {
+      valores.push(barras.reduce((s, t) => s + Math.max(t[eixo][i], 0), 0), barras.reduce((s, t) => s + Math.min(t[eixo][i], 0), 0));
+    });
+  }
+  if (barras.length) valores.push(0);
+  const min = Math.min(...valores), max = Math.max(...valores), folga = (max - min) * 0.1;
+  return [min - folga, max + folga];
+}
+
+function fimDoEixoX(dados) {
+  // o eixo termina 2 meses depois do último dado, sem espaço morto até o ano seguinte
+  const ultimas = dados.flatMap((t) => t.x || []).filter((x) => /^\d{4}-/.test(String(x))).sort();
+  const fim = new Date(ultimas[ultimas.length - 1]);
+  fim.setMonth(fim.getMonth() + 2);
+  return [ultimas[0], fim.toISOString().slice(0, 10)];
+}
+
+function estilizarTraco(t, sufixo, eixo) {
+  const cor = corDoTraco(t);
+  const serie = (t.meta || {}).serie || "";
+  t.hovertemplate = `${t.name}: %{${eixo}:.2f}${sufixo}<extra></extra>`;
+  if (t.type === "bar") {
+    t.marker = { color: cor, line: { width: 1, color: css("--surface") } };   // a borda branca separa os segmentos empilhados
+  } else if (serie.startsWith("norma_p")) {
+    t.line = { width: 0 };
+    t.fillcolor = css("--azul-100");
+    t.showlegend = serie === "norma_p75";
+    t.name = serie === "norma_p75" ? "Norma p25–p75" : t.name;
+    t.hoverinfo = "skip";
+  } else if (t.mode === "markers") {
+    // ponto destacado (última quinzena) ou marcador da norma
+    t.marker = { size: 10, color: cor, line: { color: css("--surface"), width: 2 } };
+    ["error_x", "error_y"].forEach((erro) => { if (t[erro]) t[erro] = { ...t[erro], color: css("--ink-3"), thickness: 1.5, width: 6 }; });
+  } else {
+    // linha de 2px com o ponto final marcado (r=4 e anel branco)
+    const ultimo = t.x.length - 1;
+    t.mode = "lines+markers";
+    t.line = { width: 2, color: cor, dash: serie === "norma_mediana" ? "dot" : "solid" };
+    t.marker = { color: cor, size: t.x.map((_, i) => (i === ultimo ? 8 : 0)), line: { color: css("--surface"), width: t.x.map((_, i) => (i === ultimo ? 2 : 0)) } };
+  }
+}
+
+function rotulosFinais(dados, sufixo) {
+  // um rótulo com o último valor ao lado do ponto final; o ponto destacado (última quinzena), se houver,
+  // é o único rotulado; rótulos a menos de 0,3 pp de um já escrito ficam só no tooltip e na legenda
+  const destacado = dados.filter((t) => t.mode === "markers" && !t.error_y && !t.error_x);
+  const candidatos = destacado.length ? destacado : dados.filter((t) => t.type === "scatter" && t.mode === "lines+markers" && !((t.meta || {}).serie || "").startsWith("norma"));
+  const escritos = [];
+  candidatos.forEach((t) => {
+    const i = t.x.length - 1;
+    if (escritos.some((a) => Math.abs(a.y - t.y[i]) < 0.3)) return;
+    // o ponto destacado leva o rótulo acima e à esquerda, longe da margem onde fica o "Meta 3%"
+    const posicao = destacado.length ? { xanchor: "right", xshift: -8, yanchor: "bottom", yshift: 6 } : { xanchor: "left", xshift: 8 };
+    escritos.push({ x: t.x[i], y: t.y[i], text: numero(t.y[i], 2, sufixo), showarrow: false, ...posicao,
+                    font: { size: 12, color: css("--ink"), family: css("--fonte") } });
+  });
+  escritos.forEach((a) => (a.font.weight = 600));
+  return escritos;
+}
+
+function estilizarArvore(figura) {
+  // cor pelo sinal da incidência e intensidade pelo tamanho; texto branco em fundos fortes
+  const t = figura.data[0];
+  const maior = Math.max(...t.customdata.map(Math.abs));
+  const alfas = t.customdata.map((v) => 0.12 + 0.88 * Math.abs(v) / maior);
+  t.marker = { colors: t.customdata.map((v, i) => comAlfa(css(v > 0 ? "--pior" : "--melhor"), alfas[i])),
+               line: { width: 2, color: css("--surface") }, cornerradius: 4 };
+  t.textfont = { family: css("--fonte"), size: 13, color: alfas.map((a) => (a > 0.55 ? css("--branco") : css("--ink"))) };
+  t.hovertemplate = "%{label}: %{customdata:+.3f} pp<extra></extra>";
+  t.pathbar = { visible: false };
+  t.tiling = { pad: 3 };
+  return { data: figura.data, layout: { height: parseInt(css("--altura-grafico-alta")), margin: { l: 0, r: 0, t: 0, b: 0 },
+           separators: ",.", paper_bgcolor: "rgba(0,0,0,0)", hoverlabel: rotuloDoTooltip() } };
+}
+
+function rotuloDoTooltip() {
+  return { bgcolor: css("--surface"), bordercolor: css("--border"), font: { family: css("--fonte"), size: 12, color: css("--ink") } };
+}
+
+function estilizarFigura(slot, figura) {
+  if (figura.data[0].type === "treemap") return estilizarArvore(figura);
+  const dados = figura.data;
+  const sufixo = SUFIXO[slot] || "%";
+  const temDatas = dados.some((t) => /^\d{4}-\d{2}-\d{2}/.test(String((t.x || [])[0])));
+  const temBarras = dados.some((t) => t.type === "bar");
+  const horizontal = dados.some((t) => t.orientation === "h");
+  const eixoValores = horizontal ? "x" : "y";
+  if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => { t.meta = {}; t.showlegend = false; t.width = 0.4; });
+  dados.forEach((t) => estilizarTraco(t, sufixo, eixoValores));
+  if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => (t.marker.color = css("--azul-600")));
+  const temMeta = (figura.layout.shapes || []).some((s) => s.name === "meta");
+  const legendaVisivel = dados.filter((t) => t.showlegend !== false).length >= 2;
+  // eixo dos valores: grade, sufixo e range com folga; nas barras horizontais ele é o x e a linha de zero fica vertical
+  const eixoDeValores = { gridcolor: css("--grade"), gridwidth: 1, zeroline: temBarras, zerolinecolor: css("--zero"), zerolinewidth: 1,
+                          ticksuffix: sufixo, tickformat: ".1~f", hoverformat: ".2f", title: { text: "" },
+                          range: faixaDosValores(dados, figura.layout.barmode === "relative", eixoValores), fixedrange: true };
+  const eixoDeCategorias = { ...(figura.layout.yaxis || {}), showgrid: false, zeroline: false, ticks: "", automargin: true,
+                             tickfont: { color: css("--ink-2") }, title: { text: "" } };
+  const layout = {
+    ...figura.layout,
+    height: parseInt(css(ALTA.has(slot) ? "--altura-grafico-alta" : "--altura-grafico")),
+    margin: { l: horizontal ? 8 : 40, r: 56, t: legendaVisivel ? 28 : 8, b: 32 },
+    font: { family: css("--fonte"), size: 12, color: css("--ink-3") },
+    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+    separators: ",.", bargap: 0.3, bargroupgap: 0.08, barcornerradius: 4,
+    hovermode: temDatas ? "x unified" : "closest",
+    hoverlabel: rotuloDoTooltip(),
+    showlegend: legendaVisivel,
+    legend: { orientation: "h", x: 0, xanchor: "left", y: 1, yanchor: "bottom", font: { size: 12, color: css("--ink-2") }, itemclick: false },
+    xaxis: horizontal ? eixoDeValores : { showgrid: false, zeroline: false, ticks: "", showline: false, tickfont: { color: css("--ink-3") },
+             title: { text: "" }, ...(temDatas ? { tickformat: "%Y", dtick: "M12", hoverformat: "%m/%Y", range: fimDoEixoX(dados) } : {}) },
+    yaxis: horizontal ? eixoDeCategorias : eixoDeValores,
+    shapes: (figura.layout.shapes || []).map((s) => s.name === "meta"
+      ? { ...s, layer: "below", line: { color: css("--ink-3"), width: 1, dash: "dot" } }
+      : { ...s, layer: "below", fillcolor: css("--banda-meta"), line: { width: 0 } }),
+    annotations: [
+      ...rotulosFinais(dados, sufixo),
+      // "Meta 3%" na margem direita, fora da área dos dados, na altura da linha da meta
+      ...(temMeta ? [{ xref: "paper", x: 1, y: 3, text: "Meta 3%", showarrow: false, xanchor: "left", xshift: 6, yanchor: "middle", font: { size: 11, color: css("--ink-3") } }] : []),
+    ],
+  };
+  return { data: dados, layout };
+}
+
+// ==== 7. Desenho e abas ====
+const desenhados = new Set();
+
+function desenharPainel(painel) {
+  // cada gráfico nasce quando a aba aparece, para ter a largura certa
+  painel.querySelectorAll("[data-grafico]").forEach((div) => {
+    if (desenhados.has(div)) return Plotly.Plots.resize(div);
+    const { data, layout } = estilizarFigura(div.dataset.grafico, DADOS.graficos[div.dataset.grafico]);
+    Plotly.newPlot(div, data, layout, { displayModeBar: false, responsive: true });
+    desenhados.add(div);
+  });
+}
+
+function trocarAba(botao) {
+  document.querySelectorAll(".abas button").forEach((b) => b.classList.toggle("ativa", b === botao));
+  document.querySelectorAll(".painel").forEach((p) => p.classList.toggle("ativo", p.id === botao.dataset.aba));
+  desenharPainel(document.getElementById(botao.dataset.aba));
+}
+
+montarFaixa(DADOS.cabecalho);
+montarKpis(DADOS.cabecalho);
+montarDestaques(DADOS.destaques);
+document.querySelectorAll("[data-card]").forEach(montarCard);
+document.querySelectorAll(".abas button").forEach((b) => b.addEventListener("click", () => trocarAba(b)));
+desenharPainel(document.getElementById("resumo"));
+</script>
+</body>
+</html>

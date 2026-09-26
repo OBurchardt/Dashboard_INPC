@@ -41,3 +41,31 @@ ARVORES = {
 }
 # Tabulados oficiais do último release, usados como gabarito na validação.
 TABULADOS = {"mensal": "CA55_2018A", "quinzenal": "CA56_2018A"}
+
+# ==== 5. Nomes de exibição ====
+# Rótulos curtos dos componentes na tela; os nomes do INEGI são longos demais para eixos e tabelas.
+NOMES_EXIBICAO = {
+    "indice_general": "INPC geral",
+    "subyacente": "Subyacente",
+    "no_subyacente": "No subyacente",
+    "mercancias": "Mercancías",
+    "servicios": "Servicios",
+    "agropecuarios": "Agropecuarios",
+    "energeticos_y_tarifas": "Energéticos e tarifas",
+    "alimentos_bebidas_y_tabaco": "Alimentos, bebidas e tabaco",
+    "mercancias_no_alimenticias": "Mercancías não alimentícias",
+    "vivienda": "Vivienda",
+    "educacion_colegiaturas": "Educação (colegiaturas)",
+    "otros_servicios": "Outros serviços",
+    "frutas_y_verduras": "Frutas e verduras",
+    "pecuarios": "Pecuarios",
+    "energeticos": "Energéticos",
+    "tarifas_autorizadas_por_el_gobierno": "Tarifas do governo",
+}
+
+# ==== 6. Janelas das análises ====
+ANO_INICIO_DESSAZONALIZACAO = 2000  # antes disso a inflação alta distorce o padrão sazonal
+ANOS_NORMA_SAZONAL = (2010, 2019)  # década de inflação estável, antes da pandemia
+ANO_INICIO_GRAFICOS = 2019  # os gráficos de histórico começam em jan/2019 (pré-pandemia)
+# Primeiro período em que o genérico e o período anterior já estão na cesta 2024 (entrou na 2Q jul/2024).
+INICIO_CESTA_2024 = {"quinzenal": "2024-07-Q2", "mensal": "2024-08"}
