@@ -1,28 +1,23 @@
 # Orquestrador do pipeline do INPC (México).
 # Roda as etapas na ordem, cada uma pelo caminho do arquivo (as pastas começam com número,
-# então não dá para importá-las). Rodar daqui também deixa a raiz do projeto no caminho do
-# Python, o que permite a todas as etapas fazer "from config import parametros".
-#   python run_pipeline.py              atualiza só se o calendário diz que saiu dado novo
-#   python run_pipeline.py --completo   reconstrói a base inteira
+# então não dá para importá-las). Cada etapa também roda sozinha: python pipeline/1_dados/tratamento.py
+#   python run_pipeline.py
 
-import argparse
 import runpy
 import time
 from pathlib import Path
 
-PIPELINE = Path(__file__).resolve().parent / "pipeline"
-DEPOIS_DA_INGESTAO = ["1_dados/tratamento.py", "1_dados/validacao.py", "1_dados/dessazonalizacao.py",
-                      "2_analise/metricas.py", "2_analise/tabelas.py", "2_analise/graficos.py"]
+# False: só atualiza a base com o dado mais recente (em dia sem release, nem vai à rede).
+# True: rebaixa todo o histórico do INEGI como se a base não existisse (uns 8 minutos).
+IMPORTAR_DO_ZERO = False
 
-leitor = argparse.ArgumentParser()
-leitor.add_argument("--completo", action="store_true", help="baixa todo o histórico de novo")
-completo = leitor.parse_args().completo
+PIPELINE = Path(__file__).resolve().parent / "pipeline"
+ETAPAS = ["1_dados/ingestao.py", "1_dados/tratamento.py", "1_dados/validacao.py", "1_dados/dessazonalizacao.py",
+          "2_analise/metricas.py", "2_analise/tabelas.py", "2_analise/graficos.py", "3_dashboard/montagem.py"]
 
 inicio = time.time()
-ingestao = runpy.run_path(str(PIPELINE / "1_dados/ingestao.py"), init_globals={"completo": completo}, run_name="__main__")
-if ingestao["base_mudou"]:
-    for etapa in DEPOIS_DA_INGESTAO:
-        runpy.run_path(str(PIPELINE / etapa), run_name="__main__")
-# a montagem roda sempre: mesmo sem dado novo, atualiza o horário e a contagem até o próximo release
-runpy.run_path(str(PIPELINE / "3_dashboard/montagem.py"), run_name="__main__")
+# depois da ingestão tudo roda sempre (leva segundos), para qualquer mudança no código chegar ao dashboard;
+# se a validação falhar, ela para o pipeline antes da montagem e o dashboard anterior, já validado, fica
+for etapa in ETAPAS:
+    runpy.run_path(str(PIPELINE / etapa), init_globals={"importar_do_zero": IMPORTAR_DO_ZERO}, run_name="__main__")
 print(f"Pipeline: {time.time() - inicio:.1f} s")

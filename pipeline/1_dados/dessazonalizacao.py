@@ -1,4 +1,4 @@
-# Etapa 1.4 — Dessazonalização
+# Etapa 1.4: Dessazonalização
 # Tira o padrão sazonal do índice mensal dos 16 componentes (ex.: a alta das colegiaturas em
 # agosto ou o fim do subsídio de eletricidade no outono), para que a variação de um mês possa ser
 # lida como tendência. Método: STL do statsmodels, robusto a outliers, aplicado ao log do índice
@@ -8,12 +8,15 @@
 # O quinzenal não é dessazonalizado: os métodos padrão não trabalham com 24 períodos por ano.
 # Para ele, a leitura sazonal é a comparação com a norma histórica, feita em metricas.py.
 
+import sys
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from statsmodels.tsa.seasonal import STL
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
 from config import parametros as p
 
 

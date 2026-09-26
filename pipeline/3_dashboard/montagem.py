@@ -1,13 +1,14 @@
-# Etapa 3.1 — Montagem do dashboard
+# Etapa 3.1: Montagem do dashboard
 # Junta tudo num único HTML que abre sem internet (vai por e-mail): o template com o visual,
 # o plotly.js embutido e os dados do release (gráficos, tabelas, cabeçalho e frases de destaque).
 # O cabeçalho responde o que o economista quer saber às 06:00: qual release saiu, quando sai o
 # próximo, se a base passou na validação e os números principais. As frases de destaque são
 # geradas por regra, só com fatos do metricas_resumo.json, sem opinião.
-# Lê: pipeline/3_dashboard/template.html, data/processed (graficos, tabelas, metricas_resumo,
-# validacao) e config/calendario_releases.csv. Escreve: output/dashboard_inpc.html.
+# Lê: pipeline/3_dashboard/template.html, data/processed (graficos, tabelas, metricas_resumo)
+# e config/calendario_releases.csv. Escreve: output/dashboard_inpc.html.
 
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -15,6 +16,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 from plotly.offline import get_plotlyjs
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
 from config import parametros as p
 
 
@@ -22,7 +24,9 @@ from config import parametros as p
 # ==== 1. Formatação ====
 def numero(valor, casas=2, sufixo="%", sinal=False):
     """Número em português: vírgula decimal, sinal de menos tipográfico e sufixo."""
-    texto = f"{valor:+.{casas}f}" if sinal else f"{valor:.{casas}f}"
+    if round(valor, casas) == 0:
+        valor = 0.0  # o que arredonda para zero sai "0,00", sem "+" nem "−"
+    texto = f"{valor:+.{casas}f}" if sinal and valor else f"{valor:.{casas}f}"
     return texto.replace("-", "−").replace(".", ",") + sufixo
 
 
@@ -36,11 +40,11 @@ def releases():
 
 def kpi(principal, frequencia):
     """Cartão de um componente: variação no período, anual e quanto a anual mudou contra o período anterior."""
-    mudanca = principal["mudanca_da_anual_pp"]
+    mudanca = round(principal["mudanca_da_anual_pp"], 2)  # o que se vê na tela decide a seta: -0,001 é "0,00", neutro
     return {"variacao_periodo": numero(principal["variacao_periodo"]), "variacao_anual": numero(principal["variacao_anual"]),
             "rotulo_periodo": "na quinzena" if frequencia == "quinzenal" else "no mês",
-            "mudanca": numero(mudanca, sufixo=" pp", sinal=True), "seta": "▲" if mudanca > 0 else "▼",
-            "classe": "alta" if mudanca > 0 else "baixa", "anterior": principal["rotulo_anterior"]}
+            "mudanca": numero(mudanca, sufixo=" pp", sinal=True), "seta": "▲" if mudanca > 0 else "▼" if mudanca < 0 else "=",
+            "classe": "alta" if mudanca > 0 else "baixa" if mudanca < 0 else "neutro", "anterior": principal["rotulo_anterior"]}
 
 
 def mensal_implicito(implicito):
@@ -53,18 +57,25 @@ def mensal_implicito(implicito):
             "subyacente": f"{numero(nucleo['mediana']['variacao_mensal'])} no mês · {numero(nucleo['mediana']['variacao_anual'])} em 12 meses"}
 
 
-def cabecalho(resumo, validacao, agora):
+def proximo_release(calendario, agora):
+    """Data do próximo release e dias até lá; depois do último release do ano o calendário precisa ser estendido."""
+    futuros = calendario[calendario["momento"] > agora]
+    if futuros.empty:
+        return {"proximo": f"calendário {int(calendario['data_divulgacao'].max()[:4]) + 1} ainda não carregado", "dias_ate_proximo": None}
+    momento = futuros["momento"].iloc[0]
+    return {"proximo": f"{momento:%d/%m/%Y %H:%M}", "dias_ate_proximo": (momento.date() - agora.date()).days}
+
+
+def cabecalho(resumo, agora):
     """Tudo o que a barra superior e os cartões de KPI mostram."""
-    frequencia = "quinzenal" if resumo["tipo_ultimo_release"] == "1a_quinzena" else "mensal"
+    # o dashboard só é montado depois que a validação passou, então o que ele mostra já foi conferido
+    frequencia = resumo["frequencia_do_release"]
     periodo = resumo["ultimo_periodo"][frequencia]
     calendario = releases()
     divulgado = calendario[(calendario["tipo"] == resumo["tipo_ultimo_release"]) & (calendario["periodo_referencia"] == periodo[:7])]
-    proximo = calendario[calendario["momento"] > agora].iloc[0]
-    aprovadas = sum(checagem["ok"] for checagem in validacao["checagens"].values())
     return {"release": resumo["ultimo_rotulo"][frequencia], "ano": periodo[:4], "divulgado": f"{divulgado['momento'].iloc[0]:%d/%m %H:%M}",
-            "proximo": f"{proximo['momento']:%d/%m/%Y %H:%M}", "dias_ate_proximo": (proximo["momento"].date() - agora.date()).days,
-            "atualizado": f"{agora:%d/%m %H:%M}", "validacao": f"{aprovadas}/{len(validacao['checagens'])}",
-            "validacao_ok": aprovadas == len(validacao["checagens"]), "frequencia": frequencia,
+            **proximo_release(calendario, agora), "atualizado": f"{agora:%d/%m %H:%M}", "conferido": resumo["ultimo_rotulo"][frequencia],
+            "frequencia": frequencia,
             "kpis": [{"nome": p.NOMES_EXIBICAO[componente], **kpi(principal, frequencia)}
                      for componente, principal in resumo["principais"][frequencia].items()],
             "mensal_implicito": mensal_implicito(resumo["mensal_implicito"]) if resumo["mensal_implicito"] else None}
@@ -78,7 +89,7 @@ def nome(item):
 
 def destaques(resumo):
     """3 a 4 frases com os fatos do release, geradas por regra a partir do resumo (sem opinião)."""
-    frequencia = "quinzenal" if resumo["tipo_ultimo_release"] == "1a_quinzena" else "mensal"
+    frequencia = resumo["frequencia_do_release"]
     geral, nucleo = resumo["principais"][frequencia]["indice_general"], resumo["principais"][frequencia]["subyacente"]
     maior = resumo["destaques"]["maiores_incidencias"][0]
     acima, abaixo = resumo["destaques"]["acima_da_norma"][0], resumo["destaques"]["abaixo_da_norma"][0]
@@ -101,7 +112,7 @@ if __name__ == "__main__":
     agora = datetime.now(ZoneInfo(p.FUSO))
     resumo = ler("metricas_resumo.json")
     dados = {"graficos": ler("graficos.json"), "tabelas": ler("tabelas.json"),
-             "cabecalho": cabecalho(resumo, ler("validacao.json"), agora), "destaques": destaques(resumo)}
+             "cabecalho": cabecalho(resumo, agora), "destaques": destaques(resumo)}
     template = (Path(__file__).parent / "template.html").read_text(encoding="utf-8")
     # "</" dentro de um <script> fecharia a tag antes da hora; escapar a barra não muda o JSON
     dados_js = "window.DADOS = " + json.dumps(dados, ensure_ascii=False).replace("</", "<\\/") + ";"

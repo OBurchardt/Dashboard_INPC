@@ -1,4 +1,4 @@
-# Etapa 2.1 — Métricas
+# Etapa 2.1: Métricas
 # Calcula os números que o economista lê no dia do release, a partir da base validada:
 # variações, incidências e contribuições dos 16 componentes; comparação de cada período com a
 # norma sazonal de 2010-2019; ritmo dessazonalizado anualizado (SAAR); as mesmas leituras para os
@@ -8,14 +8,14 @@
 # Escreve: metricas_componentes.parquet, metricas_genericos.parquet, metricas_difusao.parquet e metricas_resumo.json.
 
 import json
+import sys
 import time
+from pathlib import Path
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
 from config import parametros as p
-
-PERIODOS_POR_ANO = {"mensal": 12, "quinzenal": 24}
-PRINCIPAIS = ("indice_general", "subyacente", "no_subyacente")
 
 
 # ==== 1. Variações, norma sazonal e contribuições ====
@@ -74,7 +74,7 @@ def acrescentar_ritmo_dessazonalizado(tabela, dessazonalizadas):
 def metricas_componentes(series, dessazonalizadas):
     """Tabela (componente, frequência, período) com variações, incidência, contribuição anual, norma e SAAR."""
     tabelas = []
-    for frequencia, periodos_no_ano in PERIODOS_POR_ANO.items():
+    for frequencia, periodos_no_ano in p.PERIODOS_POR_ANO.items():
         da_frequencia = series[series["frequencia"] == frequencia]
         indices = da_frequencia[da_frequencia["tipo"] == "indice"].rename(columns={"valor": "indice"})
         incidencias = da_frequencia[da_frequencia["tipo"] == "incidencia"][["componente", "periodo", "valor"]]
@@ -107,7 +107,7 @@ def metricas_genericos(genericos, ponderadores, series):
     geral = series[(series["tipo"] == "indice") & (series["componente"] == "indice_general")]
     inpc = {frequencia: tabela.set_index("periodo")["valor"] for frequencia, tabela in geral.groupby("frequencia")}
     tabelas = []
-    for frequencia, periodos_no_ano in PERIODOS_POR_ANO.items():
+    for frequencia, periodos_no_ano in p.PERIODOS_POR_ANO.items():
         tabela = genericos[genericos["frequencia"] == frequencia].sort_values(["codigo_generico", "data"]).copy()
         tabela = acrescentar_variacoes(tabela, "codigo_generico", periodos_no_ano)
         tabela["peso_efetivo"] = peso_efetivo_do_generico(tabela, pesos, inpc, frequencia)
@@ -153,7 +153,7 @@ def arredondar(valor):
 def numeros_principais(componentes, frequencia):
     """INPC, subyacente e no subyacente: variação no período, anual e quanto a anual mudou contra o período anterior."""
     resumo = {}
-    for componente in PRINCIPAIS:
+    for componente in p.COMPONENTES_PRINCIPAIS:
         serie = componentes[(componentes["componente"] == componente) & (componentes["frequencia"] == frequencia)].sort_values("data")
         atual, anterior = serie.iloc[-1], serie.iloc[-2]
         resumo[componente] = {"periodo": atual["periodo"], "rotulo_periodo": atual["rotulo_periodo"], "rotulo_anterior": anterior["rotulo_periodo"],
@@ -209,19 +209,21 @@ if __name__ == "__main__":
     componentes = metricas_componentes(series, ler("series_dessazonalizadas"))
     genericos = metricas_genericos(ler("genericos"), ponderadores, series)
     difusao = serie_difusao(genericos, ponderadores)
-    recentes = genericos.groupby("frequencia")["data"].transform("max") - pd.DateOffset(months=24) < genericos["data"]
+    recentes = genericos.groupby("frequencia")["data"].transform("max") - pd.DateOffset(months=p.MESES_METRICAS_GENERICOS) < genericos["data"]
     componentes.to_parquet(p.PASTA_PROCESSED / "metricas_componentes.parquet", index=False)
     genericos[recentes].to_parquet(p.PASTA_PROCESSED / "metricas_genericos.parquet", index=False)
     difusao.to_parquet(p.PASTA_PROCESSED / "metricas_difusao.parquet", index=False)
 
     ultimo = componentes.groupby("frequencia")["periodo"].max().to_dict()
     tipo = "1a_quinzena" if ultimo["quinzenal"].endswith("Q1") else "mensal_e_2a_quinzena"
+    # num release de 1a quinzena só a quinzena é nova; nos outros, o mês é o dado principal
+    frequencia_do_release = "quinzenal" if tipo == "1a_quinzena" else "mensal"
     rotulos = componentes[componentes["periodo"].isin(ultimo.values())].groupby("frequencia")["rotulo_periodo"].first().to_dict()
-    resumo = {"ultimo_periodo": ultimo, "ultimo_rotulo": rotulos, "tipo_ultimo_release": tipo,
-              "principais": {frequencia: numeros_principais(componentes, frequencia) for frequencia in PERIODOS_POR_ANO},
+    resumo = {"ultimo_periodo": ultimo, "ultimo_rotulo": rotulos, "tipo_ultimo_release": tipo, "frequencia_do_release": frequencia_do_release,
+              "principais": {frequencia: numeros_principais(componentes, frequencia) for frequencia in p.PERIODOS_POR_ANO},
               "mensal_implicito": mensal_implicito(componentes, ultimo["quinzenal"][:7]) if tipo == "1a_quinzena" else None,
               "difusao": {coluna: (valor if coluna in ("periodo", "rotulo_periodo") else arredondar(valor)) for coluna, valor in
                           difusao.drop(columns="data").iloc[-1].items()},
-              "destaques": destaques(genericos, "quinzenal" if tipo == "1a_quinzena" else "mensal")}
+              "destaques": destaques(genericos, frequencia_do_release)}
     (p.PASTA_PROCESSED / "metricas_resumo.json").write_text(json.dumps(resumo, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"Métricas: componentes {len(componentes)}, genéricos {int(recentes.sum())}, difusão {len(difusao)} linhas; último release {tipo}; {time.time() - inicio:.1f} s")

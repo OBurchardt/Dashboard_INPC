@@ -1,9 +1,9 @@
-# Etapa 1.1 — Ingestão
+# Etapa 1.1: Ingestão
 # Baixa do INEGI tudo o que o dashboard usa e guarda em data/raw, em arquivos que abrem no Excel:
 # uma tabela por conjunto de séries (uma linha por período, uma coluna por id da série).
 # Fontes: o app "indicesdeprecios" (componentes, incidências e os 292 genéricos), os xlsx de
 # ponderadores e os tabulados oficiais do último release (gabarito da validação).
-# Dois modos: o histórico completo (--completo, ou quando a base está muito atrasada) e a
+# Dois modos: o histórico completo (IMPORTAR_DO_ZERO no run_pipeline.py, ou base muito atrasada) e a
 # atualização do dia a dia, que só vai à rede se o calendário diz que saiu dado novo, e então
 # rebaixa uma janela curta e sobrescreve esses períodos na base.
 
@@ -15,9 +15,13 @@ import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import sys
+from pathlib import Path
+
 import pandas as pd
 import requests
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
 from config import parametros as p
 
 MESES = {"Ene": 1, "Feb": 2, "Mar": 3, "Abr": 4, "May": 5, "Jun": 6, "Jul": 7, "Ago": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dic": 12}
@@ -25,14 +29,14 @@ MESES = {"Ene": 1, "Feb": 2, "Mar": 3, "Abr": 4, "May": 5, "Jun": 6, "Jul": 7, "
 
 # ==== 1. Rede ====
 def pedir(metodo, url, **argumentos):
-    """Faz a chamada HTTP com até 3 tentativas, porque o servidor do INEGI derruba conexões."""
-    for tentativa in (1, 2, 3):
+    """Faz a chamada HTTP com algumas tentativas, porque o servidor do INEGI derruba conexões."""
+    for tentativa in range(1, p.TENTATIVAS_REDE + 1):
         try:
-            resposta = requests.request(metodo, url, timeout=120, headers={"User-Agent": "Mozilla/5.0"}, **argumentos)
+            resposta = requests.request(metodo, url, timeout=p.TEMPO_LIMITE_SEGUNDOS, headers={"User-Agent": "Mozilla/5.0"}, **argumentos)
             resposta.raise_for_status()
             return resposta
         except requests.RequestException:
-            if tentativa == 3:
+            if tentativa == p.TENTATIVAS_REDE:
                 raise
             time.sleep(5 * tentativa)
 
@@ -84,7 +88,7 @@ def baixar_arvore(frequencia):
     for _ in range(2):
         nos = varrer_arvore(*p.ARVORES[frequencia])
         genericos = sum(no["generico"] for no in nos)
-        if genericos == 292:  # a cesta 2024 tem 292 genéricos
+        if genericos == 292:  # fato: a cesta 2024 do INPC tem 292 genéricos (documento metodológico do INEGI, 2024)
             break
     else:
         raise SystemExit(f"Árvore {frequencia} veio com {genericos} de 292 genéricos; tente de novo mais tarde.")
@@ -103,13 +107,13 @@ def ler_csv_exportador(texto):
 
 
 def exportar(estrutura, ids, ano_inicio, ano_fim):
-    """Baixa as séries de uma estrutura do app entre dois anos, em lotes de 120 ids (lotes maiores estouram o tempo)."""
+    """Baixa as séries de uma estrutura do app entre dois anos, em lotes de ids (lotes grandes estouram o tempo)."""
     lotes = []
-    for inicio in range(0, len(ids), 120):
+    for inicio in range(0, len(ids), p.LOTE_EXPORTACAO_IDS):
         formulario = {"idEstructura": estrutura, "cuadro": estrutura, "cvEstructura": estrutura, "_formato": "CSV",
                       "_tipo": "Niveles", "_orient": "vertical", "_meta": "0", "_info": "", "esquema": "", "st": "",
                       "pf": "inp", "_anioI": ano_inicio, "_anioF": ano_fim,
-                      "_series": "c|" + ",".join(ids[inicio:inicio + 120]) + ","}
+                      "_series": "c|" + ",".join(ids[inicio:inicio + p.LOTE_EXPORTACAO_IDS]) + ","}
         lotes.append(ler_csv_exportador(pedir("POST", p.URL_EXPORTADOR, data=formulario).content.decode("cp1252")))
     return pd.concat(lotes, axis=1)
 
@@ -134,7 +138,7 @@ def salvar_tabela(nome, tabela, sobrescrever_periodos=False):
     if sobrescrever_periodos:
         antiga = pd.read_csv(caminho, dtype=str, index_col="periodo", keep_default_na=False)
         tabela = pd.concat([antiga.drop(tabela.index, errors="ignore"), tabela]).sort_index()
-    tabela.to_csv(caminho)
+    tabela.to_csv(caminho, encoding="utf-8")
 
 
 # ==== 5. Ponderadores e tabulados oficiais ====
@@ -182,14 +186,23 @@ def baixar_historico_completo():
         baixar_arvore(frequencia)
     baixar_ponderadores()
     for nome, estrutura, ids in conjuntos_de_series():
-        salvar_tabela(nome, exportar(estrutura, ids, 1969, datetime.now(ZoneInfo(p.FUSO)).year))  # 1969 é o primeiro ano do app
+        salvar_tabela(nome, exportar(estrutura, ids, 1969, datetime.now(ZoneInfo(p.FUSO)).year))  # fato: 1969 é o primeiro ano que o app oferece
     baixar_tabulados()
     print(f"Histórico completo baixado (último dado: {ultimo_na_base()})")
     return True
 
 
+def avisar_se_o_calendario_acabou():
+    """Avisa quando todos os releases do calendário já passaram, porque sem o ano seguinte a base congela."""
+    calendario = pd.read_csv(p.CALENDARIO, dtype=str)
+    ultimo = pd.Timestamp(calendario["data_divulgacao"].max() + " " + calendario["hora_local"].iloc[-1]).tz_localize(p.FUSO)
+    if datetime.now(ZoneInfo(p.FUSO)) > ultimo:
+        print(f"Aviso: o calendário acaba em {ultimo:%d/%m/%Y}; acrescente o de {ultimo.year + 1} em config/calendario_releases.csv")
+
+
 def atualizar():
     """Atualização do dia a dia; devolve True se a base mudou."""
+    avisar_se_o_calendario_acabou()
     divulgado, base = ultimo_divulgado(), ultimo_na_base()
     if base == divulgado:
         print(f"Já atualizado (último dado: {base['mensal']} e {base['quinzenal']})")
@@ -208,5 +221,5 @@ def atualizar():
 
 if __name__ == "__main__":
     inicio = time.time()
-    base_mudou = baixar_historico_completo() if globals().get("completo") else atualizar()  # "completo" vem do run_pipeline.py
+    baixar_historico_completo() if globals().get("importar_do_zero") else atualizar()  # a opção vem do run_pipeline.py
     print(f"Ingestão: {time.time() - inicio:.1f} s")

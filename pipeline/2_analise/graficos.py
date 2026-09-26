@@ -1,4 +1,4 @@
-# Etapa 2.3 — Gráficos
+# Etapa 2.3: Gráficos
 # Monta as figuras do dashboard com plotly, só com conteúdo: dados, tipo de traço, nomes das séries,
 # títulos dos eixos e as marcas de referência (meta de 3% do Banxico e intervalo de 2% a 4%).
 # Nenhum estilo aqui (cores, fontes, template): tudo isso é do template HTML, que reconhece cada
@@ -8,17 +8,18 @@
 # Escreve: data/processed/graficos.json = {slot: figura}.
 
 import json
+import sys
 import time
+from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
 from config import parametros as p
 
 pio.templates.default = "none"  # sem o template padrão do plotly, que traria cores e fontes
-NIVEL_2 = ("mercancias", "servicios", "agropecuarios", "energeticos_y_tarifas")
-MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
 
 
 # ==== 1. Apoio ====
@@ -71,7 +72,7 @@ def main_contribuicoes(componentes, nomes, resumo):
     """De onde vem a inflação anual: mercadorias, serviços, agropecuários ou energéticos?"""
     # os últimos 24 meses mostram se a composição da inflação está mudando
     barras = [go.Bar(x=serie(componentes, c).tail(24)["data"], y=serie(componentes, c).tail(24)["contribuicao_anual"],
-                     name=nomes[c], meta={"componente": c}) for c in NIVEL_2]
+                     name=nomes[c], meta={"componente": c}) for c in p.COMPONENTES_NIVEL_2]
     geral = serie(componentes, "indice_general").tail(24)
     figura = go.Figure(barras + [linha(geral, "variacao_anual", "indice_general", nomes["indice_general"])])
     return figura.update_layout(barmode="relative", yaxis_title="contribuição à inflação em 12 meses (pp)")
@@ -81,9 +82,9 @@ def main_vs_norma(componentes, nomes, resumo):
     """O último dado veio acima ou abaixo do que costuma acontecer nesse período do ano?"""
     # barras horizontais para os nomes caberem sem rotação; a norma é a mediana de 2010-2019 do mesmo
     # mês ou quinzena, e a barra de erro vai do p25 ao p75
-    frequencia = "quinzenal" if resumo["tipo_ultimo_release"] == "1a_quinzena" else "mensal"
+    frequencia = resumo["frequencia_do_release"]
     ultimo = componentes[(componentes["frequencia"] == frequencia) & (componentes["periodo"] == resumo["ultimo_periodo"][frequencia])]
-    ultimo = ultimo.set_index("componente").loc[["indice_general", "subyacente", "no_subyacente", *NIVEL_2]]
+    ultimo = ultimo.set_index("componente").loc[[*p.COMPONENTES_PRINCIPAIS, *p.COMPONENTES_NIVEL_2]]
     rotulos = [nomes[c] for c in ultimo.index]
     barras = [go.Bar(y=[nomes[c]], x=[ultimo.at[c, "variacao_periodo"]], orientation="h", name=nomes[c], meta={"componente": c})
               for c in ultimo.index]
@@ -100,7 +101,7 @@ def main_vs_norma(componentes, nomes, resumo):
 def decomp_arvore(componentes, nomes, resumo):
     """Quanto cada parte do INPC contribuiu para a variação do último período, do todo até os subíndices?"""
     # a área é o tamanho da contribuição (em módulo) dos subíndices; o número mostrado mantém o sinal
-    frequencia = "quinzenal" if resumo["tipo_ultimo_release"] == "1a_quinzena" else "mensal"
+    frequencia = resumo["frequencia_do_release"]
     ultimo = componentes[(componentes["frequencia"] == frequencia) & (componentes["periodo"] == resumo["ultimo_periodo"][frequencia])]
     area = ultimo["incidencia_periodo"].abs().where(ultimo["nivel"] == 3, 0)
     figura = go.Figure(go.Treemap(ids=ultimo["componente"], labels=ultimo["componente"].map(nomes), parents=ultimo["pai"].fillna(""),
@@ -138,10 +139,11 @@ def tend_perfil_sazonal(componentes, nomes, resumo):
     geral = componentes[(componentes["componente"] == "indice_general") & (componentes["frequencia"] == "mensal")]
     norma = geral.assign(mes=geral["data"].dt.month).drop_duplicates("mes").sort_values("mes")  # a norma se repete todo ano
     ano = geral[geral["data"].dt.year == geral["data"].max().year]
-    tracos = [go.Scatter(x=MESES, y=norma["norma_p25"], mode="lines", name="Norma p25", meta={"serie": "norma_p25"}),
-              go.Scatter(x=MESES, y=norma["norma_p75"], mode="lines", fill="tonexty", name="Norma p75", meta={"serie": "norma_p75"}),
-              go.Scatter(x=MESES, y=norma["norma_mediana"], mode="lines", name="Norma (mediana)", meta={"serie": "norma_mediana"}),
-              go.Scatter(x=MESES[:len(ano)], y=ano["variacao_periodo"], mode="lines+markers", name=str(ano["data"].max().year),
+    meses = norma["rotulo_mes"].str[:3].tolist()  # "ago/26" vira "ago": no perfil o eixo é o mês do ano
+    tracos = [go.Scatter(x=meses, y=norma["norma_p25"], mode="lines", name="Norma p25", meta={"serie": "norma_p25"}),
+              go.Scatter(x=meses, y=norma["norma_p75"], mode="lines", fill="tonexty", name="Norma p75", meta={"serie": "norma_p75"}),
+              go.Scatter(x=meses, y=norma["norma_mediana"], mode="lines", name="Norma (mediana)", meta={"serie": "norma_mediana"}),
+              go.Scatter(x=meses[:len(ano)], y=ano["variacao_periodo"], mode="lines+markers", name=str(ano["data"].max().year),
                          meta={"componente": "indice_general"})]
     return go.Figure(tracos).update_layout(yaxis_title="variação mensal do INPC (%)")
 

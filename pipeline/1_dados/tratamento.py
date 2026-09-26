@@ -1,18 +1,22 @@
-# Etapa 1.2 — Tratamento
+# Etapa 1.2: Tratamento
 # Transforma o bruto de data/raw em tabelas limpas em data/processed (parquet). Só organiza:
 # não calcula variação nem nada analítico. É o único lugar que interpreta os formatos do INEGI
 # ("N/E", árvore de genéricos, planilhas de ponderadores, tabulados).
 # Saídas: séries do catálogo em formato longo, índices dos 292 genéricos com a classificação
-# oficial por subíndice, ponderadores das cestas 2018 e 2024, a hierarquia completa (para o
-# drill-down do dashboard) e o tabulado oficial do último release em forma de tabela.
+# oficial por subíndice, ponderadores das cestas 2018 e 2024 e o tabulado oficial do último
+# release em forma de tabela.
 
 import json
 import re
 import time
 import unicodedata
 
+import sys
+from pathlib import Path
+
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
 from config import parametros as p
 
 MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
@@ -123,20 +127,7 @@ def montar_genericos(ponderadores):
                       "frequencia", "periodo", *COLUNAS_ROTULO, "data", "indice"]]
 
 
-# ==== 5. Hierarquia e tabulado oficial ====
-def montar_hierarquia(catalogo, ponderadores):
-    """Todos os nós do drill-down: componentes (níveis 0 a 3) e, abaixo de cada subíndice, os seus genéricos (nível 4)."""
-    indices = catalogo[catalogo["tipo"] == "indice"]
-    ids = indices.pivot(index="componente", columns="frequencia", values="id_serie")
-    componentes = indices.drop_duplicates("componente").rename(columns={"componente": "id_no"})[["id_no", "nome", "nivel", "pai"]]
-    genericos = ponderadores[ponderadores["cesta"] == "2024"].rename(columns={"codigo_generico": "id_no", "nome_generico": "nome", "subindice": "pai"})
-    hierarquia = pd.concat([componentes.assign(tipo_no="componente"), genericos[["id_no", "nome", "pai"]].assign(nivel=4, tipo_no="generico")])
-    series_genericos = {frequencia: ler_arvore(frequencia).set_index("codigo_generico")["id_serie"] for frequencia in ("mensal", "quinzenal")}
-    for frequencia in ("mensal", "quinzenal"):
-        hierarquia[f"id_serie_{frequencia}"] = hierarquia["id_no"].map(ids[frequencia]).fillna(hierarquia["id_no"].map(series_genericos[frequencia]))
-    return hierarquia[["id_no", "tipo_no", "nome", "nivel", "pai", "id_serie_mensal", "id_serie_quinzenal"]]
-
-
+# ==== 5. Tabulado oficial ====
 def montar_tabulado_oficial(catalogo):
     """Variação no período, variação anual e incidência publicadas pelo INEGI no último release, por componente."""
     componente_por_nome = dict(zip(catalogo["nome"].map(normalizar), catalogo["componente"]))
@@ -155,7 +146,7 @@ if __name__ == "__main__":
     catalogo = pd.read_csv(p.CATALOGO, dtype={"id_serie": str, "pai": str})
     ponderadores = montar_ponderadores(catalogo, ler_arvore("mensal"))
     saidas = {"series": montar_series(catalogo), "genericos": montar_genericos(ponderadores), "ponderadores": ponderadores,
-              "hierarquia": montar_hierarquia(catalogo, ponderadores), "tabulado_oficial": montar_tabulado_oficial(catalogo)}
+              "tabulado_oficial": montar_tabulado_oficial(catalogo)}
     for nome, tabela in saidas.items():
         tabela.to_parquet(p.PASTA_PROCESSED / f"{nome}.parquet", index=False)
     print(f"Tratamento: {', '.join(f'{nome} {len(tabela)}' for nome, tabela in saidas.items())} linhas; {time.time() - inicio:.1f} s")

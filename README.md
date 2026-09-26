@@ -7,7 +7,7 @@ Pipeline em Python que baixa as séries do Índice Nacional de Preços ao Consum
 ```
 README.md                           visão geral do projeto (este arquivo)
 CLAUDE.md                           regras permanentes do projeto
-run_pipeline.py                     orquestra as etapas na ordem (modo completo ou atualização)
+run_pipeline.py                     orquestra as etapas na ordem; IMPORTAR_DO_ZERO no topo
 requirements.txt                    dependências Python
 .gitignore                          arquivos fora do controle de versão
 config/
@@ -33,7 +33,7 @@ docs/
   atualizar_inpc.yml                atualização automática nos horários de release
 data/                               [gerada pelo pipeline]
   raw/                              CSVs período x série, árvores de genéricos, ponderadores e tabulados
-  processed/                        series, genericos, ponderadores, hierarquia, tabulado_oficial (.parquet) e validacao.json
+  processed/                        series, genericos, ponderadores, tabulado_oficial, metricas_* (.parquet), resumo, gráficos, tabelas e validação (.json)
 output/                             [gerada pelo pipeline] dashboard_inpc.html
 ```
 
@@ -45,9 +45,12 @@ INEGI (indicesdeprecios, ponderadores, tabulados) → ingestao → data/raw → 
 
 ## Como rodar
 
-Nenhuma fonte exige token. Instale as dependências (`pip install -r requirements.txt`) e rode:
+Instale as dependências (`pip install -r requirements.txt`) e rode `python run_pipeline.py`.
+No topo do `run_pipeline.py`, `IMPORTAR_DO_ZERO = False` só atualiza a base com o dado mais recente;
+`True` rebaixa todo o histórico do INEGI como se a base não existisse.
 
-```
-python run_pipeline.py --completo   # reconstrói tudo do zero
-python run_pipeline.py              # atualiza só se houve release desde o último dado
-```
+## Calendário do ano seguinte
+
+O `config/calendario_releases.csv` só tem os releases de 2026; depois do último, o dashboard avisa que falta o calendário.
+Quando o INEGI publicar o calendário do ano seguinte, acrescente uma linha por release no mesmo formato
+(data, 06:00, America/Mexico_City, tipo e mês de referência) e rode o pipeline normalmente.

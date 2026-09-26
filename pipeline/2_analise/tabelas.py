@@ -1,4 +1,4 @@
-# Etapa 2.2 — Tabelas
+# Etapa 2.2: Tabelas
 # Monta as tabelas do dashboard em HTML simples (<table class="tabela-dados">), sem estilo inline:
 # números com 2 casas e vírgula decimal, "%" nas variações e "pp" nas contribuições, e a classe
 # "positivo" ou "negativo" em cada célula numérica para o template colorir. Nada é calculado aqui:
@@ -8,20 +8,22 @@
 
 import html
 import json
+import sys
 import time
+from pathlib import Path
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para a etapa rodar sozinha: a raiz do projeto entra no caminho do Python
 from config import parametros as p
-
-LINHAS_PRINCIPAIS = ("indice_general", "subyacente", "no_subyacente", "mercancias", "servicios", "agropecuarios", "energeticos_y_tarifas")
 
 
 # ==== 1. Células e tabela ====
 def celula_numero(valor, unidade, casas=2):
     """Célula numérica com vírgula decimal, unidade e classe positivo/negativo (o INEGI publica incidências com 3 casas)."""
     sinal = " positivo" if valor > 0 else " negativo" if valor < 0 else ""
-    return f'<td class="numero{sinal}">{valor:.{casas}f}{unidade}</td>'.replace(".", ",")
+    texto = f"{valor:.{casas}f}".replace(".", ",") + unidade
+    return f'<td class="numero{sinal}">{texto}</td>'
 
 
 def celula_texto(texto, classe="texto"):
@@ -46,14 +48,14 @@ def grupo(titulo, colunas):
 # ==== 2. Tabelas do dashboard ====
 def main_ultimos_periodos(componentes, resumo, nomes):
     """Variação no período nos 3 últimos períodos do último release e a variação em 12 meses do último."""
-    frequencia = "quinzenal" if resumo["tipo_ultimo_release"] == "1a_quinzena" else "mensal"
+    frequencia = resumo["frequencia_do_release"]
     da_frequencia = componentes[componentes["frequencia"] == frequencia]
     periodos = sorted(da_frequencia["periodo"].unique())[-3:]
     valores = da_frequencia[da_frequencia["periodo"].isin(periodos)].set_index(["componente", "periodo"])
     rotulos = da_frequencia.drop_duplicates("periodo").set_index("periodo")["rotulo_curto"]
     cabecalho = ["Componente"] + [rotulos[periodo] for periodo in periodos] + [rotulos[periodos[-1]]]
     linhas = []
-    for componente in LINHAS_PRINCIPAIS:
+    for componente in (*p.COMPONENTES_PRINCIPAIS, *p.COMPONENTES_NIVEL_2):
         celulas = [celula_numero(valores.at[(componente, periodo), "variacao_periodo"], "%") for periodo in periodos]
         celulas.append(celula_numero(valores.at[(componente, periodos[-1]), "variacao_anual"], "%"))
         linhas.append(f"<tr>{celula_texto(nomes[componente], 'componente')}{''.join(celulas)}</tr>")
