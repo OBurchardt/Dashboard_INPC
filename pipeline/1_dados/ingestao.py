@@ -120,7 +120,7 @@ def exportar(estrutura, ids, ano_inicio, ano_fim):
 
 def conjuntos_de_series():
     """Lista (arquivo, estrutura, ids) das seis tabelas: componentes, incidências e genéricos em cada frequência."""
-    catalogo = pd.read_csv(p.CATALOGO, dtype=str)
+    catalogo = pd.read_csv(p.CATALOGO, dtype=str, encoding="utf-8")
     conjuntos = []
     for (tipo, frequencia), estrutura in p.ESTRUTURAS.items():
         ids = catalogo[(catalogo["tipo"] == tipo) & (catalogo["frequencia"] == frequencia)]["id_serie"].tolist()
@@ -136,7 +136,7 @@ def salvar_tabela(nome, tabela, sobrescrever_periodos=False):
     """Grava data/raw/<nome>.csv; na atualização, os períodos baixados substituem os que a base já tinha."""
     caminho = p.PASTA_RAW / f"{nome}.csv"
     if sobrescrever_periodos:
-        antiga = pd.read_csv(caminho, dtype=str, index_col="periodo", keep_default_na=False)
+        antiga = pd.read_csv(caminho, dtype=str, index_col="periodo", keep_default_na=False, encoding="utf-8")
         tabela = pd.concat([antiga.drop(tabela.index, errors="ignore"), tabela]).sort_index()
     tabela.to_csv(caminho, encoding="utf-8")
 
@@ -159,7 +159,7 @@ def baixar_tabulados():
 # ==== 6. Calendário e base ====
 def ultimo_divulgado():
     """Último período publicado em cada frequência, segundo os releases do calendário que já aconteceram."""
-    calendario = pd.read_csv(p.CALENDARIO, dtype=str)
+    calendario = pd.read_csv(p.CALENDARIO, dtype=str, encoding="utf-8")
     momentos = pd.to_datetime(calendario["data_divulgacao"] + " " + calendario["hora_local"]).dt.tz_localize(p.FUSO)
     ocorridos = calendario[momentos <= datetime.now(ZoneInfo(p.FUSO))]
     mensais = ocorridos[ocorridos["tipo"] == "mensal_e_2a_quinzena"]["periodo_referencia"]
@@ -175,7 +175,7 @@ def ultimo_na_base():
         arquivos = [p.PASTA_RAW / f"{nome}_{frequencia}.csv" for nome in ("componentes", "incidencias", "genericos")]
         if not all(arquivo.exists() for arquivo in arquivos):
             return None
-        ultimos[frequencia] = min(pd.read_csv(arquivo, usecols=["periodo"])["periodo"].iloc[-1] for arquivo in arquivos)
+        ultimos[frequencia] = min(pd.read_csv(arquivo, usecols=["periodo"], encoding="utf-8")["periodo"].iloc[-1] for arquivo in arquivos)
     return ultimos
 
 
@@ -194,7 +194,7 @@ def baixar_historico_completo():
 
 def avisar_se_o_calendario_acabou():
     """Avisa quando todos os releases do calendário já passaram, porque sem o ano seguinte a base congela."""
-    calendario = pd.read_csv(p.CALENDARIO, dtype=str)
+    calendario = pd.read_csv(p.CALENDARIO, dtype=str, encoding="utf-8")
     ultimo = pd.Timestamp(calendario["data_divulgacao"].max() + " " + calendario["hora_local"].iloc[-1]).tz_localize(p.FUSO)
     if datetime.now(ZoneInfo(p.FUSO)) > ultimo:
         print(f"Aviso: o calendário acaba em {ultimo:%d/%m/%Y}; acrescente o de {ultimo.year + 1} em config/calendario_releases.csv")

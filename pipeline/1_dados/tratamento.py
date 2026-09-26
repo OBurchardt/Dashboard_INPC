@@ -49,7 +49,7 @@ def data_do_periodo(periodo):
 
 def ler_tabela_raw(nome):
     """Lê data/raw/<nome>.csv em formato longo (periodo, id_serie, valor); 'N/E' e 'NA' são dados que o INEGI não publica."""
-    tabela = pd.read_csv(p.PASTA_RAW / f"{nome}.csv", dtype=str, keep_default_na=False)
+    tabela = pd.read_csv(p.PASTA_RAW / f"{nome}.csv", dtype=str, keep_default_na=False, encoding="utf-8")
     longa = tabela.melt(id_vars="periodo", var_name="id_serie", value_name="valor")
     longa["valor"] = pd.to_numeric(longa["valor"].replace({"N/E": None, "NA": None}))
     longa["data"] = longa["periodo"].map(data_do_periodo)
@@ -143,7 +143,7 @@ def montar_tabulado_oficial(catalogo):
 
 if __name__ == "__main__":
     inicio = time.time()
-    catalogo = pd.read_csv(p.CATALOGO, dtype={"id_serie": str, "pai": str})
+    catalogo = pd.read_csv(p.CATALOGO, dtype={"id_serie": str, "pai": str}, encoding="utf-8")
     ponderadores = montar_ponderadores(catalogo, ler_arvore("mensal"))
     saidas = {"series": montar_series(catalogo), "genericos": montar_genericos(ponderadores), "ponderadores": ponderadores,
               "tabulado_oficial": montar_tabulado_oficial(catalogo)}

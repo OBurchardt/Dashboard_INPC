@@ -33,7 +33,7 @@ def numero(valor, casas=2, sufixo="%", sinal=False):
 # ==== 2. Cabeçalho ====
 def releases():
     """Calendário oficial com o momento de cada divulgação no horário da Cidade do México."""
-    calendario = pd.read_csv(p.CALENDARIO, dtype=str)
+    calendario = pd.read_csv(p.CALENDARIO, dtype=str, encoding="utf-8")
     calendario["momento"] = pd.to_datetime(calendario["data_divulgacao"] + " " + calendario["hora_local"]).dt.tz_localize(p.FUSO)
     return calendario
 
