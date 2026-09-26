@@ -11,12 +11,11 @@ import csv
 import io
 import json
 import re
+import sys
 import time
 from datetime import datetime
-from zoneinfo import ZoneInfo
-
-import sys
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
