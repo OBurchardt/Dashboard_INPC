@@ -136,10 +136,6 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 .destaque-rotulo { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 4px; }
 .destaque-texto { font-size: var(--t-14); color: var(--ink); font-variant-numeric: tabular-nums; }
 
-/* card vazio de fontes externas */
-.vazio { text-align: center; padding: var(--e-32) var(--e-24); }
-.vazio h3 { font-size: var(--t-16); }
-.vazio p { color: var(--ink-3); margin: var(--e-8) 0 0; }
 
 /* ==== 4. Tabelas ==== */
 .tabela-dados { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
@@ -181,7 +177,6 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <button data-aba="resumo" class="ativa">Resumo</button>
       <button data-aba="composicao">Composição</button>
       <button data-aba="tendencia">Tendência</button>
-      <button data-aba="externas">Fontes externas</button>
     </nav>
   </div>
 </header>
@@ -233,7 +228,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <h3>Decomposição da variação do período</h3><p class="sub">Contribuição (pp); área proporcional ao tamanho da contribuição de cada grupo</p>
     </div>
     <div class="card c7" data-card="decomp_desvios" data-tipo="tabela">
-      <h3>Surpresas vs padrão sazonal</h3><p class="sub">Aberturas cujo desvio do padrão sazonal (mediana 2010–2019) mais pesou no INPC (pp)</p>
+      <h3>Desvio em relação à mediana sazonal (2010–2019)</h3><p class="sub">Variação no período menos a mediana do mesmo mês ou quinzena em 2010–2019, vezes o peso efetivo da abertura: desvio sazonal ponderado (pp). Não é expectativa de mercado, e as medianas das aberturas não somam a mediana do INPC.</p>
     </div>
     <div class="card c5" data-card="decomp_servicos_mercancias">
       <h3>Serviços vs mercadorias</h3><p class="sub">Variação em 12 meses (%)</p>
@@ -245,22 +240,14 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
     <div class="card c6" data-card="tend_dessazonalizado">
       <h3>Variação mensal dessazonalizada</h3><p class="sub">INPC geral e núcleo, ajuste STL (%)</p>
     </div>
-    <div class="card c6" data-card="tend_momentum" data-nota="Últimos pontos da série dessazonalizada podem ser revisados (fim de amostra).">
-      <h3>Momentum do núcleo</h3><p class="sub">Variação dessazonalizada anualizada de 3 e 6 meses e variação em 12 meses (%)</p>
+    <div class="card c6" data-card="tend_momentum" data-nota="Fim de amostra: os últimos pontos são revisados quando entram meses novos. No exercício pseudo-tempo-real (cortes mensais de jun/2022 a jun/2025), a ponta do SAAR 6 meses revisou em média 1,0 pp e a do 3 meses 1,25 pp.">
+      <h3>Momentum do núcleo</h3><p class="sub">Variação dessazonalizada anualizada de 6 meses (em destaque) e de 3 meses, e variação em 12 meses (%)</p>
     </div>
     <div class="card c6" data-card="tend_perfil_sazonal">
       <h3>Perfil sazonal do INPC</h3><p class="sub">Variação mensal (%): faixa p25 a p75 e mediana de 2010–2019; ano corrente</p>
     </div>
     <div class="card c6" data-card="tend_difusao">
-      <h3>Difusão</h3><p class="sub">% do peso da cesta com alta no mês e com alta acima de 4% em 12 meses</p>
-    </div>
-  </section>
-
-  <!-- ==== Fontes externas ==== -->
-  <section class="painel" id="externas">
-    <div class="card c12 vazio">
-      <h3>Em construção</h3>
-      <p>Surpresa vs consenso e projeções do Banxico.</p>
+      <h3>Difusão</h3><p class="sub">% do peso da cesta com alta no mês e com alta acima de 4% em 12 meses. O 4% é o teto do intervalo da meta do Banxico para o INPC, usado aqui só como régua: item nenhum tem meta. O tooltip mostra a cobertura de cada medida.</p>
     </div>
   </section>
 </main>
@@ -283,7 +270,9 @@ const COR_COMPONENTE = {
 };
 // o que não é componente (norma, difusão) e as três medidas do momentum, que são todas da subyacente
 const COR_SERIE = { norma: css("--ink"), norma_mediana: css("--ink-3"), pct_cesta_em_alta: css("--azul-escuro"), pct_cesta_anual_acima_4: css("--azul-vivo") };
-const COR_MEDIDA = { saar_3m: css("--azul-btg"), saar_6m: css("--azul-vivo"), variacao_anual: css("--azul-escuro") };
+const COR_MEDIDA = { saar_6m: css("--azul-btg"), saar_3m: css("--azul-vivo"), variacao_anual: css("--azul-escuro") };
+// a ponta do SAAR 3 meses revisa mais que a do 6 meses (docs/auditoria_pre_chat.md), então ele vai mais fino
+const LARGURA_MEDIDA = { saar_6m: 3, saar_3m: 1.25 };
 // o leitor vê "Núcleo" e "Não núcleo"; na primeira menção o tooltip mostra o nome que o INEGI usa
 const NOME_OFICIAL = { subyacente: "subyacente", no_subyacente: "no subyacente" };
 const SUFIXO = { main_contribuicoes: " pp" };
@@ -343,11 +332,13 @@ function cartaoKpi(k, slotSparkline) {
 }
 
 function cartaoMensalImplicito(m) {
-  return `<div class="card c3 kpi" title="Núcleo implícito: ${m.subyacente}">
-    <div class="kpi-rotulo">Mensal implícito · ${m.mes}</div>
+  // o backtest sem informação futura (docs/auditoria_pre_chat.md) mostra que a mediana erra menos que supor a 2ª quinzena parada,
+  // mas a faixa p25–p75 é estreita: conteve o mês realizado em só 35% dos casos, e a nota diz isso
+  return `<div class="card c3 kpi" title="Núcleo implícito: ${m.subyacente}. Estimativa: 1ª quinzena publicada e 2ª quinzena pela mediana sazonal. Backtest 2010–2026: erro absoluto médio de 0,07 pp no INPC, contra 0,08 pp supondo a 2ª quinzena sem variação.">
+    <div class="kpi-rotulo">Mensal implícito (estimativa) · ${m.mes}</div>
     <div class="kpi-linha"><span class="kpi-principal">${m.variacao_mensal}</span>
       <span class="kpi-secundario">${m.variacao_anual}<small>em 12 meses</small></span></div>
-    <div class="kpi-nota">intervalo ${m.intervalo_mensal.replace(" a ", "–")} · 2ª quinzena pelo padrão sazonal</div>
+    <div class="kpi-nota">faixa p25–p75 ${m.intervalo_mensal.replace(" a ", "–")}; conteve o mês realizado em 35% dos casos no backtest</div>
   </div>`;
 }
 
@@ -360,7 +351,7 @@ function montarKpis(c) {
 
 function montarDestaques(frases) {
   // as frases chegam como "Rótulo: fato"; o rótulo sai da frase porque já vira o título em caixa-alta
-  const rotulos = ["Inflação", "Maior contribuição", "Maior surpresa", "Difusão"];
+  const rotulos = ["Inflação", "Maior contribuição", "Maior desvio sazonal", "Difusão"];
   document.getElementById("destaques").innerHTML = frases.map((f, i) =>
     `<div class="destaque"><div class="destaque-rotulo">${rotulos[i]}</div>
      <div class="destaque-texto">${f.includes(": ") ? f.slice(f.indexOf(": ") + 2) : f}</div></div>`).join("");
@@ -391,9 +382,9 @@ function montarCard(card) {
 
 // ==== 5. Tabelas: grupo sob o nome, barras de contribuição e cor numa coluna só ====
 // em cada tabela, só uma coluna leva a cor do sinal; o resto fica em tinta neutra para a cor não virar ruído.
-// Na de surpresas a cor é da contribuição da surpresa, que é o que interessa ali; na de contribuições, da variação
-const COLUNA_COLORIDA = { main_top_incidencias: "variação", decomp_desvios: "contribuição da surpresa" };
-const COLUNAS_COM_BARRA = ["contribuição", "contribuição da surpresa"];
+// Na de desvios a cor é do desvio sazonal ponderado, que é o que interessa ali; na de contribuições, da variação
+const COLUNA_COLORIDA = { main_top_incidencias: "variação", decomp_desvios: "desvio sazonal ponderado" };
+const COLUNAS_COM_BARRA = ["contribuição", "desvio sazonal ponderado"];
 
 function refinarTabelas(card, slot) {
   card.querySelectorAll("table").forEach((tabela) => {
@@ -466,6 +457,8 @@ function estilizarTraco(t, sufixo, eixo) {
   const cor = corDoTraco(t);
   const serie = (t.meta || {}).serie || "";
   t.hovertemplate = `${t.name}: %{${eixo}:.2f}${sufixo}<extra></extra>`;
+  // na difusão, cada ponto diz quanto do peso da cesta tinha dado para a medida
+  if ((t.meta || {}).cobertura) t.hovertemplate = `${t.name}: %{y:.2f}%<br>cobertura: %{customdata[0]:.0f}% do peso, %{customdata[1]} itens<extra></extra>`;
   if (t.type === "bar") {
     t.marker = { color: cor, line: { width: 1, color: css("--surface") } };   // a borda branca separa os segmentos empilhados
   } else if (serie.startsWith("norma_p")) {
@@ -482,7 +475,7 @@ function estilizarTraco(t, sufixo, eixo) {
     // linha fina com só o último ponto marcado, que é onde o olho tem de ir
     const ultimo = t.x.length - 1;
     t.mode = "lines+markers";
-    t.line = { width: 2, color: cor, dash: serie === "norma_mediana" ? "dot" : "solid" };
+    t.line = { width: LARGURA_MEDIDA[(t.meta || {}).medida] || 2, color: cor, dash: serie === "norma_mediana" ? "dot" : "solid" };
     t.marker = { color: cor, size: t.x.map((_, i) => (i === ultimo ? 8 : 0)), line: { color: css("--surface"), width: t.x.map((_, i) => (i === ultimo ? 2 : 0)) } };
   }
 }

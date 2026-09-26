@@ -3,7 +3,8 @@
 # o visual, o plotly.js embutido e os dados do release. A parte que é só desta etapa é o cabeçalho:
 # qual release saiu e quando, quando sai o próximo, e os números dos cartões já formatados. As quatro
 # frases de destaque também nascem aqui, por regra, só com fatos do resumo; nada de opinião. Nelas
-# uso as palavras do leitor brasileiro (contribuição, núcleo, padrão sazonal) e 2 casas em tudo.
+# uso as palavras do leitor brasileiro (contribuição, núcleo, desvio sazonal ponderado) e 2 casas em tudo.
+# "Desvio sazonal" é contra a mediana de 2010 a 2019, não contra expectativa de mercado; não chamo de surpresa.
 # Esta etapa só roda se a validação passou, então tudo o que ela mostra já foi conferido com o INEGI.
 
 import json
@@ -86,7 +87,7 @@ def nome(item):
 
 
 def destaques(resumo):
-    """As quatro frases do topo: inflação, maior contribuição, maior surpresa e difusão, só com os fatos."""
+    """As quatro frases do topo: inflação, maior contribuição, maior desvio sazonal e difusão, só com os fatos."""
     frequencia = resumo["frequencia_do_release"]
     geral, nucleo = resumo["principais"][frequencia]["indice_general"], resumo["principais"][frequencia]["subyacente"]
     maior = resumo["destaques"]["maiores_incidencias"][0]
@@ -95,10 +96,13 @@ def destaques(resumo):
     anual = (f"INPC {numero(geral['variacao_anual'])} a/a ({numero(geral['mudanca_da_anual_pp'], sufixo=' pp', sinal=True)}); "
              f"{p.NOMES_EXIBICAO['subyacente'].lower()} {numero(nucleo['variacao_anual'])} ({numero(nucleo['mudanca_da_anual_pp'], sufixo=' pp', sinal=True)})")
     contribuicao = f"Maior contribuição: {nome(maior)} {numero(maior['incidencia_periodo'], sufixo=' pp', sinal=True)} ({numero(maior['variacao_periodo'], sinal=True)})"
-    surpresa = (f"Maior surpresa vs padrão sazonal: {nome(acima)} {numero(acima['contribuicao_surpresa'], sufixo=' pp', sinal=True)}; "
-                f"para baixo: {nome(abaixo)} {numero(abaixo['contribuicao_surpresa'], sufixo=' pp', sinal=True)}")
-    espalhamento = f"{numero(difusao['pct_cesta_anual_acima_3'], 0)} da cesta com inflação anual acima de 3% ({difusao['rotulo_periodo']})"
-    return [anual, contribuicao, surpresa, espalhamento]
+    desvio = (f"Maior desvio sazonal ponderado: {nome(acima)} {numero(acima['contribuicao_surpresa'], sufixo=' pp', sinal=True)}; "
+              f"para baixo: {nome(abaixo)} {numero(abaixo['contribuicao_surpresa'], sufixo=' pp', sinal=True)}")
+    # 3% é a meta do Banxico para o INPC; para um item é só régua, e a frase diz isso. Sem ": " no texto, porque o template
+    # usa o primeiro ": " da frase para separar o rótulo
+    espalhamento = (f"{numero(difusao['pct_cesta_anual_acima_3'], 0)} do peso da cesta com alta acima de 3% em 12 meses "
+                    f"({difusao['rotulo_periodo']}; 3% é a meta do Banxico para o INPC, usada só como régua)")
+    return [anual, contribuicao, desvio, espalhamento]
 
 
 def ler(nome_arquivo):

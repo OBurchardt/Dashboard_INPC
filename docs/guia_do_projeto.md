@@ -15,9 +15,9 @@ No release de exemplo, o painel abre dizendo isto:
 - INPC 0,33% na quinzena e 3,42% em 12 meses, 0,16 pp acima da quinzena anterior.
 - Núcleo 0,17% na quinzena e 3,79% em 12 meses, 0,05 pp abaixo.
 - Não núcleo 0,88% na quinzena e 2,17% em 12 meses, 0,86 pp acima.
-- Mensal implícito de setembro: 0,42% no mês (entre 0,38% e 0,44%) e 3,45% em 12 meses.
+- Mensal implícito de setembro (estimativa): 0,42% no mês e 3,45% em 12 meses; faixa p25 a p75 de 0,38% a 0,44%, que no backtest conteve o mês realizado em só 35% dos casos.
 - Maior contribuição: Jitomate, com +0,11 pp (o preço subiu 22,79% na quinzena).
-- Maior surpresa vs padrão sazonal: Jitomate, +0,08 pp; para baixo, Gasolina de bajo octanaje, −0,02 pp.
+- Maior desvio sazonal ponderado: Jitomate, +0,08 pp; para baixo, Gasolina de bajo octanaje, −0,02 pp. É o desvio contra a mediana de 2010 a 2019, não contra expectativa de mercado.
 - 62% da cesta com inflação anual acima de 3% (ago/26).
 
 ### Vocabulário: o que está no código e o que aparece na tela
@@ -29,7 +29,8 @@ O dashboard é lido por brasileiros, então a tela não usa os termos do INEGI. 
 | incidência | contribuição (em pp, para a variação do INPC cheio no período) |
 | genérico | abertura |
 | subíndice | grupo |
-| norma sazonal | padrão sazonal (mediana de 2010 a 2019) |
+| norma sazonal | padrão sazonal, ou mediana sazonal (mediana de 2010 a 2019) |
+| contribuição da surpresa (`contribuicao_surpresa`) | desvio sazonal ponderado (pp); não é surpresa contra expectativa de mercado |
 | subyacente / no subyacente | Núcleo / Não núcleo (o nome oficial aparece num tooltip na primeira menção) |
 
 Os nomes das aberturas vêm do INEGI e ficam em espanhol (Jitomate, Cebolla). Os nomes curtos dos componentes estão em `NOMES_EXIBICAO`, no `config/parametros.py`. Na tela, variações e contribuições têm sempre 2 casas decimais, como o IBGE publica.
@@ -178,11 +179,11 @@ Um arquivo de constantes, dividido em seções.
 
 ### pipeline/1_dados/validacao.py
 
-São duas checagens (a seção 8 explica as duas). A validação recalcula as variações sozinha, sem usar a etapa de métricas, para ser um teste independente.
+São quatro checagens (a seção 8 explica cada uma). A validação recalcula as variações sozinha, sem usar a etapa de métricas, para ser um teste independente, e mede os lags pela coluna `posicao`, que o tratamento grava: um período ausente vira buraco na grade, e não um lag errado.
 
 ### pipeline/1_dados/dessazonalizacao.py
 
-`dessazonalizar` aplica o STL do statsmodels no log do índice mensal, com ciclo de 12 meses e a opção robusta a outliers, de 2000 para cá. O índice sem sazonalidade é `exp(log(índice) − componente sazonal)`. O quinzenal não é dessazonalizado; para ele a leitura sazonal é a comparação com a norma.
+`dessazonalizar` aplica o STL do statsmodels no log do índice mensal, com ciclo de 12 meses e a opção robusta a outliers, de 2000 para cá. O índice sem sazonalidade é `exp(log(índice) − componente sazonal)`. O quinzenal não é dessazonalizado. Não é por limite do método: o STL aceitaria um ciclo de 24 quinzenas; quem não aceita é o X-13, que só trabalha com dado mensal ou trimestral. Escolhi não fazer porque o mensal já é a média das duas quinzenas e o ritmo é lido nele; para a quinzena, a leitura sazonal é a comparação com a mediana histórica.
 
 ### pipeline/2_analise/metricas.py
 
@@ -218,21 +219,23 @@ Com o jitomate na 1ª quinzena de setembro:
 
 O peso efetivo não é o peso da planilha: um item que subiu mais que o INPC desde julho de 2024 passa a pesar mais. Antes da cesta 2024 os pesos eram outros, então não calculo incidência de genérico antes dela.
 
-**Contribuição da surpresa**
+**Desvio sazonal ponderado** (na base, a coluna `contribuicao_surpresa`)
 
 ```
-contribuição da surpresa = peso efetivo × desvio da norma
+desvio sazonal ponderado = peso efetivo × (variação − mediana sazonal de 2010 a 2019)
 ```
 
-O jitomate teve 22,79% contra uma norma de 5,46%, então o desvio é de 17,33 pontos e a contribuição da surpresa é 0,00463 × 17,33 = 0,080 pp. Ordenar pelo desvio em % puro poria sempre frutas e verduras no topo, porque oscilam muito; multiplicado pelo peso, ele vira pontos do INPC.
+O jitomate teve 22,79% contra uma mediana de 5,46%, então o desvio é de 17,33 pontos e o desvio ponderado é 0,00463 × 17,33 = 0,080 pp. Ordenar pelo desvio em % puro poria sempre frutas e verduras no topo, porque oscilam muito; multiplicado pelo peso, ele vira pontos do INPC. Dois cuidados. Não é surpresa no sentido de mercado: a referência é a mediana histórica do mesmo mês, não uma expectativa. E as medianas não somam: a soma das medianas das aberturas, ponderada, não é a mediana do INPC, então os desvios das aberturas não somam o desvio do INPC.
 
-**Contribuição para a inflação anual** (`acrescentar_contribuicao_anual`). Somo as incidências dos últimos 12 meses (ou 24 quinzenas) de cada componente. Essa soma é aproximada, porque cada incidência usa o peso relativo do seu mês e fica faltando o efeito composto. Para fechar exatamente, reescalo as partes de cada nível:
+**Contribuição para a inflação anual** (`acrescentar_contribuicao_anual`). A incidência c(s) de um componente são pontos da variação do INPC no período s, medidos sobre o nível do INPC no período anterior, I(s−1). Para somar pontos de períodos diferentes, levo todos para a base do começo da janela:
 
 ```
-contribuição anual = soma das incidências em 12 meses × (inflação anual do INPC / soma do nível)
+C(t) = soma de c(s) × I(s−1) / I(t−h),   s de t−h+1 até t,   h = 12 meses ou 24 quinzenas
 ```
 
-Em agosto de 2026: Mercancías 1,28 pp, Servicios 1,71 pp, Energéticos e tarifas 0,42 pp e Agropecuarios −0,15 pp, somando 3,26%, que é o INPC em 12 meses.
+Somando os componentes de um nível, isso dá exatamente a variação do INPC em 12 meses, porque a soma das incidências de um período é a variação do INPC nele. Não reescalo nada: o que sobra é o arredondamento das incidências publicadas, e nos últimos 24 meses ficou abaixo de 0,0045 pp. Só calculo com a janela inteira; se faltar incidência ou período, a contribuição fica nula (as incidências de 8 componentes só começam em dez/2010, a do INPC geral em jun/2013, e ago/2018 não existe).
+
+Em agosto de 2026: Mercadorias 1,29 pp, Serviços 1,72 pp, Energia e tarifas 0,41 pp e Agropecuários −0,16 pp, somando 3,26%, que é o INPC em 12 meses. Até esta versão eu somava as incidências e reescalava para fechar; a diferença para a identidade chegava a 0,02 pp por componente.
 
 **Ritmo dessazonalizado** (`acrescentar_ritmo_dessazonalizado`). Sobre o índice sem sazonalidade:
 
@@ -241,9 +244,9 @@ variação mensal SA = (SAₜ / SAₜ₋₁ − 1) × 100
 SAAR de m meses    = ((SAₜ / SAₜ₋ₘ)^(12/m) − 1) × 100,   m = 3 ou 6
 ```
 
-A subyacente de agosto tem SAAR de 3 meses de 4,03% e de 6 meses de 3,90%, contra 3,88% em 12 meses. O ritmo recente está um pouco acima da anual.
+O núcleo de agosto tem SAAR de 6 meses de 3,90% e de 3 meses de 4,03%, contra 3,88% em 12 meses. A ponta desses números revisa: num exercício pseudo-tempo-real (o STL reestimado com a série cortada em cada mês de jun/2022 a jun/2025), a ponta do SAAR 6 meses do núcleo mudou em média 1,0 pp quando entraram os meses seguintes, e a do 3 meses 1,25 pp. Por isso o gráfico destaca o 6 meses.
 
-**Difusão** (`serie_difusao`). Mês a mês, a parte do peso da cesta que está em genéricos com alta no mês, com alta anual acima de 3% (a meta) e acima de 4% (o teto da banda). Cada mês usa os pesos da cesta que valia na época, 2018 ou 2024, e reparto o peso só entre os genéricos que têm dado. Em agosto de 2026: 68% da cesta subiu no mês, 62% está acima de 3% em 12 meses e 37% acima de 4%.
+**Difusão** (`serie_difusao`). Mês a mês, a parte do peso da cesta que está em genéricos com alta no mês, com alta anual acima de 3% e acima de 4%. O 3% é a meta do Banxico para o INPC e o 4% o teto do intervalo de tolerância; para um item são só réguas, porque item nenhum tem meta. Cada mês usa os pesos da cesta que valia na época, 2018 ou 2024. Cada medida tem o seu conjunto válido: a alta no mês conta os itens com variação no período, e as anuais os itens com variação em 12 meses; o denominador é o peso desses itens. A tabela guarda, por mês e por medida, o número de itens válidos e a cobertura (quanto do peso total da cesta eles somam), e o tooltip do gráfico mostra a cobertura. Em agosto de 2026: 68% da cesta subiu no mês, 62% está acima de 3% em 12 meses e 37% acima de 4%, com cobertura de 100% e 292 itens. A menor cobertura desde 2019 foi de 93,6% (anual, no primeiro semestre de 2019).
 
 **Mensal implícito** (`mensal_implicito`). No dia da 1ª quinzena ainda não existe o mês. Como o índice mensal é a média das duas quinzenas, metade da média já está publicada, e a outra metade parte do mesmo nível. O único incerto é quanto a 2ª quinzena sobe sobre a 1ª, e para isso uso a norma:
 
@@ -251,7 +254,9 @@ A subyacente de agosto tem SAAR de 3 meses de 4,03% e de 6 meses de 3,90%, contr
 índice do mês = (1ª quinzena + 1ª quinzena × (1 + norma da 2ª quinzena)) / 2
 ```
 
-Em setembro: a 1ª quinzena é 146,010; a mediana da 2ª quinzena de setembro em 2010-2019 é de alta de 0,083%, o que dá 146,132 para a 2ª; a média das duas é 146,071; contra agosto (145,462), isso dá 0,42% no mês e 3,45% em 12 meses. Com o p25 e o p75 da norma o intervalo fica entre 0,38% e 0,44%.
+Em setembro: a 1ª quinzena é 146,010; a mediana da 2ª quinzena de setembro em 2010-2019 é de alta de 0,083%, o que dá 146,132 para a 2ª; a média das duas é 146,071; contra agosto (145,462), isso dá 0,42% no mês e 3,45% em 12 meses. Com o p25 e o p75 da norma a faixa fica entre 0,38% e 0,44%.
+
+Num backtest sem informação futura (para cada mês desde 2010, a mediana usa só os 10 anos anteriores), essa estimativa errou em média 0,065 pp no INPC e 0,034 pp no núcleo, contra 0,083 e 0,062 pp de supor a 2ª quinzena sem variação. Supera a referência, então o painel chama de estimativa. A faixa p25 a p75, porém, conteve o mês realizado em só 35% dos casos, e o cartão diz isso.
 
 **Resumo** (`numeros_principais`, `destaques`, `registros`, `arredondar`). O `metricas_resumo.json` guarda o que vai no topo do painel: o último período, se o release foi de 1ª quinzena ou mensal, os números dos três principais, o mensal implícito, a difusão e os cinco genéricos de cada lista. Guardo 6 casas e deixo o arredondamento para a tela; arredondar duas vezes já me fez errar o último dígito.
 
@@ -306,11 +311,12 @@ Os valores ficam como texto, com "N/E" onde o INEGI não publica, e os CSVs abre
 | `componente`, `nivel`, `pai` | nome interno, nível na hierarquia (0 a 3) e componente de cima |
 | `frequencia` | "mensal" ou "quinzenal" |
 | `periodo` | "2026-08" ou "2026-09-Q1" |
+| `posicao` | número do período, que sobe de 1 em 1 dentro de cada frequência; um lag é uma subtração e um período ausente aparece como buraco |
 | `rotulo_periodo`, `rotulo_curto`, `rotulo_mes` | "1ª quinz. set/26", "1ª q. set", "set/26" |
 | `data` | dia 1, ou dia 16 na 2ª quinzena |
 | `valor` | índice (base 2Q jul/2018 = 100) ou incidência em pp |
 
-**genericos.parquet**: `codigo_generico`, `nome_generico`, `subindice`, `componente_nivel2`, `componente_nivel1`, `frequencia`, `periodo`, os três rótulos, `data` e `indice`.
+**genericos.parquet**: `codigo_generico`, `nome_generico`, `subindice`, `componente_nivel2`, `componente_nivel1`, `frequencia`, `periodo`, `posicao`, os três rótulos, `data` e `indice`.
 
 **ponderadores.parquet**: `cesta` ("2018" ou "2024"), `codigo_generico` (nulo nos 28 genéricos da cesta 2018 que saíram), `nome_generico`, `ponderador` (em %, soma 100 em cada cesta), `subindice`, `componente_nivel2`, `componente_nivel1`, `fator_encadeamento` (só na 2024), `vigencia_inicio`, `vigencia_fim`.
 
@@ -322,7 +328,7 @@ Os valores ficam como texto, com "N/E" onde o INEGI não publica, e os CSVs abre
 
 **metricas_genericos.parquet**: os últimos 24 meses de cada genérico, com `variacao_periodo`, `variacao_anual`, `norma_mediana`, `desvio_norma`, `incidencia_periodo` e `contribuicao_surpresa`.
 
-**metricas_difusao.parquet**: mensal, desde 2019: `pct_genericos_em_alta` (por contagem), `pct_cesta_em_alta`, `pct_cesta_anual_acima_3` e `pct_cesta_anual_acima_4` (por peso).
+**metricas_difusao.parquet**: mensal, desde 2019: `pct_genericos_em_alta` (por contagem), `pct_cesta_em_alta`, `pct_cesta_anual_acima_3` e `pct_cesta_anual_acima_4` (por peso), e a cobertura de cada base: `itens_validos_mes` e `cobertura_peso_mes` (itens com variação no mês e % do peso da cesta que somam), `itens_validos_anual` e `cobertura_peso_anual` (o mesmo para a variação em 12 meses).
 
 **metricas_resumo.json**: `ultimo_periodo`, `ultimo_rotulo`, `tipo_ultimo_release`, `frequencia_do_release`, `principais`, `mensal_implicito` (nulo em release mensal), `difusao` e `destaques`.
 
@@ -336,7 +342,7 @@ Toda figura tem uma pergunta, que também é a docstring da função em `grafico
 
 ### Barra de navegação e faixa do release
 
-No alto, uma barra branca com "INPC México · Monitor do release" à esquerda e as quatro abas à direita. Logo abaixo, e visível em todas as abas, a faixa do release em dois blocos:
+No alto, uma barra branca com "INPC México · Monitor do release" à esquerda e as três abas à direita. Logo abaixo, e visível em todas as abas, a faixa do release em dois blocos:
 
 - à esquerda, em azul: "Último release · 1ª quinzena set/26 · divulgado 24/09 06:00 CDMX", "INPC 3,42% em 12 meses" e "Núcleo 3,79% · Não núcleo 2,17% · variação na quinzena 0,33%";
 - à direita, em azul claro: o próximo release (08/10/2026 06:00, em 12 dias), a hora da atualização e o selo "Conferido com o INEGI · 1ª quinz. set/26".
@@ -345,7 +351,7 @@ Os dados vêm de `metricas_resumo.json` e do calendário.
 
 ### Resumo
 
-- **Cartões.** INPC, Núcleo e Não núcleo no período e em 12 meses, com a seta da mudança da anual, mais o cartão do mensal implícito no dia da 1ª quinzena. Fonte: `metricas_resumo.json`.
+- **Cartões.** INPC, Núcleo e Não núcleo no período e em 12 meses, com a seta da mudança da anual, mais o cartão do mensal implícito (estimativa) no dia da 1ª quinzena, com a faixa p25 a p75 e a cobertura dela no backtest. Fonte: `metricas_resumo.json`.
 - **Destaques.** As quatro frases da seção 1. Fonte: `metricas_resumo.json`.
 - **INPC geral vs meta** e **Núcleo vs meta.** A inflação cheia está dentro da meta, e para onde aponta a última quinzena? O núcleo está convergindo para 3%? A linha é mensal e o ponto é a última quinzena (3,42% no INPC e 3,79% no núcleo). Fonte: `metricas_componentes`.
 - **Contribuições para a inflação em 12 meses.** De onde vem a inflação anual? Barras empilhadas dos quatro componentes do nível 2 nos últimos 24 meses, e a linha do INPC. Fonte: `contribuicao_anual`.
@@ -356,28 +362,28 @@ Os dados vêm de `metricas_resumo.json` e do calendário.
 ### Composição
 
 - **Decomposição da variação do período.** Do INPC até os grupos, quanto cada parte puxou? Treemap com a contribuição publicada pelo INEGI. No exemplo: Núcleo +0,13 pp e Não núcleo +0,20 pp, e dentro deste, Frutas e verduras +0,14 pp. Fonte: `incidencia_periodo` dos componentes.
-- **Surpresas vs padrão sazonal.** Quais aberturas se mexeram fora do normal, com peso? Colunas: Abertura, Grupo, Variação, Padrão sazonal e Contribuição da surpresa, esta a única com cor e barrinha, em duas seções ("Acima do padrão" e "Abaixo do padrão"). Para cima, Jitomate +0,08, Pollo +0,02 e Gas doméstico LP +0,02; para baixo, Gasolina de bajo octanaje −0,02, Automóviles −0,02 e Papa y otros tubérculos −0,02. Fonte: `destaques` do resumo.
+- **Desvio em relação à mediana sazonal (2010 a 2019).** Quais aberturas se mexeram fora do normal, com peso? Colunas: Abertura, Grupo, Variação, Mediana sazonal e Desvio sazonal ponderado, esta a única com cor e barrinha, em duas seções ("Acima da mediana sazonal" e "Abaixo da mediana sazonal"). O subtítulo avisa que não é expectativa de mercado e que as medianas não somam. Para cima, Jitomate +0,08, Pollo +0,02 e Gas doméstico LP +0,02; para baixo, Gasolina de bajo octanaje −0,02, Automóviles −0,02 e Papa y otros tubérculos −0,02. Fonte: `destaques` do resumo.
 - **Serviços vs mercadorias.** Serviços, que são mais inerciais, estão se descolando de mercadorias? Fonte: `variacao_anual`.
 
 ### Tendência
 
 - **Variação mensal dessazonalizada.** Sem sazonalidade, a inflação de cada mês está acelerando? Barras de 36 meses do INPC e do núcleo. Fonte: `variacao_sa_mensal`.
-- **Momentum do núcleo.** O ritmo recente está acima ou abaixo da anual? SAAR de 3 e 6 meses contra a variação em 12 meses. Fonte: `saar_3m`, `saar_6m`.
+- **Momentum do núcleo.** O ritmo recente está acima ou abaixo da anual? SAAR de 6 meses em destaque, SAAR de 3 meses em linha fina e a variação em 12 meses. A nota traz o tamanho da revisão de fim de amostra medido no exercício pseudo-tempo-real. Fonte: `saar_6m`, `saar_3m`.
 - **Perfil sazonal do INPC.** Este ano está subindo mais ou menos do que é normal em cada mês? A faixa de 2010-2019 e a linha de 2026 até agosto. Fonte: padrão sazonal (`norma_*`) e `variacao_periodo` mensal.
-- **Difusão.** A inflação está espalhada ou concentrada? Parte da cesta com alta no mês e com alta acima de 4% em 12 meses. Fonte: `metricas_difusao`.
+- **Difusão.** A inflação está espalhada ou concentrada? Parte da cesta com alta no mês e com alta acima de 4% em 12 meses; o tooltip mostra a cobertura de cada medida, e o subtítulo diz que o 4% é régua, não meta do item. Fonte: `metricas_difusao`.
 
-### Fontes externas
-
-Por enquanto vazia. É o lugar reservado para surpresa contra o consenso e projeções do Banxico.
+A aba "Fontes externas", que só tinha um card "Em construção", saiu. Consenso de mercado e projeções do Banxico ficam para quando houver fonte.
 
 ## 8. Validação
 
-A validação roda depois do tratamento e antes de qualquer conta, e são duas checagens.
+A validação roda depois do tratamento e antes de qualquer conta, e são quatro checagens. Um nulo nunca passa: qualquer valor comparado que falte é falha, com o que faltou na mensagem.
 
-1. **Último release contra o tabulado oficial.** Recalculo a variação, a variação anual e a incidência dos 16 componentes no último mês e na última quinzena, e comparo com o tabulado CA55 (mensal) e CA56 (quinzenal) que o INEGI publica no release. Se um dado faltar, vier trocado ou for de outro período, aparece aqui. No release de exemplo, o desvio máximo foi de 0,005 pp, que é só o arredondamento do tabulado.
-2. **Aditividade das incidências.** Nos últimos 24 meses, a incidência da subyacente mais a da no subyacente tem de dar a variação do INPC geral. Isso só acontece se índices e incidências forem coerentes entre si. Desvio máximo: 0,0007 pp.
+1. **Base completa nas janelas conferidas.** Nos últimos 24 meses mais um ano (o lag da variação anual), cada um dos 16 componentes do catálogo tem índice e incidência em todos os períodos, nas duas frequências. A grade vem da coluna `posicao` e do catálogo, não do que está na base; então um NaN, um componente que sumiu e um período intermediário ausente aparecem todos aqui.
+2. **Tabulado do mesmo período da base.** Um tabulado velho confere com o mês velho e não prova nada; se o período do tabulado não for o último da base, paro.
+3. **Último release contra o tabulado oficial.** Recalculo a variação, a variação anual e a incidência dos 16 componentes no último mês e na última quinzena, e comparo com o tabulado CA55 (mensal) e CA56 (quinzenal) que o INEGI publica no release. Se um dado faltar, vier trocado ou for de outro período, aparece aqui. No release de exemplo, o desvio máximo foi de 0,005 pp, que é só o arredondamento do tabulado.
+4. **Aditividade das incidências.** Nos últimos 24 meses, a incidência da subyacente mais a da no subyacente tem de dar a variação do INPC geral. Isso só acontece se índices e incidências forem coerentes entre si. Desvio máximo: 0,0007 pp.
 
-A tolerância é 0,01 pp, a menor diferença visível num número publicado com duas casas. Se uma checagem passar disso, o pipeline para com a mensagem "Validação falhou" e a montagem não roda. O resultado fica em `data/processed/validacao.json`.
+A tolerância é 0,01 pp, a menor diferença visível num número publicado com duas casas. Se uma checagem falhar, o pipeline para com a mensagem "Validação falhou", o que faltou, e nenhuma etapa seguinte roda. O resultado das duas comparações fica em `data/processed/validacao.json`. Os testes de falha (NaN, componente ausente, período ausente, tabulado atrasado) estão descritos em `docs/auditoria_pre_chat.md`.
 
 Na auditoria que fiz ao fechar o projeto conferi também, à mão, os números do painel contra o site do INEGI: INPC 3,42% e subyacente 3,79% na 1ª quinzena de setembro, e as incidências de jitomate (0,105), primaria (0,027), cebolla (0,027), gas LP (0,026) e pollo (0,025). Tudo bateu.
 
@@ -385,12 +391,13 @@ Na auditoria que fiz ao fechar o projeto conferi também, à mão, os números d
 
 - **O calendário é anual.** O `calendario_releases.csv` só tem 2026. Depois de 23/12/2026, a ingestão avisa no terminal e o painel mostra "calendário 2027 ainda não carregado". Sem o calendário novo, a base fica congelada dizendo que está em dia. Para resolver, basta acrescentar uma linha por release, no mesmo formato, quando o INEGI publicar o calendário de 2027.
 - **A fonte precisa de internet.** O painel abre offline, mas a fonte Inter vem do Google Fonts. Sem conexão, o navegador usa uma fonte do sistema; os números continuam os mesmos, só muda a aparência.
-- **O fim da série dessazonalizada muda.** O STL é recalculado a cada rodada, e os últimos meses são os menos firmes, porque o filtro não tem dado do lado de lá. O SAAR de 3 meses de hoje pode mudar um pouco quando entrarem os próximos meses; o gráfico de momentum avisa isso numa nota.
-- **Genéricos sem histórico.** 16 genéricos só têm série a partir de 2024: 15 foram criados na cesta 2024 (a lista está na `metodologia.md`) e um começou em junho de 2024. Eles não têm norma de 2010-2019, então ficam sem desvio e sem contribuição da surpresa, e não entram nos rankings de surpresa. Na incidência eles entram normalmente.
-- **A contribuição anual é uma aproximação.** A soma das incidências de 12 meses não fecha exatamente com a inflação anual, e eu reescalo para fechar. O tamanho relativo de cada parte está certo; o valor exato de cada uma depende dessa reescala.
+- **O fim da série dessazonalizada muda.** O STL é recalculado a cada rodada, e os últimos meses são os menos firmes, porque o filtro não tem dado do lado de lá. No exercício pseudo-tempo-real, a ponta do SAAR revisou em média 1,0 pp (6 meses) e 1,25 pp (3 meses) no núcleo; o gráfico destaca o 6 meses e avisa isso numa nota.
+- **Genéricos sem histórico.** 16 genéricos só têm série a partir de 2024: 15 foram criados na cesta 2024 (a lista está na `metodologia.md`) e um começou em junho de 2024. Eles não têm mediana de 2010-2019, então ficam sem desvio sazonal e não entram nos rankings de desvio. Na incidência eles entram normalmente.
+- **A contribuição anual depende das incidências publicadas.** A identidade é exata, mas as incidências vêm com 3 casas; por isso as partes deixam de fechar com o INPC em até 0,0045 pp. Onde falta incidência a contribuição fica nula, sem estimativa.
+- **A faixa do mensal implícito é estreita.** A p25 a p75 da mediana histórica conteve o mês realizado em 35% dos casos desde 2010, e não em 50%. Ela mostra a dispersão histórica da 2ª quinzena, não um intervalo de confiança.
 - **A soma das incidências dos genéricos difere um pouco do INPC.** Em agosto, a soma dos 292 deu 0,2021 contra 0,2018 de variação do INPC; na 1ª quinzena de setembro, 0,3293 contra 0,3291. É a diferença entre o meu peso efetivo e o cálculo interno do INEGI, e fica na quarta casa.
 - **Dependo do site do INEGI.** O app "Índices de Precios" não é uma API documentada: os ids das estruturas e o formato do exportador foram descobertos navegando nele. Se o INEGI mudar o app, a ingestão quebra e é preciso redescobrir esses ids. A validação garante que um dado quebrado não chegue ao painel, mas não conserta a ingestão.
-- **As incidências de agosto de 2018 não existem.** O INEGI não publicou, e o buraco fica nulo; afeta só a contribuição anual de 2018 e 2019, fora da janela dos gráficos.
+- **As incidências de agosto de 2018 não existem.** O INEGI não publicou, e o buraco fica nulo; a contribuição anual das janelas que passam por ele (ago/2018 a jul/2019) fica nula, fora da janela dos gráficos.
 
 ## 10. Como acrescentar um gráfico
 

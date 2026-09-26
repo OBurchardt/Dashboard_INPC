@@ -5,8 +5,9 @@
 # 2000 para cá, porque antes a inflação alta afoga a sazonalidade. Escolhi STL e não X-13 porque o
 # STL é Python puro e dá o mesmo resultado em qualquer máquina, sem instalar o programa do Census;
 # o X-13 é o que as agências usam e seria o próximo passo.
-# O quinzenal eu não dessazonalizo: os métodos padrão não lidam com 24 períodos por ano. Para ele a
-# leitura sazonal é a comparação com a norma histórica, que sai nas métricas.
+# O quinzenal eu não dessazonalizo. O STL aceitaria um ciclo de 24 quinzenas; quem não aceita é o X-13,
+# que só trabalha com dado mensal ou trimestral. Escolhi não fazer porque o mensal já é a média das duas
+# quinzenas e é nele que o ritmo é lido; para a quinzena a leitura sazonal é a mediana histórica das métricas.
 
 import sys
 import time

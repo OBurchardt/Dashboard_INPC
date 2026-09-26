@@ -46,15 +46,31 @@ def acrescentar_norma(tabela, chave):
 
 
 def acrescentar_contribuicao_anual(tabela, periodos_no_ano):
-    """Quantos pontos da inflação em 12 meses vieram de cada componente."""
-    # somo as incidências dos últimos 12 meses, mas isso é aproximado: cada incidência usa o peso relativo do seu mês,
-    # e a soma deixa de fora o efeito composto. Para fechar exatamente com a inflação anual, reescalo as partes de cada nível
-    soma = tabela.groupby("componente")["incidencia_periodo"].transform(lambda serie: serie.rolling(periodos_no_ano).sum())
-    total_do_nivel = soma.groupby([tabela["periodo"], tabela["nivel"]]).transform("sum")
-    inflacao_anual = tabela[tabela["componente"] == "indice_general"].set_index("periodo")["variacao_anual"]
-    tabela["contribuicao_anual"] = soma * tabela["periodo"].map(inflacao_anual) / total_do_nivel
-    tabela.loc[tabela["nivel"] == 0, "contribuicao_anual"] = tabela["variacao_anual"]
-    return tabela
+    """Quantos pontos da inflação em 12 meses vieram de cada componente, pela identidade exata do encadeamento."""
+    # a incidência c(s) são pontos da variação do INPC no período s, medidos sobre o nível I(s-1) do INPC geral.
+    # Para somar pontos de períodos diferentes, levo todos para a mesma base I(t-h):
+    # C(t) = soma de c(s) x I(s-1) / I(t-h), com s de t-h+1 até t (h = 12 meses ou 24 quinzenas).
+    # Somando os componentes de um nível, isso dá a variação anual do INPC; o que sobra é o arredondamento das
+    # incidências publicadas, e não reescalo nada. Só calculo com a janela inteira: faltou incidência ou período, fica nulo
+    grade = range(tabela["posicao"].min(), tabela["posicao"].max() + 1)  # a grade de posições acusa período ausente
+    inpc = tabela[tabela["componente"] == "indice_general"].set_index("posicao")["indice"].reindex(grade)
+    incidencias = tabela.pivot(index="posicao", columns="componente", values="incidencia_periodo").reindex(grade)
+    soma = incidencias.mul(inpc.shift(1), axis=0).rolling(periodos_no_ano).sum()  # o rolling exige os h valores presentes
+    contribuicao = soma.div(inpc.shift(periodos_no_ano), axis=0).stack(future_stack=True).rename("contribuicao_anual")
+    return tabela.merge(contribuicao, left_on=["posicao", "componente"], right_index=True, how="left")
+
+
+def residuo_da_contribuicao_anual(componentes, meses):
+    """O quanto as contribuições de cada nível deixam de fechar com o INPC em 12 meses, no pior período da janela."""
+    # é a prova da identidade: sem reescala, o que sobra tem de ser só arredondamento
+    residuos = []
+    for frequencia, periodos_no_ano in p.PERIODOS_POR_ANO.items():
+        tabela = componentes[componentes["frequencia"] == frequencia]
+        recentes = tabela[tabela["posicao"] > tabela["posicao"].max() - meses * periodos_no_ano // 12]
+        soma = recentes[recentes["nivel"] > 0].groupby(["periodo", "nivel"])["contribuicao_anual"].sum(min_count=1)
+        inpc = recentes[recentes["nivel"] == 0].set_index("periodo")["variacao_anual"]
+        residuos.append((soma - soma.index.get_level_values("periodo").map(inpc)).abs().max())
+    return max(residuos)
 
 
 def acrescentar_ritmo_dessazonalizado(tabela, dessazonalizadas):
@@ -81,7 +97,7 @@ def metricas_componentes(series, dessazonalizadas):
         tabela = acrescentar_variacoes(tabela.sort_values(["componente", "data"]), "componente", periodos_no_ano)
         tabelas.append(acrescentar_norma(acrescentar_contribuicao_anual(tabela, periodos_no_ano), "componente"))
     tabela = acrescentar_ritmo_dessazonalizado(pd.concat(tabelas), dessazonalizadas)
-    return tabela[["componente", "nivel", "pai", "frequencia", "periodo", "rotulo_periodo", "rotulo_curto", "rotulo_mes", "data", "indice", "variacao_periodo", "variacao_anual",
+    return tabela[["componente", "nivel", "pai", "frequencia", "periodo", "posicao", "rotulo_periodo", "rotulo_curto", "rotulo_mes", "data", "indice", "variacao_periodo", "variacao_anual",
                    "incidencia_periodo", "contribuicao_anual", "norma_mediana", "norma_p25", "norma_p75", "desvio_norma",
                    "variacao_sa_mensal", "saar_3m", "saar_6m"]]
 
@@ -103,7 +119,7 @@ def peso_efetivo_do_generico(tabela, pesos, inpc, frequencia):
 
 
 def metricas_genericos(genericos, ponderadores, series):
-    """Uma linha por genérico, frequência e período: variações, norma, incidência e quanto veio da surpresa."""
+    """Uma linha por genérico, frequência e período: variações, norma, incidência e o desvio sazonal ponderado."""
     pesos = ponderadores[ponderadores["cesta"] == "2024"].set_index("codigo_generico")
     geral = series[(series["tipo"] == "indice") & (series["componente"] == "indice_general")]
     inpc = {frequencia: tabela.set_index("periodo")["valor"] for frequencia, tabela in geral.groupby("frequencia")}
@@ -115,7 +131,9 @@ def metricas_genericos(genericos, ponderadores, series):
         tabela["incidencia_periodo"] = tabela["peso_efetivo"] * tabela["variacao_periodo"]
         tabela = acrescentar_norma(tabela, "codigo_generico")
         # o desvio em % sempre põe frutas e verduras no topo, porque elas oscilam muito; multiplicado pelo peso efetivo
-        # ele vira quantos pontos do INPC vieram do movimento fora do normal, que é o que interessa
+        # ele vira o desvio sazonal ponderado: quantos pontos do INPC vieram do movimento fora da mediana de 2010 a 2019.
+        # Não é surpresa contra expectativa de mercado, e as medianas dos itens não somam a mediana do INPC.
+        # A coluna mantém o nome antigo, contribuicao_surpresa, para não mexer nos arquivos de quem já usa a base
         tabela["contribuicao_surpresa"] = tabela["peso_efetivo"] * tabela["desvio_norma"]
         tabelas.append(tabela)
     return pd.concat(tabelas)[["codigo_generico", "nome_generico", "subindice", "frequencia", "periodo", "rotulo_periodo", "data", "indice",
@@ -125,24 +143,33 @@ def metricas_genericos(genericos, ponderadores, series):
 
 def serie_difusao(genericos, ponderadores):
     """Mês a mês, quão espalhada está a inflação: quanto da cesta subiu no mês e quanto está acima de 3% e de 4% em 12 meses."""
-    # 3% é a meta do Banxico e 4% o teto do intervalo de tolerância. Cada mês usa os pesos da cesta que valia na época,
-    # e como alguns genéricos antigos não têm série, reparto o peso só entre os que têm dado
+    # 3% e 4% são a meta do Banxico para o INPC e o teto do intervalo de tolerância; aqui são só uma régua, porque
+    # item nenhum tem meta própria. Cada mês usa os pesos da cesta que valia na época. Cada medida conta só os itens
+    # que têm o dado que ela usa (variação no mês, ou variação em 12 meses) e divide pelo peso desses itens; a
+    # cobertura diz quanto do peso total da cesta esses itens somam, para ninguém ler 60% de 80% como 60% de tudo
     mensal = genericos[(genericos["frequencia"] == "mensal") & (genericos["data"].dt.year >= p.ANO_INICIO_GRAFICOS)].copy()
-    cesta = mensal["periodo"].ge(p.INICIO_CESTA_2024["mensal"]).map({True: "2024", False: "2018"})
+    mensal["cesta"] = mensal["periodo"].ge(p.INICIO_CESTA_2024["mensal"]).map({True: "2024", False: "2018"})
     pesos = ponderadores.dropna(subset=["codigo_generico"]).set_index(["cesta", "codigo_generico"])["ponderador"]
-    mensal["peso"] = pesos.reindex(list(zip(cesta, mensal["codigo_generico"]))).values
-    mensal = mensal.dropna(subset=["peso", "variacao_periodo"])
+    mensal["peso"] = pesos.reindex(list(zip(mensal["cesta"], mensal["codigo_generico"]))).values
+    mensal = mensal.dropna(subset=["peso"])
+    peso_total = mensal.groupby("periodo")["cesta"].first().map(ponderadores.groupby("cesta")["ponderador"].sum())
     por_mes = mensal.groupby("periodo")
 
-    def pct_da_cesta(condicao):
-        """Que parte do peso da cesta está nos genéricos que cumprem a condição."""
-        return mensal["peso"].where(condicao, 0).groupby(mensal["periodo"]).sum() / por_mes["peso"].sum() * 100
+    def medida(coluna, condicao):
+        """Parte do peso válido que cumpre a condição, número de itens válidos e cobertura do peso total da cesta."""
+        valido = mensal[coluna].notna()
+        peso_valido = mensal["peso"].where(valido, 0).groupby(mensal["periodo"]).sum()
+        return (mensal["peso"].where(valido & condicao, 0).groupby(mensal["periodo"]).sum() / peso_valido * 100,
+                valido.groupby(mensal["periodo"]).sum(), peso_valido / peso_total * 100)
 
+    em_alta, itens_mes, cobertura_mes = medida("variacao_periodo", mensal["variacao_periodo"] > 0)
+    acima_3, itens_anual, cobertura_anual = medida("variacao_anual", mensal["variacao_anual"] > 3)
+    acima_4 = medida("variacao_anual", mensal["variacao_anual"] > 4)[0]
     return pd.DataFrame({"data": por_mes["data"].first(), "rotulo_periodo": por_mes["rotulo_periodo"].first(),
-                         "pct_genericos_em_alta": (mensal["variacao_periodo"] > 0).groupby(mensal["periodo"]).mean() * 100,
-                         "pct_cesta_em_alta": pct_da_cesta(mensal["variacao_periodo"] > 0),
-                         "pct_cesta_anual_acima_3": pct_da_cesta(mensal["variacao_anual"] > 3),
-                         "pct_cesta_anual_acima_4": pct_da_cesta(mensal["variacao_anual"] > 4)}).reset_index()
+                         "pct_genericos_em_alta": (mensal["variacao_periodo"] > 0).groupby(mensal["periodo"]).sum() / itens_mes * 100,
+                         "pct_cesta_em_alta": em_alta, "pct_cesta_anual_acima_3": acima_3, "pct_cesta_anual_acima_4": acima_4,
+                         "itens_validos_mes": itens_mes, "cobertura_peso_mes": cobertura_mes,
+                         "itens_validos_anual": itens_anual, "cobertura_peso_anual": cobertura_anual}).reset_index()
 
 
 # ==== 3. Resumo do último release ====
@@ -195,7 +222,7 @@ def registros(tabela):
 
 
 def destaques(genericos, frequencia):
-    """Os 5 que mais puxaram o índice para cima e para baixo, e os 5 cuja surpresa mais pesou no INPC."""
+    """Os 5 que mais puxaram o índice para cima e para baixo, e os 5 cujo desvio sazonal ponderado mais pesou no INPC."""
     da_frequencia = genericos[genericos["frequencia"] == frequencia]
     ultimo = da_frequencia[da_frequencia["periodo"] == da_frequencia["periodo"].max()]
     return {"frequencia": frequencia, "periodo": ultimo["periodo"].iloc[0], "rotulo_periodo": ultimo["rotulo_periodo"].iloc[0],
@@ -229,4 +256,6 @@ if __name__ == "__main__":
                           difusao.drop(columns="data").iloc[-1].items()},
               "destaques": destaques(genericos, frequencia_do_release)}
     (p.PASTA_PROCESSED / "metricas_resumo.json").write_text(json.dumps(resumo, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"Métricas: componentes {len(componentes)}, genéricos {int(recentes.sum())}, difusão {len(difusao)} linhas; último release {tipo}; {time.time() - inicio:.1f} s")
+    residuo = residuo_da_contribuicao_anual(componentes, p.MESES_VALIDACAO_ADITIVIDADE)
+    print(f"Métricas: componentes {len(componentes)}, genéricos {int(recentes.sum())}, difusão {len(difusao)} linhas; último release {tipo}; "
+          f"contribuição anual fecha com o INPC a menos de {residuo:.4f} pp nos últimos {p.MESES_VALIDACAO_ADITIVIDADE} meses; {time.time() - inicio:.1f} s")

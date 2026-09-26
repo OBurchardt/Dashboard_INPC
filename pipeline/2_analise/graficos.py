@@ -126,10 +126,11 @@ def tend_dessazonalizado(componentes, nomes, resumo):
 
 def tend_momentum(componentes, nomes, resumo):
     """O ritmo recente do núcleo está acima ou abaixo da inflação em 12 meses?"""
-    # se o SAAR de 3 meses está abaixo da anual, a anual tende a cair nos próximos meses, e vice-versa
+    # se o SAAR está abaixo da anual, a anual tende a cair nos próximos meses, e vice-versa. O 6 meses vem primeiro
+    # e em destaque porque, no exercício pseudo-tempo-real (docs/auditoria_pre_chat.md), a ponta do 3 meses revisou mais
     nucleo = serie(componentes, "subyacente")
     tracos = [go.Scatter(x=nucleo["data"], y=nucleo[coluna], mode="lines", name=nome, meta={"componente": "subyacente", "medida": coluna})
-              for coluna, nome in (("saar_3m", "SAAR 3 meses"), ("saar_6m", "SAAR 6 meses"), ("variacao_anual", "Variação em 12 meses"))]
+              for coluna, nome in (("saar_6m", "SAAR 6 meses"), ("saar_3m", "SAAR 3 meses (revisa mais)"), ("variacao_anual", "Variação em 12 meses"))]
     return com_meta(go.Figure(tracos).update_layout(yaxis_title="% ao ano"))
 
 
@@ -150,9 +151,11 @@ def tend_perfil_sazonal(componentes, nomes, resumo):
 
 def tend_difusao(difusao, resumo):
     """A inflação está espalhada pela cesta ou concentrada em poucos itens?"""
-    tracos = [go.Scatter(x=difusao["data"], y=difusao[coluna], mode="lines", name=nome, meta={"serie": coluna})
-              for coluna, nome in (("pct_cesta_em_alta", "% da cesta com alta no mês"),
-                                   ("pct_cesta_anual_acima_4", "% da cesta com alta acima de 4% em 12 meses"))]
+    # cada linha leva junto a cobertura (parte do peso da cesta com dado e número de itens), que o tooltip mostra
+    tracos = [go.Scatter(x=difusao["data"], y=difusao[coluna], mode="lines", name=nome, meta={"serie": coluna, "cobertura": True},
+                         customdata=difusao[[f"cobertura_peso_{base}", f"itens_validos_{base}"]].values)
+              for coluna, nome, base in (("pct_cesta_em_alta", "% do peso com alta no mês", "mes"),
+                                         ("pct_cesta_anual_acima_4", "% do peso com alta acima de 4% em 12 meses", "anual"))]
     return go.Figure(tracos).update_layout(yaxis_title="% do peso da cesta")
 
 

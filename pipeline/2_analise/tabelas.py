@@ -3,7 +3,8 @@
 # das métricas, e eu só escolho quais entram, formato com vírgula decimal e o sufixo certo ("%" para
 # variação, "pp" para contribuição) e marco cada número como positivo ou negativo. Os textos da tela
 # falam a língua do leitor brasileiro: incidência vira contribuição, genérico vira abertura, subíndice
-# vira grupo e norma vira padrão sazonal. A cor e o resto do visual ficam por conta do template.
+# vira grupo e norma vira mediana sazonal. O que eu chamava de surpresa é só o desvio contra a mediana de
+# 2010 a 2019, e não contra expectativa de mercado; a tela diz isso. O visual fica por conta do template.
 
 import html
 import json
@@ -74,15 +75,15 @@ def main_top_incidencias(componentes, resumo, nomes):
 
 
 def decomp_desvios(componentes, resumo, nomes):
-    """Os genéricos cujo movimento fora do normal mais pesou no INPC, para cima e para baixo."""
+    """Os genéricos cujo desvio contra a mediana sazonal, vezes o peso efetivo, mais pesou no INPC, para cima e para baixo."""
     linhas = []
-    for titulo, chave in (("Acima do padrão", "acima_da_norma"), ("Abaixo do padrão", "abaixo_da_norma")):
+    for titulo, chave in (("Acima da mediana sazonal", "acima_da_norma"), ("Abaixo da mediana sazonal", "abaixo_da_norma")):
         linhas.append(grupo(titulo, 5))
         for item in resumo["destaques"][chave]:
             linhas.append(f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_texto(nomes[item['subindice']], 'subindice')}"
                           f"{celula_numero(item['variacao_periodo'], '%')}{celula_numero(item['norma_mediana'], '%')}"
                           f"{celula_numero(item['contribuicao_surpresa'], ' pp')}</tr>")
-    return tabela_html(["Abertura", "Grupo", "Variação", "Padrão sazonal", "Contribuição da surpresa"], linhas)
+    return tabela_html(["Abertura", "Grupo", "Variação", "Mediana sazonal", "Desvio sazonal ponderado"], linhas)
 
 
 if __name__ == "__main__":

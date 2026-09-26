@@ -18,10 +18,10 @@ pipeline/
   1_dados/
     ingestao.py                     baixa do INEGI (app indicesdeprecios, ponderadores, tabulados) para data/raw/
     tratamento.py                   organiza o bruto em parquet (séries, genéricos, ponderadores, tabulado)
-    validacao.py                    confere o último release e as incidências; para o pipeline se falhar
+    validacao.py                    confere completude, tabulado em dia, último release e incidências; para o pipeline se falhar
     dessazonalizacao.py             gera séries dessazonalizadas e comparação sazonal
   2_analise/
-    metricas.py                     calcula incidências, momentum, difusão, núcleos, efeito base
+    metricas.py                     variações, contribuições, mediana sazonal, SAAR, difusão e o resumo do release
     tabelas.py                      formata as tabelas do dashboard
     graficos.py                     desenha os gráficos do dashboard
   3_dashboard/
@@ -30,8 +30,9 @@ pipeline/
 docs/
   metodologia.md                    registro das escolhas metodológicas e justificativas
   guia_do_projeto.md                guia completo: como rodar, fluxo, fórmulas, dicionário de dados, páginas
+  auditoria_pre_chat.md             auditoria antes do chat: problemas, evidências, correções e testes de falha
 .github/workflows/
-  atualizar_inpc.yml                atualização automática nos horários de release
+  atualizar_inpc.yml                roda o pipeline no GitHub por disparo manual e guarda o HTML como artefato
 data/                               [gerada pelo pipeline]
   raw/                              CSVs período x série, árvores de genéricos, ponderadores e tabulados
   processed/                        series, genericos, ponderadores, tabulado_oficial, metricas_* (.parquet), resumo, gráficos, tabelas e validação (.json)
@@ -49,6 +50,13 @@ INEGI (indicesdeprecios, ponderadores, tabulados) → ingestao → data/raw → 
 Instale as dependências (`pip install -r requirements.txt`) e rode `python run_pipeline.py`.
 No topo do `run_pipeline.py`, `IMPORTAR_DO_ZERO = False` só atualiza a base com o dado mais recente;
 `True` rebaixa todo o histórico do INEGI como se a base não existisse.
+
+## Rodar no GitHub
+
+Na aba Actions do repositório, o workflow "Atualizar dashboard do INPC" tem o botão "Run workflow". Ele instala
+as dependências numa máquina limpa, roda `python run_pipeline.py` (com a base vazia, a ingestão baixa o histórico
+inteiro), falha se a validação falhar e guarda `dashboard_inpc.html` como artefato para baixar. Não há disparo
+automático nem publicação: o HTML só fica disponível no próprio job.
 
 ## Calendário do ano seguinte
 

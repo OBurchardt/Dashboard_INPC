@@ -46,12 +46,19 @@ def data_do_periodo(periodo):
     return pd.Timestamp(periodo[:7] + ("-16" if periodo.endswith("Q2") else "-01"))
 
 
+def posicao_do_periodo(periodo):
+    """Um número que sobe de 1 em 1 de um período para o seguinte; com ele um lag é uma subtração e um buraco na série aparece."""
+    mes = int(periodo[:4]) * 12 + int(periodo[5:7]) - 1
+    return mes * 2 + int(periodo[-1]) - 1 if "-Q" in periodo else mes
+
+
 def ler_tabela_raw(nome):
     """Abro um CSV de data/raw e passo para o formato longo; 'N/E' e 'NA' são dado que o INEGI não publica."""
     tabela = pd.read_csv(p.PASTA_RAW / f"{nome}.csv", dtype=str, keep_default_na=False, encoding="utf-8")
     longa = tabela.melt(id_vars="periodo", var_name="id_serie", value_name="valor")
     longa["valor"] = pd.to_numeric(longa["valor"].replace({"N/E": None, "NA": None}))
     longa["data"] = longa["periodo"].map(data_do_periodo)
+    longa["posicao"] = longa["periodo"].map(posicao_do_periodo)
     rotulos = {periodo: rotulos_do_periodo(periodo) for periodo in longa["periodo"].unique()}
     for posicao, coluna in enumerate(COLUNAS_ROTULO):
         longa[coluna] = longa["periodo"].map(lambda periodo: rotulos[periodo][posicao])
@@ -75,7 +82,7 @@ def montar_series(catalogo):
     """Componentes e incidências nas duas frequências, com o nível e o pai de cada um tirados do catálogo."""
     tabelas = [ler_tabela_raw(f"{nome}_{frequencia}") for nome in ("componentes", "incidencias") for frequencia in ("mensal", "quinzenal")]
     series = pd.concat(tabelas).merge(catalogo[["id_serie", "tipo", "componente", "nivel", "pai", "frequencia"]], on="id_serie")
-    return series[["id_serie", "tipo", "componente", "nivel", "pai", "frequencia", "periodo", *COLUNAS_ROTULO, "data", "valor"]]
+    return series[["id_serie", "tipo", "componente", "nivel", "pai", "frequencia", "periodo", "posicao", *COLUNAS_ROTULO, "data", "valor"]]
 
 
 # ==== 3. Ponderadores e classificação dos genéricos ====
@@ -125,7 +132,7 @@ def montar_genericos(ponderadores):
         tabelas.append(tabela.assign(frequencia=frequencia))
     genericos = pd.concat(tabelas).merge(classificacao, on="codigo_generico").rename(columns={"valor": "indice"})
     return genericos[["codigo_generico", "nome_generico", "subindice", "componente_nivel2", "componente_nivel1",
-                      "frequencia", "periodo", *COLUNAS_ROTULO, "data", "indice"]]
+                      "frequencia", "periodo", "posicao", *COLUNAS_ROTULO, "data", "indice"]]
 
 
 # ==== 5. Tabulado oficial ====
