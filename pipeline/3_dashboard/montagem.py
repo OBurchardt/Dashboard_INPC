@@ -2,7 +2,8 @@
 # Aqui eu junto tudo num único HTML que abre sem internet, porque ele vai por e-mail: o template com
 # o visual, o plotly.js embutido e os dados do release. A parte que é só desta etapa é o cabeçalho:
 # qual release saiu e quando, quando sai o próximo, e os números dos cartões já formatados. As quatro
-# frases de destaque também nascem aqui, por regra, só com fatos do resumo; nada de opinião.
+# frases de destaque também nascem aqui, por regra, só com fatos do resumo; nada de opinião. Nelas
+# uso as palavras do leitor brasileiro (contribuição, núcleo, padrão sazonal) e 2 casas em tudo.
 # Esta etapa só roda se a validação passou, então tudo o que ela mostra já foi conferido com o INEGI.
 
 import json
@@ -73,7 +74,7 @@ def cabecalho(resumo, agora):
     return {"release": resumo["ultimo_rotulo"][frequencia], "ano": periodo[:4], "divulgado": f"{divulgado['momento'].iloc[0]:%d/%m %H:%M}",
             **proximo_release(calendario, agora), "atualizado": f"{agora:%d/%m %H:%M}", "conferido": resumo["ultimo_rotulo"][frequencia],
             "frequencia": frequencia,
-            "kpis": [{"nome": p.NOMES_EXIBICAO[componente], **kpi(principal, frequencia)}
+            "kpis": [{"componente": componente, "nome": p.NOMES_EXIBICAO[componente], **kpi(principal, frequencia)}
                      for componente, principal in resumo["principais"][frequencia].items()],
             "mensal_implicito": mensal_implicito(resumo["mensal_implicito"]) if resumo["mensal_implicito"] else None}
 
@@ -85,19 +86,19 @@ def nome(item):
 
 
 def destaques(resumo):
-    """As quatro frases do topo: inflação, maior incidência, maior surpresa e difusão, só com os fatos."""
+    """As quatro frases do topo: inflação, maior contribuição, maior surpresa e difusão, só com os fatos."""
     frequencia = resumo["frequencia_do_release"]
     geral, nucleo = resumo["principais"][frequencia]["indice_general"], resumo["principais"][frequencia]["subyacente"]
     maior = resumo["destaques"]["maiores_incidencias"][0]
     acima, abaixo = resumo["destaques"]["acima_da_norma"][0], resumo["destaques"]["abaixo_da_norma"][0]
     difusao = resumo["difusao"]
     anual = (f"INPC {numero(geral['variacao_anual'])} a/a ({numero(geral['mudanca_da_anual_pp'], sufixo=' pp', sinal=True)}); "
-             f"subyacente {numero(nucleo['variacao_anual'])} ({numero(nucleo['mudanca_da_anual_pp'], sufixo=' pp', sinal=True)})")
-    incidencia = f"Maior incidência: {nome(maior)} {numero(maior['incidencia_periodo'], 3, ' pp', True)} ({numero(maior['variacao_periodo'], sinal=True)})"
-    surpresa = (f"Maior surpresa vs norma: {nome(acima)} {numero(acima['contribuicao_surpresa'], 3, ' pp', True)}; "
-                f"para baixo: {nome(abaixo)} {numero(abaixo['contribuicao_surpresa'], 3, ' pp', True)}")
+             f"{p.NOMES_EXIBICAO['subyacente'].lower()} {numero(nucleo['variacao_anual'])} ({numero(nucleo['mudanca_da_anual_pp'], sufixo=' pp', sinal=True)})")
+    contribuicao = f"Maior contribuição: {nome(maior)} {numero(maior['incidencia_periodo'], sufixo=' pp', sinal=True)} ({numero(maior['variacao_periodo'], sinal=True)})"
+    surpresa = (f"Maior surpresa vs padrão sazonal: {nome(acima)} {numero(acima['contribuicao_surpresa'], sufixo=' pp', sinal=True)}; "
+                f"para baixo: {nome(abaixo)} {numero(abaixo['contribuicao_surpresa'], sufixo=' pp', sinal=True)}")
     espalhamento = f"{numero(difusao['pct_cesta_anual_acima_3'], 0)} da cesta com inflação anual acima de 3% ({difusao['rotulo_periodo']})"
-    return [anual, incidencia, surpresa, espalhamento]
+    return [anual, contribuicao, surpresa, espalhamento]
 
 
 def ler(nome_arquivo):

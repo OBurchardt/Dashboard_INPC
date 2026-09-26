@@ -87,7 +87,7 @@ def main_vs_norma(componentes, nomes, resumo):
     rotulos = [nomes[c] for c in ultimo.index]
     barras = [go.Bar(y=[nomes[c]], x=[ultimo.at[c, "variacao_periodo"]], orientation="h", name=nomes[c], meta={"componente": c})
               for c in ultimo.index]
-    norma = go.Scatter(y=rotulos, x=ultimo["norma_mediana"], mode="markers", name="Norma 2010-2019 (mediana)", meta={"serie": "norma"},
+    norma = go.Scatter(y=rotulos, x=ultimo["norma_mediana"], mode="markers", name="Padrão sazonal (mediana 2010-2019)", meta={"serie": "norma"},
                        error_x={"type": "data", "symmetric": False, "array": ultimo["norma_p75"] - ultimo["norma_mediana"],
                                 "arrayminus": ultimo["norma_mediana"] - ultimo["norma_p25"]})
     figura = go.Figure(barras + [norma])
@@ -106,7 +106,7 @@ def decomp_arvore(componentes, nomes, resumo):
     area = ultimo["incidencia_periodo"].abs().where(ultimo["nivel"] == 3, 0)
     figura = go.Figure(go.Treemap(ids=ultimo["componente"], labels=ultimo["componente"].map(nomes), parents=ultimo["pai"].fillna(""),
                                   values=area, branchvalues="remainder", customdata=ultimo["incidencia_periodo"],
-                                  texttemplate="%{label}<br>%{customdata:+.3f} pp", meta={"componentes": list(ultimo["componente"])}))
+                                  texttemplate="%{label}<br>%{customdata:+.2f} pp", meta={"componentes": list(ultimo["componente"])}))
     return figura
 
 
@@ -140,9 +140,9 @@ def tend_perfil_sazonal(componentes, nomes, resumo):
     norma = geral.assign(mes=geral["data"].dt.month).drop_duplicates("mes").sort_values("mes")  # a norma se repete todo ano, basta uma linha por mês
     ano = geral[geral["data"].dt.year == geral["data"].max().year]
     meses = norma["rotulo_mes"].str[:3].tolist()  # "ago/26" vira "ago", porque aqui o eixo é o mês do ano e não uma data
-    tracos = [go.Scatter(x=meses, y=norma["norma_p25"], mode="lines", name="Norma p25", meta={"serie": "norma_p25"}),
-              go.Scatter(x=meses, y=norma["norma_p75"], mode="lines", fill="tonexty", name="Norma p75", meta={"serie": "norma_p75"}),
-              go.Scatter(x=meses, y=norma["norma_mediana"], mode="lines", name="Norma (mediana)", meta={"serie": "norma_mediana"}),
+    tracos = [go.Scatter(x=meses, y=norma["norma_p25"], mode="lines", name="Padrão sazonal p25", meta={"serie": "norma_p25"}),
+              go.Scatter(x=meses, y=norma["norma_p75"], mode="lines", fill="tonexty", name="Padrão sazonal p75", meta={"serie": "norma_p75"}),
+              go.Scatter(x=meses, y=norma["norma_mediana"], mode="lines", name="Padrão sazonal (mediana)", meta={"serie": "norma_mediana"}),
               go.Scatter(x=meses[:len(ano)], y=ano["variacao_periodo"], mode="lines+markers", name=str(ano["data"].max().year),
                          meta={"componente": "indice_general"})]
     return go.Figure(tracos).update_layout(yaxis_title="variação mensal do INPC (%)")

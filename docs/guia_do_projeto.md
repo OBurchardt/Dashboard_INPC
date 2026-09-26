@@ -1,6 +1,6 @@
 # Guia do projeto
 
-Escrevi este guia para quem abre a pasta pela primeira vez, inclusive eu daqui a seis meses. Ele explica o que cada peça faz, de onde vem cada número e onde mexer quando algo precisar mudar. Os exemplos usam o último release que rodei, a 1ª quinzena de setembro de 2026, divulgada em 24/09/2026 às 06:00 da Cidade do México.
+Escrevi este guia para quem abre a pasta pela primeira vez, inclusive eu daqui a uns meses. Ele explica o que cada peça faz, de onde vem cada número e onde mexer quando algo precisar mudar. Os exemplos usam o último release que rodei, a 1ª quinzena de setembro de 2026, divulgada em 24/09/2026 às 06:00 da Cidade do México.
 
 ## 1. O que o projeto faz
 
@@ -13,12 +13,26 @@ Tudo vem de uma fonte só, o INEGI. Não uso nenhuma chave de API: o app "Índic
 No release de exemplo, o painel abre dizendo isto:
 
 - INPC 0,33% na quinzena e 3,42% em 12 meses, 0,16 pp acima da quinzena anterior.
-- Subyacente 0,17% na quinzena e 3,79% em 12 meses, 0,05 pp abaixo.
-- No subyacente 0,88% na quinzena e 2,17% em 12 meses, 0,86 pp acima.
+- Núcleo 0,17% na quinzena e 3,79% em 12 meses, 0,05 pp abaixo.
+- Não núcleo 0,88% na quinzena e 2,17% em 12 meses, 0,86 pp acima.
 - Mensal implícito de setembro: 0,42% no mês (entre 0,38% e 0,44%) e 3,45% em 12 meses.
-- Maior incidência: jitomate, com +0,105 pp (o preço subiu 22,79% na quinzena).
-- Maior surpresa contra a norma: jitomate, +0,080 pp; para baixo, gasolina de bajo octanaje, −0,019 pp.
+- Maior contribuição: Jitomate, com +0,11 pp (o preço subiu 22,79% na quinzena).
+- Maior surpresa vs padrão sazonal: Jitomate, +0,08 pp; para baixo, Gasolina de bajo octanaje, −0,02 pp.
 - 62% da cesta com inflação anual acima de 3% (ago/26).
+
+### Vocabulário: o que está no código e o que aparece na tela
+
+O dashboard é lido por brasileiros, então a tela não usa os termos do INEGI. No código, nos nomes de colunas e neste guia, quando falo de metodologia, continuo com os termos originais, porque são os das fontes:
+
+| no código e no INEGI | na tela |
+|---|---|
+| incidência | contribuição (em pp, para a variação do INPC cheio no período) |
+| genérico | abertura |
+| subíndice | grupo |
+| norma sazonal | padrão sazonal (mediana de 2010 a 2019) |
+| subyacente / no subyacente | Núcleo / Não núcleo (o nome oficial aparece num tooltip na primeira menção) |
+
+Os nomes das aberturas vêm do INEGI e ficam em espanhol (Jitomate, Cebolla). Os nomes curtos dos componentes estão em `NOMES_EXIBICAO`, no `config/parametros.py`. Na tela, variações e contribuições têm sempre 2 casas decimais, como o IBGE publica.
 
 ## 2. Como rodar
 
@@ -42,11 +56,11 @@ IMPORTAR_DO_ZERO = False
 - `False` é o uso de todo dia. A ingestão olha o calendário e compara com a base. Se não saiu nada novo, ela nem vai à rede, imprime "Já atualizado" e as outras etapas refazem o dashboard em uns 8 a 12 segundos. Se saiu dado, ela rebaixa só os últimos 6 meses e sobrescreve esses períodos, o que também pega revisões do INEGI.
 - `True` rebaixa todo o histórico, de 1969 até hoje, como se a base não existisse. Num clone limpo levou 305 segundos, dos quais 278 são só a ingestão. Nem precisa usar isso na primeira vez: com a base vazia, ou atrasada mais de 6 meses, a ingestão já decide sozinha baixar tudo.
 
-No dia do release basta rodar a partir das 06:00 da Cidade do México. Antes desse horário a ingestão considera que o dado ainda não saiu, porque ela lê o calendário no fuso de lá, não no do computador. O HTML fica em `output/dashboard_inpc.html`, com uns 4,7 MB, porque carrega o plotly.js inteiro dentro dele para abrir offline.
+No dia do release basta rodar a partir das 06:00 da Cidade do México. Antes desse horário a ingestão considera que o dado ainda não saiu, porque ela lê o calendário no fuso de lá, não no do computador. O HTML fica em `output/dashboard_inpc.html`.
 
 Cada etapa também roda sozinha, por exemplo `python pipeline/2_analise/tabelas.py`, desde que as etapas anteriores já tenham gerado os arquivos de que ela precisa. Isso é útil para mexer num gráfico sem rebaixar nada.
 
-Se a validação falhar, o pipeline para antes da montagem e o dashboard antigo continua lá. Prefiro mostrar o release de ontem a mostrar um número errado.
+Se a validação falhar, o pipeline para antes da montagem e o dashboard antigo continua lá. Prefiro mostrar o dashboard desatualizado a mostrar um número errado.
 
 ## 3. Mapa da pasta
 
@@ -133,7 +147,7 @@ Um arquivo de constantes, dividido em seções.
 - **Rede.** 3 tentativas, 120 s de limite e lotes de 120 ids por pedido ao exportador.
 - **Fontes.** As URLs.
 - **Estruturas.** Os ids internos do app que achei navegando nele. `112001700010` é o índice mensal dos 16 componentes, `112001600020` o quinzenal, `112001800030` e `112001800020` as incidências. As árvores `112001700030` e `112001600030` são as únicas que descem até os 292 genéricos.
-- **Componentes e nomes.** Quais são os três principais, quais são os quatro do nível 2 e o nome curto de cada um na tela.
+- **Componentes e nomes.** Quais são os três principais, quais são os quatro do nível 2 e o nome de cada um na tela, em português (Núcleo, Mercadorias, Energia e tarifas...).
 - **Janelas.** Dessazonalização desde 2000, norma de 2010 a 2019, gráficos desde 2019, início da cesta 2024, 24 meses de genéricos no dashboard e tolerância de 0,01 pp na validação.
 
 ### pipeline/1_dados/ingestao.py
@@ -245,9 +259,9 @@ Uma decisão importante acontece aqui e só aqui: se o último quinzenal termina
 
 ### pipeline/2_analise/tabelas.py
 
-- `celula_numero`: formata com vírgula decimal, usa o sinal de menos tipográfico e marca a célula como positiva ou negativa. Incidências vão com 3 casas, como o INEGI publica.
+- `celula_numero`: formata com vírgula decimal e 2 casas, usa o sinal de menos tipográfico e marca a célula como positiva ou negativa. O que arredonda para zero sai "0,00", sem sinal e sem cor.
 - `celula_texto`, `tabela_html`, `grupo`: o resto do HTML das tabelas.
-- `main_ultimos_periodos`, `main_top_incidencias`, `decomp_desvios`: as três tabelas. Não fazem conta, só escolhem e formatam.
+- `main_ultimos_periodos`, `main_top_incidencias`, `decomp_desvios`: as três tabelas. Não fazem conta, só escolhem e formatam. Os cabeçalhos já saem no vocabulário da tela (Abertura, Grupo, Contribuição, Padrão sazonal).
 
 ### pipeline/2_analise/graficos.py
 
@@ -258,13 +272,13 @@ Uma função por gráfico, com o mesmo nome do espaço que ele ocupa no template
 - `numero`: o formatador dos cartões; um valor que arredonda para zero sai "0,00", sem sinal.
 - `releases`, `proximo_release`: leem o calendário. Depois do último release do arquivo, o cabeçalho diz "Próximo release: calendário 2027 ainda não carregado".
 - `kpi`: um cartão, com a seta decidida pelo valor já arredondado. Se a mudança aparece como 0,00, a seta é "=" e o cartão fica neutro.
-- `mensal_implicito`, `cabecalho`: o texto da faixa do topo e dos cartões.
-- `destaques`, `nome`: as quatro frases do topo, só com fatos do resumo.
+- `mensal_implicito`, `cabecalho`: o texto da faixa do release e dos cartões. Cada cartão leva o nome do componente, para o template saber onde pôr o tooltip do nome oficial.
+- `destaques`, `nome`: as quatro frases do topo, só com fatos do resumo, em 2 casas.
 - No fim, o JSON de tudo e o plotly.js são colados no template, e o arquivo é gravado em `output/`.
 
 ### pipeline/3_dashboard/template.html
 
-HTML, CSS e JavaScript num arquivo só. As cores e fontes estão em variáveis no começo do CSS. O JavaScript lê `window.DADOS`, preenche o cabeçalho e os cartões, aplica o estilo a cada figura conforme o `meta` e ajusta as tabelas (subíndice embaixo do nome e barras de incidência dentro da célula).
+HTML, CSS e JavaScript num arquivo só. As cores, fontes e raios estão em variáveis no `:root`, com a paleta tirada do site do BTG Pactual (sem logo nem nome do banco): `--azul-btg` #10408D como cor primária, `--azul-claro` #B0D2FF e `--azul-claro-2` #E8F1FF nos blocos e fundos, cantos de 4px. O JavaScript lê `window.DADOS`, preenche a faixa do release e os cartões, aplica o estilo a cada figura conforme o `meta` e ajusta as tabelas. Nas tabelas, só uma coluna leva a cor do sinal (`COLUNA_COLORIDA`) e as colunas de contribuição ganham uma barrinha.
 
 ## 6. Dicionário de dados
 
@@ -320,31 +334,36 @@ Os valores ficam como texto, com "N/E" onde o INEGI não publica, e os CSVs abre
 
 Toda figura tem uma pergunta, que também é a docstring da função em `graficos.py`.
 
-### Faixa do topo
+### Barra de navegação e faixa do release
 
-Mostra o release ("1ª quinz. set/26"), a data de divulgação, o próximo release e em quantos dias sai, a hora da atualização e a pílula "Conferido com o INEGI · 1ª quinz. set/26". Os dados vêm de `metricas_resumo.json` e do calendário.
+No alto, uma barra branca com "INPC México · Monitor do release" à esquerda e as quatro abas à direita. Logo abaixo, e visível em todas as abas, a faixa do release em dois blocos:
+
+- à esquerda, em azul: "Último release · 1ª quinzena set/26 · divulgado 24/09 06:00 CDMX", "INPC 3,42% em 12 meses" e "Núcleo 3,79% · Não núcleo 2,17% · variação na quinzena 0,33%";
+- à direita, em azul claro: o próximo release (08/10/2026 06:00, em 12 dias), a hora da atualização e o selo "Conferido com o INEGI · 1ª quinz. set/26".
+
+Os dados vêm de `metricas_resumo.json` e do calendário.
 
 ### Resumo
 
-- **Cartões.** INPC, subyacente e no subyacente no período e em 12 meses, com a seta da mudança da anual, mais o cartão do mensal implícito no dia da 1ª quinzena. Fonte: `metricas_resumo.json`.
+- **Cartões.** INPC, Núcleo e Não núcleo no período e em 12 meses, com a seta da mudança da anual, mais o cartão do mensal implícito no dia da 1ª quinzena. Fonte: `metricas_resumo.json`.
 - **Destaques.** As quatro frases da seção 1. Fonte: `metricas_resumo.json`.
-- **INPC geral vs meta** e **Subyacente vs meta.** A inflação cheia está dentro da meta, e para onde aponta a última quinzena? O núcleo está convergindo para 3%? A linha é mensal e o ponto é a última quinzena (3,42% no INPC e 3,79% na subyacente). Fonte: `metricas_componentes`.
+- **INPC geral vs meta** e **Núcleo vs meta.** A inflação cheia está dentro da meta, e para onde aponta a última quinzena? O núcleo está convergindo para 3%? A linha é mensal e o ponto é a última quinzena (3,42% no INPC e 3,79% no núcleo). Fonte: `metricas_componentes`.
 - **Contribuições para a inflação em 12 meses.** De onde vem a inflação anual? Barras empilhadas dos quatro componentes do nível 2 nos últimos 24 meses, e a linha do INPC. Fonte: `contribuicao_anual`.
-- **Último período vs norma sazonal.** O último dado veio acima ou abaixo do que costuma acontecer nessa época do ano? Barras dos sete principais, com a mediana e o intervalo p25 a p75. No exemplo, o no subyacente subiu 0,88% e o INPC 0,33% contra uma norma de 0,32%. Fonte: `metricas_componentes`.
+- **Último período vs padrão sazonal.** O último dado veio acima ou abaixo do que costuma acontecer nessa época do ano? Barras dos sete principais, com a mediana e o intervalo p25 a p75. No exemplo, o não núcleo subiu 0,88% e o INPC 0,33% contra um padrão de 0,32%. Fonte: `metricas_componentes`.
 - **Últimos períodos.** Tabela com as três últimas quinzenas (ou meses) e a variação em 12 meses. Fonte: `metricas_componentes`.
-- **Incidências por genérico.** Os cinco que mais puxaram e os cinco que mais seguraram: jitomate +0,105 pp, primaria +0,027 e cebolla +0,027 de um lado; servicios profesionales −0,043 e papa −0,025 do outro. Fonte: `destaques` do resumo.
+- **Contribuições por abertura.** As cinco que mais puxaram e as cinco que mais seguraram, com o grupo embaixo do nome: Jitomate +0,11 pp, Primaria +0,03 e Cebolla +0,03 de um lado; Servicios profesionales −0,04 e Papa y otros tubérculos −0,03 do outro. O subtítulo define contribuição em uma linha. Fonte: `destaques` do resumo.
 
 ### Composição
 
-- **Decomposição da variação do período.** Do INPC até os subíndices, quanto cada parte puxou? Treemap com a incidência publicada. No exemplo: subyacente 0,133 pp e no subyacente 0,196 pp, e dentro deste, frutas e verduras 0,139 pp. Fonte: `incidencia_periodo` dos componentes.
-- **Surpresas vs norma sazonal.** Quais genéricos se mexeram fora do normal, com peso? Para cima, jitomate +0,080, pollo +0,022 e gas LP +0,016; para baixo, gasolina de bajo octanaje −0,019, automóviles −0,018 e papa −0,017. Fonte: `destaques` do resumo.
+- **Decomposição da variação do período.** Do INPC até os grupos, quanto cada parte puxou? Treemap com a contribuição publicada pelo INEGI. No exemplo: Núcleo +0,13 pp e Não núcleo +0,20 pp, e dentro deste, Frutas e verduras +0,14 pp. Fonte: `incidencia_periodo` dos componentes.
+- **Surpresas vs padrão sazonal.** Quais aberturas se mexeram fora do normal, com peso? Colunas: Abertura, Grupo, Variação, Padrão sazonal e Contribuição da surpresa, esta a única com cor e barrinha, em duas seções ("Acima do padrão" e "Abaixo do padrão"). Para cima, Jitomate +0,08, Pollo +0,02 e Gas doméstico LP +0,02; para baixo, Gasolina de bajo octanaje −0,02, Automóviles −0,02 e Papa y otros tubérculos −0,02. Fonte: `destaques` do resumo.
 - **Serviços vs mercadorias.** Serviços, que são mais inerciais, estão se descolando de mercadorias? Fonte: `variacao_anual`.
 
 ### Tendência
 
-- **Variação mensal dessazonalizada.** Sem sazonalidade, a inflação de cada mês está acelerando? Barras de 36 meses do INPC e da subyacente. Fonte: `variacao_sa_mensal`.
-- **Momentum da subyacente.** O ritmo recente está acima ou abaixo da anual? SAAR de 3 e 6 meses contra a variação em 12 meses. Fonte: `saar_3m`, `saar_6m`.
-- **Perfil sazonal do INPC.** Este ano está subindo mais ou menos do que é normal em cada mês? A faixa de 2010-2019 e a linha de 2026 até agosto. Fonte: norma e `variacao_periodo` mensal.
+- **Variação mensal dessazonalizada.** Sem sazonalidade, a inflação de cada mês está acelerando? Barras de 36 meses do INPC e do núcleo. Fonte: `variacao_sa_mensal`.
+- **Momentum do núcleo.** O ritmo recente está acima ou abaixo da anual? SAAR de 3 e 6 meses contra a variação em 12 meses. Fonte: `saar_3m`, `saar_6m`.
+- **Perfil sazonal do INPC.** Este ano está subindo mais ou menos do que é normal em cada mês? A faixa de 2010-2019 e a linha de 2026 até agosto. Fonte: padrão sazonal (`norma_*`) e `variacao_periodo` mensal.
 - **Difusão.** A inflação está espalhada ou concentrada? Parte da cesta com alta no mês e com alta acima de 4% em 12 meses. Fonte: `metricas_difusao`.
 
 ### Fontes externas
@@ -388,7 +407,7 @@ Como exemplo, digamos que eu queira um gráfico da variação anual dos quatro c
        return com_meta(figura.update_layout(yaxis_title="variação em 12 meses (%)"))
    ```
 
-   Não ponha cor nem fonte; o `meta` que a `linha` já coloca basta para o template pintar cada componente.
+   Não ponha cor nem fonte; o `meta` que a `linha` já coloca basta para o template pintar cada componente. Os nomes das séries saem de `NOMES_EXIBICAO`, e qualquer texto novo segue o vocabulário da tela (seção 1).
 
 3. **Inclua a função na lista `slots`** no fim de `graficos.py`.
 

@@ -4,7 +4,7 @@
 - Um arquivo por etapa, com várias funções dentro, ordenadas na sequência em que são usadas.
 - Parâmetros que um humano ajusta (caminhos, URLs, ids, janelas) vivem em config/parametros.py.
 - Etapas não importam umas das outras; comunicam-se por arquivos em data/. A única exceção é config/parametros.py, que todas podem ler.
-- O projeto precisa rodar do zero com `python run_pipeline.py --completo`.
+- O projeto precisa rodar do zero com `python run_pipeline.py`, com `IMPORTAR_DO_ZERO = True` no topo do arquivo.
 - Nomes em português, completos, sem acento e sem abreviação.
 - Toda função tem docstring curta em português: o que recebe, o que devolve, a fonte do dado.
 - Nenhuma fonte atual exige token. Se alguma vier a exigir, o token fica só no .env e nunca aparece no código nem em logs.

@@ -1,8 +1,9 @@
 # Etapa 2.2: Tabelas
 # Transformo em HTML as três tabelas do dashboard. Não calculo nada aqui: os números já vêm prontos
 # das métricas, e eu só escolho quais entram, formato com vírgula decimal e o sufixo certo ("%" para
-# variação, "pp" para incidência e contribuição) e marco cada número como positivo ou negativo. A cor
-# e o resto do visual ficam por conta do template, que é quem sabe o que fazer com essas classes.
+# variação, "pp" para contribuição) e marco cada número como positivo ou negativo. Os textos da tela
+# falam a língua do leitor brasileiro: incidência vira contribuição, genérico vira abertura, subíndice
+# vira grupo e norma vira padrão sazonal. A cor e o resto do visual ficam por conta do template.
 
 import html
 import json
@@ -17,10 +18,11 @@ from config import parametros as p
 
 
 # ==== 1. Células e tabela ====
-def celula_numero(valor, unidade, casas=2):
-    """Célula de número já no formato brasileiro; incidência vai com 3 casas porque é assim que o INEGI publica."""
+def celula_numero(valor, unidade):
+    """Célula de número já no formato brasileiro, com 2 casas em tudo, que é o padrão do IBGE para variação e contribuição."""
+    valor = round(valor, 2) or 0.0  # o que arredonda para zero sai "0,00", sem sinal e sem cor
     sinal = " positivo" if valor > 0 else " negativo" if valor < 0 else ""
-    texto = f"{valor:.{casas}f}".replace("-", "−").replace(".", ",") + unidade  # "−" tipográfico, o mesmo dos cartões
+    texto = f"{valor:.2f}".replace("-", "−").replace(".", ",") + unidade  # "−" tipográfico, o mesmo dos cartões
     return f'<td class="numero{sinal}">{texto}</td>'
 
 
@@ -63,24 +65,24 @@ def main_ultimos_periodos(componentes, resumo, nomes):
 def main_top_incidencias(componentes, resumo, nomes):
     """Os cinco genéricos que mais puxaram a inflação para cima e os cinco que mais seguraram, em duas tabelas."""
     tabelas = []
-    for titulo, chave in (("Maiores incidências", "maiores_incidencias"), ("Menores incidências", "menores_incidencias")):
+    for titulo, chave in (("Maiores contribuições", "maiores_incidencias"), ("Menores contribuições", "menores_incidencias")):
         linhas = [f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_texto(nomes[item['subindice']], 'subindice')}"
-                  f"{celula_numero(item['variacao_periodo'], '%')}{celula_numero(item['incidencia_periodo'], ' pp', 3)}</tr>"
+                  f"{celula_numero(item['variacao_periodo'], '%')}{celula_numero(item['incidencia_periodo'], ' pp')}</tr>"
                   for item in resumo["destaques"][chave]]
-        tabelas.append(tabela_html(["Genérico", "Subíndice", "Variação", "Incidência"], linhas, titulo))
+        tabelas.append(tabela_html(["Abertura", "Grupo", "Variação", "Contribuição"], linhas, titulo))
     return f'<div class="lado-a-lado">{"".join(tabelas)}</div>'
 
 
 def decomp_desvios(componentes, resumo, nomes):
     """Os genéricos cujo movimento fora do normal mais pesou no INPC, para cima e para baixo."""
     linhas = []
-    for titulo, chave in (("Acima da norma", "acima_da_norma"), ("Abaixo da norma", "abaixo_da_norma")):
+    for titulo, chave in (("Acima do padrão", "acima_da_norma"), ("Abaixo do padrão", "abaixo_da_norma")):
         linhas.append(grupo(titulo, 5))
         for item in resumo["destaques"][chave]:
-            linhas.append(f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_numero(item['variacao_periodo'], '%')}"
-                          f"{celula_numero(item['norma_mediana'], '%')}{celula_numero(item['desvio_norma'], ' pp')}"
-                          f"{celula_numero(item['contribuicao_surpresa'], ' pp', 3)}</tr>")
-    return tabela_html(["Genérico", "Variação", "Norma", "Desvio", "Contribuição da surpresa"], linhas)
+            linhas.append(f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_texto(nomes[item['subindice']], 'subindice')}"
+                          f"{celula_numero(item['variacao_periodo'], '%')}{celula_numero(item['norma_mediana'], '%')}"
+                          f"{celula_numero(item['contribuicao_surpresa'], ' pp')}</tr>")
+    return tabela_html(["Abertura", "Grupo", "Variação", "Padrão sazonal", "Contribuição da surpresa"], linhas)
 
 
 if __name__ == "__main__":

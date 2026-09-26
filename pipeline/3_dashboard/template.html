@@ -3,9 +3,10 @@
   O visual inteiro do dashboard mora aqui: as cores, a tipografia, a grade, os cards, as tabelas
   e um tema único que aplico a todos os gráficos. Os dados chegam prontos da montagem em
   window.DADOS; as figuras vêm sem estilo nenhum, e cada traço traz em meta o componente que
-  representa, para eu dar a cor certa sem depender da ordem. A referência que tive em mente foi a
-  nota de research e os gráficos do FT: dado forte, moldura discreta, muito respiro. Navy como
-  cor de marca em áreas grandes, azul de acento, e cinzas azulados no resto. Cor só no :root.
+  representa, para eu dar a cor certa sem depender da ordem. A paleta é a do site do BTG Pactual,
+  tirada de um print (sem logo nem nome do banco): azul chapado em blocos grandes, cantos quase
+  retos, cinzas neutros no resto. Cor só no :root. Os textos da tela são para leitor brasileiro:
+  contribuição, abertura, grupo, núcleo e padrão sazonal, no lugar dos termos do INEGI.
 -->
 <html lang="pt-BR">
 <head>
@@ -19,43 +20,40 @@
 /* ==== 1. Tokens: toda cor, tamanho e espaço está aqui, e em nenhum outro lugar ==== */
 :root {
   /* superfícies */
-  --bg: #F6F7F9;                 /* fundo da página (off-white) */
-  --surface: #FFFFFF;            /* cards */
-  --surface-2: #F1F4F9;          /* chips e áreas secundárias */
-  --border: #E4E8EF;             /* bordas e separadores */
+  --bg: #F5F5F5;                 /* fundo da página */
+  --surface: #FFFFFF;            /* cards, barra de navegação, chips */
+  --border: #D7DBDF;             /* bordas e separadores */
 
   /* tinta */
-  --ink: #05132A;                /* texto principal */
-  --ink-2: #3D4A5F;              /* texto secundário */
-  --ink-3: #7A869A;              /* rótulos, eixos, notas */
+  --ink: #0A0A0A;                /* títulos */
+  --ink-2: #333333;              /* corpo */
+  --ink-3: #6B7280;              /* rótulos, eixos, notas */
 
-  /* rampa azul da marca */
-  --azul-900: #05132A;
-  --azul-800: #0D336A;
-  --azul-700: #13478F;
-  --azul-600: #195AB4;
-  --azul-400: #4E97F0;
-  --azul-200: #C6D6EE;
-  --azul-100: #E4ECF7;
-  --azul-50: #F3F6FB;
+  /* azuis do site do BTG: o primário vai em blocos, aba ativa e contornos; os de apoio em séries e fundos */
+  --azul-btg: #10408D;
+  --azul-claro: #B0D2FF;         /* bloco secundário */
+  --azul-claro-2: #E8F1FF;       /* fundos suaves */
+  --azul-medio: #406BB4;
+  --azul-vivo: #4F97F4;
+  --azul-escuro: #253B63;
 
   /* vermelho e verde só em variação e sinal; se virassem cor de série, o leitor ia achar que é alerta */
   --pior: #B4432F;               /* inflação subindo */
   --melhor: #0E7C5A;             /* inflação caindo */
 
   /* séries: o que é núcleo em azuis e o que não é em âmbar e verde-azulado, para o olho separar sem ler a legenda */
-  --serie-inpc: #05132A;
-  --serie-subyacente: #195AB4;
-  --serie-mercancias: #4E97F0;
-  --serie-servicios: #195AB4;
+  --serie-inpc: #253B63;
+  --serie-subyacente: #10408D;
+  --serie-mercancias: #4F97F4;
+  --serie-servicios: #1B55B5;
   --serie-agropecuarios: #D48A16;
   --serie-energeticos: #0E9C8A;
   --serie-no-subyacente: #D48A16;
 
   /* gráficos */
-  --grade: #EEF1F5;              /* grade horizontal */
-  --zero: #D5DBE5;               /* linha de zero dos gráficos de barras */
-  --banda-meta: rgba(25, 90, 180, 0.06);   /* intervalo de 2% a 4% do Banxico */
+  --grade: #ECEEF0;              /* grade horizontal */
+  --zero: #D7DBDF;               /* linha de zero dos gráficos de barras */
+  --banda-meta: rgba(16, 64, 141, 0.06);   /* intervalo de 2% a 4% do Banxico */
   --branco: #FFFFFF;             /* texto sobre fundos escuros */
 
   /* tipografia: escala 12/13/14/16/20/32 */
@@ -63,8 +61,8 @@
   --t-12: 12px; --t-13: 13px; --t-14: 14px; --t-16: 16px; --t-20: 20px; --t-32: 32px;
 
   /* forma e espaço: só 8/12/16/24/32 */
-  --raio-card: 12px;
-  --raio-pilula: 999px;
+  --raio-card: 4px;              /* o site deles é quase reto */
+  --raio-pilula: 4px;
   --e-8: 8px; --e-12: 12px; --e-16: 16px; --e-24: 24px; --e-32: 32px;
   --coluna: 1320px;              /* largura da coluna única de conteúdo */
   --altura-grafico: 300px;
@@ -76,22 +74,29 @@
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--fonte); font-size: var(--t-13); line-height: 1.45; -webkit-font-smoothing: antialiased; }
 .coluna { max-width: var(--coluna); margin: 0 auto; padding: 0 var(--e-32); }
 
-/* faixa superior navy */
-.faixa { background: var(--azul-900); color: var(--branco); }
-.faixa .coluna { display: flex; align-items: center; gap: var(--e-24); height: 56px; white-space: nowrap; overflow-x: auto; }
-.marca { font-size: var(--t-16); font-weight: 600; letter-spacing: -0.01em; }
-.marca span { color: var(--azul-200); font-weight: 400; margin-left: var(--e-8); }
-.faixa-info { margin-left: auto; display: flex; align-items: center; gap: var(--e-16); font-size: var(--t-12); color: var(--azul-200); }
-.faixa-info strong { color: var(--branco); font-weight: 500; }
-.faixa-info .divisor { width: 1px; height: 16px; background: var(--azul-700); }
-.pilula { display: inline-flex; align-items: center; gap: 4px; border-radius: var(--raio-pilula); padding: 2px 10px; font-size: var(--t-12); font-weight: 500; font-variant-numeric: tabular-nums; }
-.pilula.conferido { background: color-mix(in srgb, var(--melhor) 20%, transparent); color: var(--branco); }
+/* barra de navegação branca, como a do site: a marca à esquerda e as abas como itens de menu à direita */
+.navegacao { background: var(--surface); border-bottom: 1px solid var(--border); }
+.navegacao .coluna { display: flex; align-items: center; gap: var(--e-24); height: 64px; }
+.marca { font-size: var(--t-16); font-weight: 600; color: var(--azul-btg); letter-spacing: -0.01em; white-space: nowrap; }
+.marca span { color: var(--ink-3); font-weight: 400; margin-left: var(--e-8); }
+.abas { margin-left: auto; display: flex; gap: var(--e-24); height: 100%; overflow-x: auto; }
+.abas button { font: inherit; font-size: var(--t-14); font-weight: 500; color: var(--ink-2); background: none; border: none; border-bottom: 2px solid transparent; padding: 0; height: 100%; cursor: pointer; white-space: nowrap; }
+.abas button.ativa { color: var(--azul-btg); border-bottom-color: var(--azul-btg); }
 
-/* abas */
-.abas { background: var(--surface); border-bottom: 1px solid var(--border); }
-.abas .coluna { display: flex; gap: var(--e-24); }
-.abas button { font: inherit; font-size: var(--t-14); font-weight: 500; color: var(--ink-3); background: none; border: none; border-bottom: 2px solid transparent; padding: var(--e-12) 0; cursor: pointer; }
-.abas button.ativa { color: var(--ink); border-bottom-color: var(--azul-600); }
+/* faixa do release: dois blocos chapados lado a lado, o azul forte com o dado e o claro com o calendário */
+.faixa-release { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--e-16); margin-bottom: var(--e-16); }
+.bloco-release, .bloco-proximo { border-radius: var(--raio-card); padding: var(--e-24) var(--e-32); display: flex; flex-direction: column; gap: var(--e-8); }
+.bloco-release { grid-column: span 8; background: var(--azul-btg); color: var(--branco); }
+.bloco-proximo { grid-column: span 4; background: var(--azul-claro); color: var(--azul-btg); }
+.bloco-rotulo { font-size: var(--t-12); font-weight: 500; }
+.bloco-titulo { font-size: var(--t-32); font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+.bloco-linha { font-size: var(--t-16); font-variant-numeric: tabular-nums; }
+.bloco-data { font-size: var(--t-20); font-weight: 600; }
+.bloco-rodape { margin-top: auto; padding-top: var(--e-8); display: flex; flex-direction: column; gap: 4px; font-size: var(--t-12); }
+.conferido { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.termo { border-bottom: 1px dotted currentColor; cursor: help; }   /* termo com o nome oficial do INEGI no tooltip */
+@media (max-width: 1100px) { .faixa-release > * { grid-column: 1 / -1; } }
+.pilula { display: inline-flex; align-items: center; gap: 4px; border-radius: var(--raio-pilula); padding: 2px 10px; font-size: var(--t-12); font-weight: 500; font-variant-numeric: tabular-nums; }
 
 /* grade de 12 colunas */
 main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
@@ -106,7 +111,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 .card-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--e-16); margin-bottom: var(--e-12); }
 .card h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .card .sub { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-3); }
-.chip { flex: none; background: var(--surface-2); color: var(--ink-3); font-size: 11px; font-weight: 500; border-radius: var(--raio-pilula); padding: 3px 10px; white-space: nowrap; }
+.chip { flex: none; background: var(--surface); color: var(--azul-btg); border: 1px solid var(--azul-btg); font-size: 11px; font-weight: 500; border-radius: var(--raio-pilula); padding: 2px 10px; white-space: nowrap; }
 .fonte { margin: var(--e-8) 0 0; font-size: 11.5px; color: var(--ink-3); }
 
 /* cartões de KPI */
@@ -119,10 +124,10 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 .kpi-nota { font-size: var(--t-12); color: var(--ink-3); }
 .pilula.pior { background: color-mix(in srgb, var(--pior) 10%, transparent); color: var(--pior); align-self: flex-start; }
 .pilula.melhor { background: color-mix(in srgb, var(--melhor) 10%, transparent); color: var(--melhor); align-self: flex-start; }
-.pilula.neutro { background: var(--surface-2); color: var(--ink-3); align-self: flex-start; }
+.pilula.neutro { background: var(--bg); color: var(--ink-3); align-self: flex-start; }
 .sparkline { width: 100%; height: 32px; margin-top: auto; }
-.sparkline polyline { fill: none; stroke: var(--azul-200); stroke-width: 1.5; }
-.sparkline circle { fill: var(--azul-600); }
+.sparkline polyline { fill: none; stroke: var(--azul-claro); stroke-width: 1.5; }
+.sparkline circle { fill: var(--azul-btg); }
 
 /* faixa de destaques: 4 fatos lado a lado */
 .destaques { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -147,10 +152,11 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 .tabela-dados td.numero { text-align: right; white-space: nowrap; }
 .tabela-dados td.positivo { color: var(--pior); }
 .tabela-dados td.negativo { color: var(--melhor); }
-.tabela-dados td.neutro { color: var(--ink); }
+.tabela-dados td.neutro { color: var(--ink-2); }
 .tabela-dados td.generico { padding-top: 6px; padding-bottom: 6px; }
+.tabela-dados td.subindice { color: var(--ink-2); }
 .sub-linha { display: block; font-size: 11.5px; color: var(--ink-3); }
-.tabela-dados tr.grupo th { text-align: left; text-transform: none; letter-spacing: 0; font-size: var(--t-13); color: var(--ink); padding: var(--e-16) 0 var(--e-8); }
+.tabela-dados tr.grupo th { text-align: left; font-size: 11px; color: var(--ink-3); padding: var(--e-16) 0 var(--e-8); }   /* título discreto, "Acima do padrão" */
 .barra-inline { display: inline-block; height: 4px; border-radius: 2px; margin-right: var(--e-8); vertical-align: middle; }
 .barra-inline.positivo { background: var(--pior); }
 .barra-inline.negativo { background: var(--melhor); }
@@ -168,28 +174,34 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 </head>
 <body>
 
-<header class="faixa">
+<header class="navegacao">
   <div class="coluna">
     <div class="marca">INPC México<span>Monitor do release</span></div>
-    <div class="faixa-info">
-      <span id="release"></span><span class="divisor"></span>
-      <span id="proximo"></span><span class="divisor"></span>
-      <span id="atualizado"></span>
-      <span class="pilula conferido" id="conferido"></span>
-    </div>
+    <nav class="abas">
+      <button data-aba="resumo" class="ativa">Resumo</button>
+      <button data-aba="composicao">Composição</button>
+      <button data-aba="tendencia">Tendência</button>
+      <button data-aba="externas">Fontes externas</button>
+    </nav>
   </div>
 </header>
 
-<nav class="abas">
-  <div class="coluna">
-    <button data-aba="resumo" class="ativa">Resumo</button>
-    <button data-aba="composicao">Composição</button>
-    <button data-aba="tendencia">Tendência</button>
-    <button data-aba="externas">Fontes externas</button>
-  </div>
-</nav>
-
 <main class="coluna">
+  <!-- ==== Faixa do release: fica acima das abas, porque é o que o leitor precisa ver em qualquer página ==== -->
+  <section class="faixa-release">
+    <div class="bloco-release">
+      <div class="bloco-rotulo" id="release"></div>
+      <div class="bloco-titulo" id="release-titulo"></div>
+      <div class="bloco-linha" id="release-linha"></div>
+    </div>
+    <div class="bloco-proximo">
+      <div class="bloco-rotulo">Próximo release</div>
+      <div class="bloco-data" id="proximo"></div>
+      <div id="proximo-dias"></div>
+      <div class="bloco-rodape"><span id="atualizado"></span><span class="conferido" id="conferido"></span></div>
+    </div>
+  </section>
+
   <!-- ==== Resumo ==== -->
   <section class="painel ativo" id="resumo">
     <div id="kpis" style="display: contents"></div>
@@ -199,29 +211,29 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <h3>INPC geral vs meta</h3><p class="sub">Variação em 12 meses (%); ponto destacado: última quinzena</p>
     </div>
     <div class="card c6" data-card="main_core_meta">
-      <h3>Subyacente vs meta</h3><p class="sub">Variação em 12 meses (%); ponto destacado: última quinzena</p>
+      <h3>Núcleo vs meta</h3><p class="sub">Variação em 12 meses (%); ponto destacado: última quinzena</p>
     </div>
     <div class="card c12" data-card="main_contribuicoes">
       <h3>Contribuições para a inflação em 12 meses</h3><p class="sub">Componentes do nível 2 (pp) e INPC geral (%)</p>
     </div>
     <div class="card c7" data-card="main_vs_norma">
-      <h3>Último período vs norma sazonal</h3><p class="sub">Variação no período (%); marcador: mediana 2010–2019; traço: p25 a p75</p>
+      <h3>Último período vs padrão sazonal</h3><p class="sub">Variação no período (%); marcador: padrão sazonal (mediana 2010–2019); traço: p25 a p75</p>
     </div>
     <div class="card c5" data-card="main_ultimos_periodos" data-tipo="tabela">
       <h3>Últimos períodos</h3><p class="sub">Variação no período e em 12 meses (%)</p>
     </div>
     <div class="card c12" data-card="main_top_incidencias" data-tipo="tabela">
-      <h3>Incidências por genérico</h3><p class="sub">Contribuição para a variação do INPC no período (pp)</p>
+      <h3>Contribuições por abertura</h3><p class="sub">Contribuição: quanto cada item somou, em pontos percentuais, à variação do INPC cheio no período (pp)</p>
     </div>
   </section>
 
   <!-- ==== Composição ==== -->
   <section class="painel" id="composicao">
     <div class="card c12" data-card="decomp_arvore">
-      <h3>Decomposição da variação do período</h3><p class="sub">Incidência (pp); área proporcional ao tamanho da incidência de cada subíndice</p>
+      <h3>Decomposição da variação do período</h3><p class="sub">Contribuição (pp); área proporcional ao tamanho da contribuição de cada grupo</p>
     </div>
     <div class="card c7" data-card="decomp_desvios" data-tipo="tabela">
-      <h3>Surpresas vs norma sazonal</h3><p class="sub">Genéricos cujo desvio da norma 2010–2019 mais pesou no INPC (pp)</p>
+      <h3>Surpresas vs padrão sazonal</h3><p class="sub">Aberturas cujo desvio do padrão sazonal (mediana 2010–2019) mais pesou no INPC (pp)</p>
     </div>
     <div class="card c5" data-card="decomp_servicos_mercancias">
       <h3>Serviços vs mercadorias</h3><p class="sub">Variação em 12 meses (%)</p>
@@ -231,10 +243,10 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
   <!-- ==== Tendência ==== -->
   <section class="painel" id="tendencia">
     <div class="card c6" data-card="tend_dessazonalizado">
-      <h3>Variação mensal dessazonalizada</h3><p class="sub">INPC geral e subyacente, ajuste STL (%)</p>
+      <h3>Variação mensal dessazonalizada</h3><p class="sub">INPC geral e núcleo, ajuste STL (%)</p>
     </div>
     <div class="card c6" data-card="tend_momentum" data-nota="Últimos pontos da série dessazonalizada podem ser revisados (fim de amostra).">
-      <h3>Momentum da subyacente</h3><p class="sub">Variação dessazonalizada anualizada de 3 e 6 meses e variação em 12 meses (%)</p>
+      <h3>Momentum do núcleo</h3><p class="sub">Variação dessazonalizada anualizada de 3 e 6 meses e variação em 12 meses (%)</p>
     </div>
     <div class="card c6" data-card="tend_perfil_sazonal">
       <h3>Perfil sazonal do INPC</h3><p class="sub">Variação mensal (%): faixa p25 a p75 e mediana de 2010–2019; ano corrente</p>
@@ -254,7 +266,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 </main>
 
 <footer class="coluna"><div class="rodape">
-  Fonte: INEGI (Índices de Precios e tabulados oficiais). Validação: último release confere com o tabulado oficial; incidências somam o INPC.
+  Fonte: INEGI (Índices de Precios e tabulados oficiais). Validação: último release confere com o tabulado oficial; contribuições somam o INPC.
 </div></footer>
 
 <script>/*__PLOTLY__*/</script>
@@ -270,8 +282,10 @@ const COR_COMPONENTE = {
   energeticos_y_tarifas: css("--serie-energeticos"),
 };
 // o que não é componente (norma, difusão) e as três medidas do momentum, que são todas da subyacente
-const COR_SERIE = { norma: css("--ink"), norma_mediana: css("--ink-3"), pct_cesta_em_alta: css("--ink"), pct_cesta_anual_acima_4: css("--azul-600") };
-const COR_MEDIDA = { saar_3m: css("--azul-600"), saar_6m: css("--azul-400"), variacao_anual: css("--ink") };
+const COR_SERIE = { norma: css("--ink"), norma_mediana: css("--ink-3"), pct_cesta_em_alta: css("--azul-escuro"), pct_cesta_anual_acima_4: css("--azul-vivo") };
+const COR_MEDIDA = { saar_3m: css("--azul-btg"), saar_6m: css("--azul-vivo"), variacao_anual: css("--azul-escuro") };
+// o leitor vê "Núcleo" e "Não núcleo"; na primeira menção o tooltip mostra o nome que o INEGI usa
+const NOME_OFICIAL = { subyacente: "subyacente", no_subyacente: "no subyacente" };
 const SUFIXO = { main_contribuicoes: " pp" };
 const ALTA = new Set(["decomp_arvore", "main_contribuicoes"]);
 const RELEASE = new Set(["main_vs_norma", "decomp_arvore"]);   // mostram só o último período do release
@@ -285,15 +299,26 @@ const lerNumero = (texto) => parseFloat(texto.replace("−", "-").replace(",", "
 const comAlfa = (hex, alfa) => `rgba(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")}, ${alfa})`;
 const periodoCurto = (rotulo) => rotulo.replace(/\/\d{2}$/, "");   // "2ª quinz. ago/26" -> "2ª quinz. ago"
 
-// ==== 3. Faixa superior, KPIs e destaques ====
+// ==== 3. Faixa do release, KPIs e destaques ====
+function termo(k) {
+  // o nome de exibição, com o nome oficial do INEGI no tooltip quando ele é diferente
+  return NOME_OFICIAL[k.componente] ? `<span class="termo" title="Nome oficial no INEGI: ${NOME_OFICIAL[k.componente]}">${k.nome}</span>` : k.nome;
+}
+
 function montarFaixa(c) {
-  document.getElementById("release").innerHTML = `<strong>${c.release}</strong> · divulgado ${c.divulgado} CDMX`;
-  // sem release futuro no calendário, o texto já vem pronto ("calendário 2027 ainda não carregado")
-  document.getElementById("proximo").textContent = c.dias_ate_proximo === null
-    ? `Próximo release: ${c.proximo}` : `Próximo ${c.proximo.replace(/\/\d{4}/, "")} (${c.dias_ate_proximo} dias)`;
+  const [geral, nucleo, naoNucleo] = c.kpis;
+  document.getElementById("release").textContent = `Último release · ${c.release.replace("quinz.", "quinzena")} · divulgado ${c.divulgado} CDMX`;
+  document.getElementById("release-titulo").textContent = `INPC ${geral.variacao_anual} em 12 meses`;
+  document.getElementById("release-linha").innerHTML = `${termo(nucleo)} ${nucleo.variacao_anual} · ${termo(naoNucleo)} ${naoNucleo.variacao_anual}`
+    + ` · variação ${geral.rotulo_periodo} ${geral.variacao_periodo}`;
+  // sem release futuro no calendário, o texto já vem pronto ("calendário 2027 ainda não carregado") e não há contagem de dias
+  const dias = c.dias_ate_proximo;
+  document.getElementById("proximo").textContent = c.proximo;
+  document.getElementById("proximo-dias").textContent = dias === null ? "" : dias === 0 ? "hoje" : `em ${dias} ${dias === 1 ? "dia" : "dias"}`;
   document.getElementById("atualizado").textContent = `Atualizado ${c.atualizado}`;
-  // se a validação falha o pipeline nem chega aqui, então a pílula só precisa dizer o que foi conferido
-  document.getElementById("conferido").textContent = `Conferido com o INEGI · ${c.conferido}`;
+  // se a validação falha o pipeline nem chega aqui, então o selo só precisa dizer o que foi conferido
+  document.getElementById("conferido").innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">`
+    + `<path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2"/></svg>Conferido com o INEGI · ${c.conferido}`;
 }
 
 function sparkline(slot) {
@@ -318,16 +343,16 @@ function cartaoKpi(k, slotSparkline) {
 }
 
 function cartaoMensalImplicito(m) {
-  return `<div class="card c3 kpi" title="Subyacente implícita: ${m.subyacente}">
+  return `<div class="card c3 kpi" title="Núcleo implícito: ${m.subyacente}">
     <div class="kpi-rotulo">Mensal implícito · ${m.mes}</div>
     <div class="kpi-linha"><span class="kpi-principal">${m.variacao_mensal}</span>
       <span class="kpi-secundario">${m.variacao_anual}<small>em 12 meses</small></span></div>
-    <div class="kpi-nota">intervalo ${m.intervalo_mensal.replace(" a ", "–")} · 2ª quinzena pela mediana sazonal</div>
+    <div class="kpi-nota">intervalo ${m.intervalo_mensal.replace(" a ", "–")} · 2ª quinzena pelo padrão sazonal</div>
   </div>`;
 }
 
 function montarKpis(c) {
-  const sparklines = ["main_inpc_meta", "main_core_meta", null];   // no subyacente não tem série no graficos.json
+  const sparklines = ["main_inpc_meta", "main_core_meta", null];   // o não núcleo não tem série no graficos.json
   document.getElementById("kpis").innerHTML = c.kpis.map((k, i) => cartaoKpi(k, sparklines[i])).join("")
     + (c.mensal_implicito ? cartaoMensalImplicito(c.mensal_implicito) : "");
   if (!c.mensal_implicito) document.querySelectorAll("#kpis .c3").forEach((el) => el.classList.replace("c3", "c4"));
@@ -335,7 +360,7 @@ function montarKpis(c) {
 
 function montarDestaques(frases) {
   // as frases chegam como "Rótulo: fato"; o rótulo sai da frase porque já vira o título em caixa-alta
-  const rotulos = ["Inflação", "Maior incidência", "Maior surpresa", "Difusão"];
+  const rotulos = ["Inflação", "Maior contribuição", "Maior surpresa", "Difusão"];
   document.getElementById("destaques").innerHTML = frases.map((f, i) =>
     `<div class="destaque"><div class="destaque-rotulo">${rotulos[i]}</div>
      <div class="destaque-texto">${f.includes(": ") ? f.slice(f.indexOf(": ") + 2) : f}</div></div>`).join("");
@@ -346,7 +371,7 @@ function chipDoCard(slot, figura) {
   // o chip conta de cara se o gráfico é mensal ou quinzenal e que janela ele cobre
   const frequencia = DADOS.cabecalho.frequencia === "quinzenal" ? "Quinzenal" : "Mensal";
   if (RELEASE.has(slot)) return `${frequencia} · ${DADOS.cabecalho.release}`;
-  if (slot === "tend_perfil_sazonal") return `Mensal · norma 2010–2019 e ${DADOS.cabecalho.ano}`;   // eixo em meses do ano
+  if (slot === "tend_perfil_sazonal") return `Mensal · padrão sazonal 2010–2019 e ${DADOS.cabecalho.ano}`;   // eixo em meses do ano
   const datas = figura.data.flatMap((t) => (t.x || [])).filter((x) => /^\d{4}-/.test(String(x)));
   if (!datas.length) return `Mensal · ${DADOS.cabecalho.ano}`;
   const anos = datas.map((x) => String(x).slice(0, 4)).sort();
@@ -364,35 +389,38 @@ function montarCard(card) {
   if (card.dataset.tipo === "tabela") refinarTabelas(card, slot);
 }
 
-// ==== 5. Tabelas: subíndice sob o nome, barras de incidência e cor só nas variações ====
+// ==== 5. Tabelas: grupo sob o nome, barras de contribuição e cor numa coluna só ====
+// em cada tabela, só uma coluna leva a cor do sinal; o resto fica em tinta neutra para a cor não virar ruído.
+// Na de surpresas a cor é da contribuição da surpresa, que é o que interessa ali; na de contribuições, da variação
+const COLUNA_COLORIDA = { main_top_incidencias: "variação", decomp_desvios: "contribuição da surpresa" };
+const COLUNAS_COM_BARRA = ["contribuição", "contribuição da surpresa"];
+
 function refinarTabelas(card, slot) {
   card.querySelectorAll("table").forEach((tabela) => {
     if (slot === "main_ultimos_periodos") return tabela.querySelectorAll("td.numero").forEach((td) => td.classList.add("neutro"));   // níveis de inflação, não deltas
-    const titulos = [...tabela.querySelectorAll("thead th")].map((th) => th.textContent.trim().toLowerCase());
-    // o subíndice sai da coluna dele e vai para baixo do nome do genérico, para a tabela ficar mais estreita
-    const colunaSub = titulos.indexOf("subíndice");
-    if (colunaSub >= 0) {
+    const titulos = () => [...tabela.querySelectorAll("thead th")].map((th) => th.textContent.trim().toLowerCase());
+    // nas contribuições, com duas tabelas lado a lado, o grupo vai para baixo do nome da abertura para caber
+    const colunaGrupo = titulos().indexOf("grupo");
+    if (slot === "main_top_incidencias" && colunaGrupo >= 0) {
       tabela.querySelectorAll("tbody tr").forEach((tr) => {
-        const sub = tr.querySelector("td.subindice");
-        if (sub) { tr.querySelector("td.generico").insertAdjacentHTML("beforeend", `<span class="sub-linha">${sub.textContent}</span>`); sub.remove(); }
+        const grupo = tr.querySelector("td.subindice");
+        if (grupo) { tr.querySelector("td.generico").insertAdjacentHTML("beforeend", `<span class="sub-linha">${grupo.textContent}</span>`); grupo.remove(); }
       });
-      tabela.querySelectorAll("thead th")[colunaSub].remove();
+      tabela.querySelectorAll("thead th")[colunaGrupo].remove();
     }
-    const titulosFinais = [...tabela.querySelectorAll("thead th")].map((th) => th.textContent.trim().toLowerCase());
-    const comBarra = ["incidência", "contribuição da surpresa"].map((t) => titulosFinais.indexOf(t)).filter((i) => i >= 0);
-    const neutras = [titulosFinais.indexOf("norma")].filter((i) => i >= 0);
+    const colunas = titulos();
+    const colorida = colunas.indexOf(COLUNA_COLORIDA[slot]);
     const linhas = [...tabela.querySelectorAll("tbody tr")].filter((tr) => !tr.classList.contains("grupo"));
-    comBarra.forEach((coluna) => {
-      // uma barra fina do tamanho da incidência, na cor do sinal; o número fica neutro porque a barra já diz o sinal
+    linhas.forEach((tr) => [...tr.children].forEach((td, i) => { if (td.classList.contains("numero") && i !== colorida) td.classList.add("neutro"); }));
+    COLUNAS_COM_BARRA.map((t) => colunas.indexOf(t)).filter((i) => i >= 0).forEach((coluna) => {
+      // uma barra fina do tamanho da contribuição, na cor do sinal
       const celulas = linhas.map((tr) => tr.children[coluna]);
-      const maior = Math.max(...celulas.map((td) => Math.abs(lerNumero(td.textContent))));
+      const maior = Math.max(...celulas.map((td) => Math.abs(lerNumero(td.textContent)))) || 1;
       celulas.forEach((td) => {
         const valor = lerNumero(td.textContent);
         td.insertAdjacentHTML("afterbegin", `<span class="barra-inline ${valor > 0 ? "positivo" : "negativo"}" style="width:${Math.round(Math.abs(valor) / maior * 48)}px"></span>`);
-        td.classList.add("neutro");
       });
     });
-    neutras.forEach((coluna) => linhas.forEach((tr) => tr.children[coluna] && tr.children[coluna].classList.add("neutro")));
   });
 }
 
@@ -442,12 +470,12 @@ function estilizarTraco(t, sufixo, eixo) {
     t.marker = { color: cor, line: { width: 1, color: css("--surface") } };   // a borda branca separa os segmentos empilhados
   } else if (serie.startsWith("norma_p")) {
     t.line = { width: 0 };
-    t.fillcolor = css("--azul-100");
+    t.fillcolor = css("--azul-claro-2");
     t.showlegend = serie === "norma_p75";
-    t.name = serie === "norma_p75" ? "Norma p25–p75" : t.name;
+    t.name = serie === "norma_p75" ? "Padrão sazonal p25–p75" : t.name;
     t.hoverinfo = "skip";
   } else if (t.mode === "markers") {
-    // ponto destacado (última quinzena) ou marcador da norma
+    // ponto destacado (última quinzena) ou marcador do padrão sazonal
     t.marker = { size: 10, color: cor, line: { color: css("--surface"), width: 2 } };
     ["error_x", "error_y"].forEach((erro) => { if (t[erro]) t[erro] = { ...t[erro], color: css("--ink-3"), thickness: 1.5, width: 6 }; });
   } else {
@@ -478,14 +506,14 @@ function rotulosFinais(dados, sufixo) {
 }
 
 function estilizarArvore(figura) {
-  // vermelho quando puxou a inflação para cima, verde quando segurou, mais forte quanto maior a incidência
+  // vermelho quando puxou a inflação para cima, verde quando segurou, mais forte quanto maior a contribuição
   const t = figura.data[0];
   const maior = Math.max(...t.customdata.map(Math.abs));
   const alfas = t.customdata.map((v) => 0.12 + 0.88 * Math.abs(v) / maior);
   t.marker = { colors: t.customdata.map((v, i) => comAlfa(css(v > 0 ? "--pior" : "--melhor"), alfas[i])),
                line: { width: 2, color: css("--surface") }, cornerradius: 4 };
   t.textfont = { family: css("--fonte"), size: 13, color: alfas.map((a) => (a > 0.55 ? css("--branco") : css("--ink"))) };
-  t.hovertemplate = "%{label}: %{customdata:+.3f} pp<extra></extra>";
+  t.hovertemplate = "%{label}: %{customdata:+.2f} pp<extra></extra>";
   t.pathbar = { visible: false };
   t.tiling = { pad: 3 };
   return { data: figura.data, layout: { height: parseInt(css("--altura-grafico-alta")), margin: { l: 0, r: 0, t: 0, b: 0 },
@@ -506,7 +534,7 @@ function estilizarFigura(slot, figura) {
   const eixoValores = horizontal ? "x" : "y";
   if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => { t.meta = {}; t.showlegend = false; t.width = 0.4; });
   dados.forEach((t) => estilizarTraco(t, sufixo, eixoValores));
-  if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => (t.marker.color = css("--azul-600")));
+  if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => (t.marker.color = css("--azul-btg")));
   const temMeta = (figura.layout.shapes || []).some((s) => s.name === "meta");
   const legendaVisivel = dados.filter((t) => t.showlegend !== false).length >= 2;
   // eixo dos valores: grade, sufixo e range com folga; nas barras horizontais ele é o x e a linha de zero fica vertical
