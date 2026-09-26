@@ -146,8 +146,8 @@ def serie_difusao(genericos, ponderadores):
 
 # ==== 3. Resumo do último release ====
 def arredondar(valor):
-    """Número com 4 casas para o JSON do dashboard."""
-    return round(float(valor), 4)
+    """Número com 6 casas para o JSON; quem arredonda para a tela é a tabela ou a montagem (arredondar duas vezes erra o último dígito)."""
+    return round(float(valor), 6)
 
 
 def numeros_principais(componentes, frequencia):
@@ -189,7 +189,7 @@ def registros(tabela):
     """Linhas de genéricos como lista de dicionários para o JSON."""
     colunas = ["codigo_generico", "nome_generico", "subindice", "variacao_periodo", "norma_mediana", "desvio_norma",
                "incidencia_periodo", "contribuicao_surpresa"]
-    return tabela[colunas].round(4).to_dict("records")
+    return tabela[colunas].round(6).to_dict("records")
 
 
 def destaques(genericos, frequencia):

@@ -22,7 +22,7 @@ from config import parametros as p
 def celula_numero(valor, unidade, casas=2):
     """Célula numérica com vírgula decimal, unidade e classe positivo/negativo (o INEGI publica incidências com 3 casas)."""
     sinal = " positivo" if valor > 0 else " negativo" if valor < 0 else ""
-    texto = f"{valor:.{casas}f}".replace(".", ",") + unidade
+    texto = f"{valor:.{casas}f}".replace("-", "−").replace(".", ",") + unidade  # "−" tipográfico, como nos cartões
     return f'<td class="numero{sinal}">{texto}</td>'
 
 
