@@ -17,7 +17,7 @@ config/
 pipeline/
   1_dados/
     ingestao.py                     baixa do INEGI (app indicesdeprecios, ponderadores, tabulados) para data/raw/
-    tratamento.py                   organiza o bruto em parquet (séries, genéricos, ponderadores, hierarquia, tabulado)
+    tratamento.py                   organiza o bruto em parquet (séries, genéricos, ponderadores, tabulado)
     validacao.py                    confere o último release e as incidências; para o pipeline se falhar
     dessazonalizacao.py             gera séries dessazonalizadas e comparação sazonal
   2_analise/
@@ -29,6 +29,7 @@ pipeline/
     template.html                   esqueleto HTML do dashboard
 docs/
   metodologia.md                    registro das escolhas metodológicas e justificativas
+  guia_do_projeto.md                guia completo: como rodar, fluxo, fórmulas, dicionário de dados, páginas
 .github/workflows/
   atualizar_inpc.yml                atualização automática nos horários de release
 data/                               [gerada pelo pipeline]
