@@ -240,7 +240,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
     <div class="card c6" data-card="tend_dessazonalizado">
       <h3>Variação mensal dessazonalizada</h3><p class="sub">INPC geral e núcleo, ajuste STL (%)</p>
     </div>
-    <div class="card c6" data-card="tend_momentum" data-nota="Fim de amostra: os últimos pontos são revisados quando entram meses novos. No exercício pseudo-tempo-real (cortes mensais de jun/2022 a jun/2025), a ponta do SAAR 6 meses revisou em média 1,0 pp e a do 3 meses 1,25 pp.">
+    <div class="card c6" data-card="tend_momentum" data-nota="Fim de amostra: a ponta costuma ser revisada em cerca de 1 pp. No exercício pseudo-tempo-real (37 cortes mensais de jun/2022 a jun/2025), a revisão média da ponta foi de 1,00 pp no SAAR 6 meses e 1,25 pp no 3 meses.">
       <h3>Momentum do núcleo</h3><p class="sub">Variação dessazonalizada anualizada de 6 meses (em destaque) e de 3 meses, e variação em 12 meses (%)</p>
     </div>
     <div class="card c6" data-card="tend_perfil_sazonal">
@@ -332,13 +332,13 @@ function cartaoKpi(k, slotSparkline) {
 }
 
 function cartaoMensalImplicito(m) {
-  // o backtest sem informação futura (docs/auditoria_pre_chat.md) mostra que a mediana erra menos que supor a 2ª quinzena parada,
-  // mas a faixa p25–p75 é estreita: conteve o mês realizado em só 35% dos casos, e a nota diz isso
-  return `<div class="card c3 kpi" title="Núcleo implícito: ${m.subyacente}. Estimativa: 1ª quinzena publicada e 2ª quinzena pela mediana sazonal. Backtest 2010–2026: erro absoluto médio de 0,07 pp no INPC, contra 0,08 pp supondo a 2ª quinzena sem variação.">
+  // a faixa é a estimativa mais os quartis 25 e 75 dos erros do próprio método desde 2020, sem informação futura;
+  // a nota diz em quantos meses ela conteve o realizado, medido fora da amostra (docs/auditoria_pre_chat.md)
+  return `<div class="card c3 kpi" title="Núcleo implícito: ${m.subyacente}. Estimativa: 1ª quinzena publicada e 2ª quinzena pela mediana sazonal de 2010–2019. Faixa: a estimativa mais os quartis 25 e 75 dos erros de previsão da variação mensal desde 2020.">
     <div class="kpi-rotulo">Mensal implícito (estimativa) · ${m.mes}</div>
     <div class="kpi-linha"><span class="kpi-principal">${m.variacao_mensal}</span>
       <span class="kpi-secundario">${m.variacao_anual}<small>em 12 meses</small></span></div>
-    <div class="kpi-nota">faixa p25–p75 ${m.intervalo_mensal.replace(" a ", "–")}; conteve o mês realizado em 35% dos casos no backtest</div>
+    <div class="kpi-nota">faixa ${m.intervalo_mensal.replace(" a ", "–")}; conteve o mês realizado em ${m.cobertura} de ${m.meses_testados} meses fora da amostra</div>
   </div>`;
 }
 

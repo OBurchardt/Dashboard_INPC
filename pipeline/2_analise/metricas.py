@@ -132,13 +132,12 @@ def metricas_genericos(genericos, ponderadores, series):
         tabela = acrescentar_norma(tabela, "codigo_generico")
         # o desvio em % sempre põe frutas e verduras no topo, porque elas oscilam muito; multiplicado pelo peso efetivo
         # ele vira o desvio sazonal ponderado: quantos pontos do INPC vieram do movimento fora da mediana de 2010 a 2019.
-        # Não é surpresa contra expectativa de mercado, e as medianas dos itens não somam a mediana do INPC.
-        # A coluna mantém o nome antigo, contribuicao_surpresa, para não mexer nos arquivos de quem já usa a base
-        tabela["contribuicao_surpresa"] = tabela["peso_efetivo"] * tabela["desvio_norma"]
+        # Não é surpresa contra expectativa de mercado, e as medianas dos itens não somam a mediana do INPC
+        tabela["desvio_sazonal_ponderado"] = tabela["peso_efetivo"] * tabela["desvio_norma"]
         tabelas.append(tabela)
     return pd.concat(tabelas)[["codigo_generico", "nome_generico", "subindice", "frequencia", "periodo", "rotulo_periodo", "data", "indice",
                                "variacao_periodo", "variacao_anual", "norma_mediana", "desvio_norma", "incidencia_periodo",
-                               "contribuicao_surpresa"]]
+                               "desvio_sazonal_ponderado"]]
 
 
 def serie_difusao(genericos, ponderadores):
@@ -191,33 +190,62 @@ def numeros_principais(componentes, frequencia):
     return resumo
 
 
+def variacao_estimada(primeira, alta_da_segunda, indice_anterior):
+    """A variação do mês estimado sobre o mês anterior, dada a 1a quinzena e quanto a 2a sobe sobre ela (%)."""
+    # o índice mensal é a média das duas quinzenas, não a soma das variações:
+    # índice do mês = (1a quinzena + 1a quinzena x (1 + alta da 2a)) / 2
+    return ((primeira + primeira * (1 + alta_da_segunda / 100)) / 2 / indice_anterior - 1) * 100
+
+
+def erros_do_mensal_implicito(quinzenal, mensal, mes):
+    """Realizado menos estimado, em pp da variação mensal, para cada mês de 2020 até o anterior ao de agora."""
+    # a mediana da 2a quinzena vem de 2010-2019, então de 2020 em diante a estimativa só usa passado:
+    # é o backtest sem informação futura do próprio método que o cartão mostra
+    erros = {}
+    for periodo in mensal.index:
+        anterior = str(pd.Period(periodo) - 1)
+        if int(periodo[:4]) > p.ANOS_NORMA_SAZONAL[1] and periodo < mes and anterior in mensal.index:
+            estimada = variacao_estimada(quinzenal.at[f"{periodo}-Q1", "indice"], quinzenal.at[f"{periodo}-Q2", "norma_mediana"], mensal[anterior])
+            erros[periodo] = (mensal[periodo] / mensal[anterior] - 1) * 100 - estimada
+    return pd.Series(erros)
+
+
+def cobertura_fora_da_amostra(erros, primeiros=24):
+    """Em quantos meses o erro caiu entre os quartis 25 e 75 dos erros anteriores a ele (%); perto de 50% é faixa honesta."""
+    # os primeiros 24 meses só formam a faixa, porque com poucos erros os quartis ainda não dizem nada
+    dentro = [erros.iloc[:i].quantile(0.25) <= erros.iloc[i] <= erros.iloc[:i].quantile(0.75) for i in range(primeiros, len(erros))]
+    return sum(dentro) / len(dentro) * 100, len(dentro)
+
+
 def mensal_implicito(componentes, mes):
-    """Minha estimativa do mês fechado no dia em que só a 1a quinzena saiu."""
-    # o índice mensal é a média das duas quinzenas, não a soma das variações. No dia da 1a quinzena metade da média
-    # já está publicada, e a 2a parte do mesmo nível; o único incerto é quanto ela sobe sobre a 1a. Para isso uso a
-    # mediana dessa variação em 2010-2019, e os quartis dão o intervalo:
-    # índice do mês = (1a quinzena + 1a quinzena x (1 + mediana da 2a)) / 2
+    """Minha estimativa do mês fechado no dia em que só a 1a quinzena saiu, com a faixa tirada dos erros do backtest."""
+    # no dia da 1a quinzena metade da média já está publicada, e a 2a parte do mesmo nível; o único incerto é quanto
+    # ela sobe sobre a 1a. A estimativa central usa a mediana dessa alta em 2010-2019. A faixa não é mais o p25-p75
+    # dessa alta, que conteve o mês realizado em só 35% dos casos: é a central mais os quartis 25 e 75 dos erros de
+    # previsão da variação mensal, cada série com os seus
     quinzenal = componentes[componentes["frequencia"] == "quinzenal"]
     mensal = componentes[componentes["frequencia"] == "mensal"].set_index(["componente", "periodo"])["indice"]
     mes_anterior, mes_do_ano_anterior = str(pd.Period(mes) - 1), str(pd.Period(mes) - 12)
     resultado = {"mes": mes, "rotulo_mes": quinzenal[quinzenal["periodo"] == f"{mes}-Q1"]["rotulo_mes"].iloc[0]}
     for componente in ("indice_general", "subyacente"):
-        da_serie = quinzenal[quinzenal["componente"] == componente].set_index("periodo")
-        primeira = da_serie.loc[f"{mes}-Q1", "indice"]
-        norma = da_serie[da_serie.index.str.endswith(f"{mes[5:]}-Q2")].iloc[-1]  # a norma é igual em todos os anos, pego qualquer linha
-        resultado[componente] = {}
-        for cenario, coluna in (("p25", "norma_p25"), ("mediana", "norma_mediana"), ("p75", "norma_p75")):
-            indice_do_mes = (primeira + primeira * (1 + norma[coluna] / 100)) / 2
-            resultado[componente][cenario] = {
-                "variacao_mensal": arredondar((indice_do_mes / mensal[(componente, mes_anterior)] - 1) * 100),
-                "variacao_anual": arredondar((indice_do_mes / mensal[(componente, mes_do_ano_anterior)] - 1) * 100)}
+        da_serie, do_mes = quinzenal[quinzenal["componente"] == componente].set_index("periodo"), mensal.loc[componente]
+        mediana = da_serie[da_serie.index.str.endswith(f"{mes[5:]}-Q2")].iloc[-1]["norma_mediana"]  # a mediana é igual em todos os anos
+        central = variacao_estimada(da_serie.at[f"{mes}-Q1", "indice"], mediana, do_mes[mes_anterior])
+        erros = erros_do_mensal_implicito(da_serie, do_mes, mes)
+        cobertura, meses_testados = cobertura_fora_da_amostra(erros)
+        resultado[componente] = {"cobertura_da_faixa": arredondar(cobertura), "meses_testados": meses_testados, "meses_de_erro": len(erros)}
+        for cenario, ajuste in (("p25", erros.quantile(0.25)), ("mediana", 0), ("p75", erros.quantile(0.75))):
+            variacao = central + ajuste
+            indice_do_mes = do_mes[mes_anterior] * (1 + variacao / 100)
+            resultado[componente][cenario] = {"variacao_mensal": arredondar(variacao),
+                                              "variacao_anual": arredondar((indice_do_mes / do_mes[mes_do_ano_anterior] - 1) * 100)}
     return resultado
 
 
 def registros(tabela):
     """As linhas de genéricos que vão para o JSON."""
     colunas = ["codigo_generico", "nome_generico", "subindice", "variacao_periodo", "norma_mediana", "desvio_norma",
-               "incidencia_periodo", "contribuicao_surpresa"]
+               "incidencia_periodo", "desvio_sazonal_ponderado"]
     return tabela[colunas].round(6).to_dict("records")
 
 
@@ -228,8 +256,8 @@ def destaques(genericos, frequencia):
     return {"frequencia": frequencia, "periodo": ultimo["periodo"].iloc[0], "rotulo_periodo": ultimo["rotulo_periodo"].iloc[0],
             "maiores_incidencias": registros(ultimo.nlargest(5, "incidencia_periodo")),
             "menores_incidencias": registros(ultimo.nsmallest(5, "incidencia_periodo")),
-            "acima_da_norma": registros(ultimo.nlargest(5, "contribuicao_surpresa")),
-            "abaixo_da_norma": registros(ultimo.nsmallest(5, "contribuicao_surpresa"))}
+            "acima_da_norma": registros(ultimo.nlargest(5, "desvio_sazonal_ponderado")),
+            "abaixo_da_norma": registros(ultimo.nsmallest(5, "desvio_sazonal_ponderado"))}
 
 
 if __name__ == "__main__":

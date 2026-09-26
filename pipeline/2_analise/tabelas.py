@@ -82,7 +82,7 @@ def decomp_desvios(componentes, resumo, nomes):
         for item in resumo["destaques"][chave]:
             linhas.append(f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_texto(nomes[item['subindice']], 'subindice')}"
                           f"{celula_numero(item['variacao_periodo'], '%')}{celula_numero(item['norma_mediana'], '%')}"
-                          f"{celula_numero(item['contribuicao_surpresa'], ' pp')}</tr>")
+                          f"{celula_numero(item['desvio_sazonal_ponderado'], ' pp')}</tr>")
     return tabela_html(["Abertura", "Grupo", "Variação", "Mediana sazonal", "Desvio sazonal ponderado"], linhas)
 
 

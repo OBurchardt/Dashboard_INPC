@@ -14,10 +14,11 @@ Os testes e exercícios rodaram no terminal, sem arquivo salvo no projeto e sem 
 | 2 | difusão | um só conjunto de itens para todas as medidas, sem cobertura | conjunto válido por medida, itens e cobertura guardados e no tooltip |
 | 3 | validação | NaN, componente ausente e tabulado atrasado passavam | quatro checagens, nenhum nulo passa, mensagem diz o que faltou |
 | 4 | linguagem | "surpresa" sugeria expectativa de mercado | "desvio sazonal ponderado", com o aviso na tela |
-| 5 | mensal implícito | nunca tinha sido testado | backtest sem informação futura; fica como estimativa, faixa com cobertura informada |
+| 5 | mensal implícito | nunca tinha sido testado | backtest sem informação futura; fica como estimativa, faixa refeita a partir dos erros do backtest |
 | 6 | SAAR | revisão de fim de amostra desconhecida | exercício pseudo-tempo-real; 6 meses em destaque |
 | 7 | documentação do quinzenal | dizia que os métodos não aceitam 24 períodos | corrigido: o X-13 não aceita, o STL aceitaria |
 | 8 | card vazio e workflow | card "Em construção" e workflow vazio | card e aba saíram; workflow manual que publica o HTML como artefato |
+| 9 | nome da coluna | `contribuicao_surpresa` ainda dizia surpresa | virou `desvio_sazonal_ponderado` |
 
 ## 1. Contribuição anual
 
@@ -102,7 +103,7 @@ Toda falha sai com `SystemExit`, que no `run_pipeline.py` interrompe as etapas s
 
 **Problema.** "Surpresa" e "contribuição da surpresa" sugerem desvio contra expectativa de mercado. O número é outro: a diferença contra a mediana do mesmo mês em 2010 a 2019, vezes o peso efetivo.
 
-**Correção.** Na tela, o card virou "Desvio em relação à mediana sazonal (2010–2019)", a coluna virou "Desvio sazonal ponderado", as seções viraram "Acima da mediana sazonal" e "Abaixo da mediana sazonal", e o destaque virou "Maior desvio sazonal". O subtítulo diz que não é expectativa de mercado e que as medianas das aberturas não somam a mediana do INPC. A coluna na base continua `contribuicao_surpresa`, para não mudar nomes de código.
+**Correção.** Na tela, o card virou "Desvio em relação à mediana sazonal (2010–2019)", a coluna virou "Desvio sazonal ponderado", as seções viraram "Acima da mediana sazonal" e "Abaixo da mediana sazonal", e o destaque virou "Maior desvio sazonal". O subtítulo diz que não é expectativa de mercado e que as medianas das aberturas não somam a mediana do INPC. A coluna na base foi renomeada depois (ponto 9).
 
 **Antes e depois.** O texto antes era "Maior surpresa vs padrão sazonal: Jitomate +0,08 pp; para baixo: Gasolina de bajo octanaje −0,02 pp". Agora é "Maior desvio sazonal ponderado: Jitomate +0,08 pp; ...". Os números não mudaram.
 
@@ -125,7 +126,22 @@ Com a janela fixa de produção (2010 a 2019), que não tem informação futura 
 
 **Leitura.** A mediana supera a referência: o erro absoluto médio cai 22% no INPC e 45% no núcleo, e o viés praticamente some. A referência erra sistematicamente para baixo, porque a 2ª quinzena costuma subir. Por isso o cartão continua como estimativa, e não como "cenário mecânico". A faixa p25 a p75, porém, conteve o mês realizado em só 35% dos casos, abaixo dos 50% que o nome sugere. Ela mostra a dispersão histórica da 2ª quinzena, não um intervalo de confiança.
 
-**Correção na tela.** O cartão diz "Mensal implícito (estimativa)" e "faixa p25 a p75 0,38% a 0,44%; conteve o mês realizado em 35% dos casos no backtest". O tooltip traz o erro absoluto médio contra a referência.
+**Primeira correção na tela.** O cartão passou a dizer "Mensal implícito (estimativa)" e "faixa p25 a p75 0,38% a 0,44%; conteve o mês realizado em 35% dos casos no backtest".
+
+**Segunda correção: faixa pelos erros do backtest.** A faixa p25 a p75 da alta da 2ª quinzena media a dispersão histórica da quinzena, não o erro da estimativa. Troquei por uma faixa tirada do próprio erro:
+
+```
+faixa = estimativa central + quartis 25 e 75 de (variação mensal realizada − estimada)
+```
+
+Os erros são os do método do dashboard (mediana de 2010 a 2019), de jan/2020 até o mês anterior ao atual. Nesse trecho a mediana só usa passado, então não há informação futura. São 80 meses, e cada série usa os seus erros. A faixa da variação anual sai do mesmo índice do mês que a faixa mensal. A cobertura é medida fora da amostra: para cada mês a partir do 25º, a faixa é montada só com os erros anteriores a ele, e confiro se o erro daquele mês caiu dentro.
+
+| série | quartil 25 do erro | quartil 75 do erro | faixa de set/26 (m/m) | faixa de set/26 (a/a) | cobertura fora da amostra |
+|---|---|---|---|---|---|
+| INPC | −0,052 pp | +0,085 pp | 0,37% a 0,50% (antes 0,38% a 0,44%) | 3,40% a 3,54% | 50,0% de 56 meses |
+| Núcleo | −0,001 pp | +0,051 pp | 0,22% a 0,27% | 3,77% a 3,82% | 48,2% de 56 meses |
+
+A faixa ficou mais larga e assimétrica, porque o método tende a subestimar o mês desde 2020 (erro médio realizado − estimado positivo). No núcleo, o quartil 25 do erro é praticamente zero, e a faixa começa quase na estimativa central. O cartão agora diz "faixa 0,37%–0,50%; conteve o mês realizado em 50% de 56 meses fora da amostra", e esse número é recalculado a cada rodada.
 
 ## 6. Estabilidade do SAAR: exercício pseudo-tempo-real
 
@@ -148,7 +164,7 @@ Com os 37 cortes mensais de jun/2022 a jun/2025, a revisão absoluta média foi:
 - **núcleo:** 1,25 pp no 3 meses (máximo de 2,88) e 1,00 pp no 6 meses (máximo de 2,12), uma razão de 1,2;
 - **INPC:** 1,67 pp (máximo de 5,72) e 1,00 pp (máximo de 2,74), uma razão de 1,7.
 
-**Leitura e decisão.** O 3 meses revisa mais que o 6 meses nas duas séries. No núcleo, que é o que o gráfico mostra, a diferença é de 25%. É uma decisão no limite: não chega a ser "muito mais", mas o máximo é bem maior, e no INPC a razão é de 1,7. Dei destaque ao 6 meses (linha grossa, primeiro na legenda) e deixei o 3 meses em linha fina, com o nome "SAAR 3 meses (revisa mais)". A nota de fim de amostra traz os números acima. O ponto que mais importa é outro: até o 6 meses revisa 1 pp em média, então a ponta do SAAR é indicação de direção, não um número firme.
+**Leitura e decisão.** O 3 meses revisa mais que o 6 meses nas duas séries. No núcleo, que é o que o gráfico mostra, a diferença é de 25%. É uma decisão no limite: não chega a ser "muito mais", mas o máximo é bem maior, e no INPC a razão é de 1,7. Dei destaque ao 6 meses (linha grossa, primeiro na legenda) e deixei o 3 meses em linha fina, com o nome "SAAR 3 meses (revisa mais)". A nota de fim de amostra traz os números acima. O ponto que mais importa é outro: até o 6 meses revisa 1 pp em média, então a ponta do SAAR é indicação de direção, não um número firme. A nota do gráfico diz isso com o número do cálculo: "a ponta costuma ser revisada em cerca de 1 pp", com a revisão média de 1,00 pp no 6 meses e 1,25 pp no 3 meses.
 
 ## 7. Justificativa do quinzenal
 
@@ -167,6 +183,12 @@ Com os 37 cortes mensais de jun/2022 a jun/2025, a revisão absoluta média foi:
 - guarda `dashboard_inpc.html` como artefato e, mesmo em falha, o `validacao.json` quando ele existir.
 
 **Limite.** O arquivo YAML é válido, mas o workflow não foi executado no GitHub, porque este trabalho foi feito sem push. Não sei se o INEGI responde bem a IPs do GitHub; se bloquear, o job falha na ingestão, com a mensagem de rede.
+
+## 9. Nome da coluna
+
+**Problema.** Depois do ponto 4, a tela dizia "desvio sazonal ponderado", mas a coluna na base continuava `contribuicao_surpresa`. Quem lesse a base, ou um chat que lesse a base, ia encontrar a palavra que a tela evita.
+
+**Correção.** A coluna virou `desvio_sazonal_ponderado` em todo o código (`metricas.py`, `tabelas.py`, `montagem.py`) e na documentação. Nenhum número mudou.
 
 ## Rodadas completas
 
@@ -197,7 +219,7 @@ O HTML do clone abriu no jsdom sem erro de JavaScript, com os 10 gráficos desen
 ## O que continua em aberto
 
 - A validação confere a base contra o INEGI e contra identidades. Ela não confere as métricas analíticas (difusão, desvio sazonal, SAAR), que dependem de escolhas metodológicas documentadas aqui e na `metodologia.md`.
-- A faixa do mensal implícito é estreita (35% de cobertura). Uma faixa honesta de 50% precisaria vir dos erros do backtest, e não dos quartis da mediana; não mudei o cálculo.
+- A faixa do mensal implícito vem de 80 erros (2020 em diante) e cobriu 50% (INPC) e 48% (núcleo) fora da amostra. É pouco histórico, e o período inclui a pandemia; a cobertura deve ser acompanhada.
 - A ponta do SAAR revisa perto de 1 pp em média, mesmo no 6 meses.
 - O workflow não foi testado no GitHub.
 - O número de genéricos na cesta 2024 (292) está fixo no código da ingestão; se o INEGI mudar a cesta, a ingestão para com mensagem, de propósito.

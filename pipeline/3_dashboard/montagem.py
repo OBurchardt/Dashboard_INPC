@@ -48,12 +48,13 @@ def kpi(principal, frequencia):
 
 
 def mensal_implicito(implicito):
-    """O cartão do mês estimado no dia da 1a quinzena, com o intervalo do p25 ao p75."""
+    """O cartão do mês estimado no dia da 1a quinzena, com a faixa dos erros do backtest e quantas vezes ela acertou."""
     geral, nucleo = implicito["indice_general"], implicito["subyacente"]
     return {"mes": implicito["rotulo_mes"],
             "variacao_mensal": numero(geral["mediana"]["variacao_mensal"]), "variacao_anual": numero(geral["mediana"]["variacao_anual"]),
             "intervalo_mensal": f"{numero(geral['p25']['variacao_mensal'])} a {numero(geral['p75']['variacao_mensal'])}",
             "intervalo_anual": f"{numero(geral['p25']['variacao_anual'])} a {numero(geral['p75']['variacao_anual'])}",
+            "cobertura": numero(geral["cobertura_da_faixa"], 0), "meses_testados": geral["meses_testados"],
             "subyacente": f"{numero(nucleo['mediana']['variacao_mensal'])} no mês · {numero(nucleo['mediana']['variacao_anual'])} em 12 meses"}
 
 
@@ -96,8 +97,8 @@ def destaques(resumo):
     anual = (f"INPC {numero(geral['variacao_anual'])} a/a ({numero(geral['mudanca_da_anual_pp'], sufixo=' pp', sinal=True)}); "
              f"{p.NOMES_EXIBICAO['subyacente'].lower()} {numero(nucleo['variacao_anual'])} ({numero(nucleo['mudanca_da_anual_pp'], sufixo=' pp', sinal=True)})")
     contribuicao = f"Maior contribuição: {nome(maior)} {numero(maior['incidencia_periodo'], sufixo=' pp', sinal=True)} ({numero(maior['variacao_periodo'], sinal=True)})"
-    desvio = (f"Maior desvio sazonal ponderado: {nome(acima)} {numero(acima['contribuicao_surpresa'], sufixo=' pp', sinal=True)}; "
-              f"para baixo: {nome(abaixo)} {numero(abaixo['contribuicao_surpresa'], sufixo=' pp', sinal=True)}")
+    desvio = (f"Maior desvio sazonal ponderado: {nome(acima)} {numero(acima['desvio_sazonal_ponderado'], sufixo=' pp', sinal=True)}; "
+              f"para baixo: {nome(abaixo)} {numero(abaixo['desvio_sazonal_ponderado'], sufixo=' pp', sinal=True)}")
     # 3% é a meta do Banxico para o INPC; para um item é só régua, e a frase diz isso. Sem ": " no texto, porque o template
     # usa o primeiro ": " da frase para separar o rótulo
     espalhamento = (f"{numero(difusao['pct_cesta_anual_acima_3'], 0)} do peso da cesta com alta acima de 3% em 12 meses "

@@ -15,7 +15,7 @@ No release de exemplo, o painel abre dizendo isto:
 - INPC 0,33% na quinzena e 3,42% em 12 meses, 0,16 pp acima da quinzena anterior.
 - Núcleo 0,17% na quinzena e 3,79% em 12 meses, 0,05 pp abaixo.
 - Não núcleo 0,88% na quinzena e 2,17% em 12 meses, 0,86 pp acima.
-- Mensal implícito de setembro (estimativa): 0,42% no mês e 3,45% em 12 meses; faixa p25 a p75 de 0,38% a 0,44%, que no backtest conteve o mês realizado em só 35% dos casos.
+- Mensal implícito de setembro (estimativa): 0,42% no mês e 3,45% em 12 meses; faixa de 0,37% a 0,50%, tirada dos erros do próprio método desde 2020, que conteve o mês realizado em 50% dos meses fora da amostra.
 - Maior contribuição: Jitomate, com +0,11 pp (o preço subiu 22,79% na quinzena).
 - Maior desvio sazonal ponderado: Jitomate, +0,08 pp; para baixo, Gasolina de bajo octanaje, −0,02 pp. É o desvio contra a mediana de 2010 a 2019, não contra expectativa de mercado.
 - 62% da cesta com inflação anual acima de 3% (ago/26).
@@ -30,7 +30,7 @@ O dashboard é lido por brasileiros, então a tela não usa os termos do INEGI. 
 | genérico | abertura |
 | subíndice | grupo |
 | norma sazonal | padrão sazonal, ou mediana sazonal (mediana de 2010 a 2019) |
-| contribuição da surpresa (`contribuicao_surpresa`) | desvio sazonal ponderado (pp); não é surpresa contra expectativa de mercado |
+| desvio sazonal ponderado (`desvio_sazonal_ponderado`) | desvio sazonal ponderado (pp); não é surpresa contra expectativa de mercado |
 | subyacente / no subyacente | Núcleo / Não núcleo (o nome oficial aparece num tooltip na primeira menção) |
 
 Os nomes das aberturas vêm do INEGI e ficam em espanhol (Jitomate, Cebolla). Os nomes curtos dos componentes estão em `NOMES_EXIBICAO`, no `config/parametros.py`. Na tela, variações e contribuições têm sempre 2 casas decimais, como o IBGE publica.
@@ -219,7 +219,7 @@ Com o jitomate na 1ª quinzena de setembro:
 
 O peso efetivo não é o peso da planilha: um item que subiu mais que o INPC desde julho de 2024 passa a pesar mais. Antes da cesta 2024 os pesos eram outros, então não calculo incidência de genérico antes dela.
 
-**Desvio sazonal ponderado** (na base, a coluna `contribuicao_surpresa`)
+**Desvio sazonal ponderado** (na base, a coluna `desvio_sazonal_ponderado`)
 
 ```
 desvio sazonal ponderado = peso efetivo × (variação − mediana sazonal de 2010 a 2019)
@@ -254,9 +254,11 @@ O núcleo de agosto tem SAAR de 6 meses de 3,90% e de 3 meses de 4,03%, contra 3
 índice do mês = (1ª quinzena + 1ª quinzena × (1 + norma da 2ª quinzena)) / 2
 ```
 
-Em setembro: a 1ª quinzena é 146,010; a mediana da 2ª quinzena de setembro em 2010-2019 é de alta de 0,083%, o que dá 146,132 para a 2ª; a média das duas é 146,071; contra agosto (145,462), isso dá 0,42% no mês e 3,45% em 12 meses. Com o p25 e o p75 da norma a faixa fica entre 0,38% e 0,44%.
+Em setembro: a 1ª quinzena é 146,010; a mediana da 2ª quinzena de setembro em 2010-2019 é de alta de 0,083%, o que dá 146,132 para a 2ª; a média das duas é 146,071; contra agosto (145,462), isso dá 0,42% no mês e 3,45% em 12 meses.
 
-Num backtest sem informação futura (para cada mês desde 2010, a mediana usa só os 10 anos anteriores), essa estimativa errou em média 0,065 pp no INPC e 0,034 pp no núcleo, contra 0,083 e 0,062 pp de supor a 2ª quinzena sem variação. Supera a referência, então o painel chama de estimativa. A faixa p25 a p75, porém, conteve o mês realizado em só 35% dos casos, e o cartão diz isso.
+Num backtest sem informação futura (para cada mês desde 2010, a mediana usa só os 10 anos anteriores), essa estimativa errou em média 0,065 pp no INPC e 0,034 pp no núcleo, contra 0,083 e 0,062 pp de supor a 2ª quinzena sem variação. Supera a referência, então o painel chama de estimativa.
+
+A faixa vem do erro do próprio método (`erros_do_mensal_implicito`, `cobertura_fora_da_amostra`): para cada mês de 2020 até o anterior ao atual, onde a mediana de 2010 a 2019 só usa passado, calculo realizado menos estimado; a faixa é a estimativa central mais os quartis 25 e 75 desses erros, com INPC e núcleo separados. Em setembro: 0,37% a 0,50% no INPC e 0,22% a 0,27% no núcleo. A cobertura é medida fora da amostra (cada mês testado só com os erros de antes dele) e fica no cartão: 50% de 56 meses no INPC e 48% no núcleo. A faixa antiga, o p25 a p75 da alta da 2ª quinzena, conteve o realizado em só 35% dos casos.
 
 **Resumo** (`numeros_principais`, `destaques`, `registros`, `arredondar`). O `metricas_resumo.json` guarda o que vai no topo do painel: o último período, se o release foi de 1ª quinzena ou mensal, os números dos três principais, o mensal implícito, a difusão e os cinco genéricos de cada lista. Guardo 6 casas e deixo o arredondamento para a tela; arredondar duas vezes já me fez errar o último dígito.
 
@@ -326,7 +328,7 @@ Os valores ficam como texto, com "N/E" onde o INEGI não publica, e os CSVs abre
 
 **metricas_componentes.parquet**: as colunas de identificação de `series` mais `indice`, `variacao_periodo`, `variacao_anual`, `incidencia_periodo`, `contribuicao_anual`, `norma_mediana`, `norma_p25`, `norma_p75`, `desvio_norma`, `variacao_sa_mensal`, `saar_3m` e `saar_6m` (as três últimas só no mensal). Variações em %, incidências e contribuições em pp.
 
-**metricas_genericos.parquet**: os últimos 24 meses de cada genérico, com `variacao_periodo`, `variacao_anual`, `norma_mediana`, `desvio_norma`, `incidencia_periodo` e `contribuicao_surpresa`.
+**metricas_genericos.parquet**: os últimos 24 meses de cada genérico, com `variacao_periodo`, `variacao_anual`, `norma_mediana`, `desvio_norma`, `incidencia_periodo` e `desvio_sazonal_ponderado`.
 
 **metricas_difusao.parquet**: mensal, desde 2019: `pct_genericos_em_alta` (por contagem), `pct_cesta_em_alta`, `pct_cesta_anual_acima_3` e `pct_cesta_anual_acima_4` (por peso), e a cobertura de cada base: `itens_validos_mes` e `cobertura_peso_mes` (itens com variação no mês e % do peso da cesta que somam), `itens_validos_anual` e `cobertura_peso_anual` (o mesmo para a variação em 12 meses).
 
@@ -351,7 +353,7 @@ Os dados vêm de `metricas_resumo.json` e do calendário.
 
 ### Resumo
 
-- **Cartões.** INPC, Núcleo e Não núcleo no período e em 12 meses, com a seta da mudança da anual, mais o cartão do mensal implícito (estimativa) no dia da 1ª quinzena, com a faixa p25 a p75 e a cobertura dela no backtest. Fonte: `metricas_resumo.json`.
+- **Cartões.** INPC, Núcleo e Não núcleo no período e em 12 meses, com a seta da mudança da anual, mais o cartão do mensal implícito (estimativa) no dia da 1ª quinzena, com a faixa tirada dos erros do backtest e a cobertura dela fora da amostra. Fonte: `metricas_resumo.json`.
 - **Destaques.** As quatro frases da seção 1. Fonte: `metricas_resumo.json`.
 - **INPC geral vs meta** e **Núcleo vs meta.** A inflação cheia está dentro da meta, e para onde aponta a última quinzena? O núcleo está convergindo para 3%? A linha é mensal e o ponto é a última quinzena (3,42% no INPC e 3,79% no núcleo). Fonte: `metricas_componentes`.
 - **Contribuições para a inflação em 12 meses.** De onde vem a inflação anual? Barras empilhadas dos quatro componentes do nível 2 nos últimos 24 meses, e a linha do INPC. Fonte: `contribuicao_anual`.
@@ -394,7 +396,7 @@ Na auditoria que fiz ao fechar o projeto conferi também, à mão, os números d
 - **O fim da série dessazonalizada muda.** O STL é recalculado a cada rodada, e os últimos meses são os menos firmes, porque o filtro não tem dado do lado de lá. No exercício pseudo-tempo-real, a ponta do SAAR revisou em média 1,0 pp (6 meses) e 1,25 pp (3 meses) no núcleo; o gráfico destaca o 6 meses e avisa isso numa nota.
 - **Genéricos sem histórico.** 16 genéricos só têm série a partir de 2024: 15 foram criados na cesta 2024 (a lista está na `metodologia.md`) e um começou em junho de 2024. Eles não têm mediana de 2010-2019, então ficam sem desvio sazonal e não entram nos rankings de desvio. Na incidência eles entram normalmente.
 - **A contribuição anual depende das incidências publicadas.** A identidade é exata, mas as incidências vêm com 3 casas; por isso as partes deixam de fechar com o INPC em até 0,0045 pp. Onde falta incidência a contribuição fica nula, sem estimativa.
-- **A faixa do mensal implícito é estreita.** A p25 a p75 da mediana histórica conteve o mês realizado em 35% dos casos desde 2010, e não em 50%. Ela mostra a dispersão histórica da 2ª quinzena, não um intervalo de confiança.
+- **A faixa do mensal implícito tem pouco histórico.** Ela sai de 80 erros, de 2020 em diante, período que inclui a pandemia. A cobertura fora da amostra ficou perto de 50%, mas vale acompanhar a cada release, e o cartão mostra esse número.
 - **A soma das incidências dos genéricos difere um pouco do INPC.** Em agosto, a soma dos 292 deu 0,2021 contra 0,2018 de variação do INPC; na 1ª quinzena de setembro, 0,3293 contra 0,3291. É a diferença entre o meu peso efetivo e o cálculo interno do INEGI, e fica na quarta casa.
 - **Dependo do site do INEGI.** O app "Índices de Precios" não é uma API documentada: os ids das estruturas e o formato do exportador foram descobertos navegando nele. Se o INEGI mudar o app, a ingestão quebra e é preciso redescobrir esses ids. A validação garante que um dado quebrado não chegue ao painel, mas não conserta a ingestão.
 - **As incidências de agosto de 2018 não existem.** O INEGI não publicou, e o buraco fica nulo; a contribuição anual das janelas que passam por ele (ago/2018 a jul/2019) fica nula, fora da janela dos gráficos.
