@@ -170,7 +170,29 @@ Com os 37 cortes mensais de jun/2022 a jun/2025, a revisão absoluta média foi:
 
 ## Rodadas completas
 
-A preencher com a saída das rodadas do zero e incremental.
+Rodei num clone limpo do branch, sem `data/` nem `output/`, com o Python 3.12 da máquina.
+
+**Do zero** (`IMPORTAR_DO_ZERO = True`), 289 s, código de saída 0:
+
+```
+Histórico completo baixado (último dado: {'mensal': '2026-08', 'quinzenal': '2026-09-Q1'})
+Ingestão: 274.8 s
+Tratamento: series 34812, genericos 319192, ponderadores 591, tabulado_oficial 32 linhas; 5.4 s
+Validação: base completa nas janelas conferidas: ok
+Validação: tabulado oficial do mesmo período da base: ok
+Validação: ultimo release vs tabulado oficial: ok (desvio máximo 0.004965 pp, tolerância 0.01)
+Validação: incidencias somam o INPC geral (24 meses): ok (desvio máximo 0.000665 pp, tolerância 0.01)
+Dessazonalização: 16 componentes, 5120 linhas; 0.7 s
+Métricas: ... contribuição anual fecha com o INPC a menos de 0.0045 pp nos últimos 24 meses; 2.0 s
+Tabelas: 3 tabelas; 0.1 s
+Gráficos: 10 figuras; 1.2 s
+Montagem: dashboard_inpc.html com 4.7 MB
+Pipeline: 289.3 s
+```
+
+**Incremental** (`IMPORTAR_DO_ZERO = False`, logo em seguida), 10 s, código de saída 0: "Já atualizado (último dado: 2026-08 e 2026-09-Q1)", as mesmas quatro validações ok e o HTML refeito.
+
+O HTML do clone abriu no jsdom sem erro de JavaScript, com os 10 gráficos desenhados, as três abas, a cobertura no tooltip da difusão e nenhum termo antigo ("surpresa", "incidência", "genérico", "subíndice", "norma", "subyacente" fora do tooltip do nome oficial) nem número com mais de 2 casas na tela.
 
 ## O que continua em aberto
 
