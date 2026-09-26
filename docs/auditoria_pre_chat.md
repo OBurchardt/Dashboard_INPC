@@ -67,7 +67,9 @@ Nos últimos 24 meses, a diferença entre os dois métodos chegou a 0,020 pp por
 
 **Correção.** Em `serie_difusao`, cada medida tem o seu conjunto válido: a alta no mês usa os itens com variação no período; as medidas acima de 3% e de 4% usam os itens com variação anual. Por mês, guardo `itens_validos_mes`, `cobertura_peso_mes`, `itens_validos_anual` e `cobertura_peso_anual`. A cobertura é o peso desses itens sobre o peso total da cesta vigente. O tooltip do gráfico mostra a cobertura. O subtítulo, os nomes das linhas e a frase de destaque dizem que 3% e 4% são a meta do Banxico para o INPC e o teto do intervalo, usados como régua.
 
-**Antes e depois.** Nos meses recentes os números não mudam, porque a cobertura é de 100%. Em ago/26: 67,98% do peso com alta no mês, 62,28% acima de 3% e 37,15% acima de 4%, com 292 itens. As medidas de alta no mês não mudaram em nenhum mês. As anuais mudaram em 19 meses, todos entre 2019 e meados de 2020, em até 2,4 pp. Em mar/2019, por exemplo, a parte acima de 3% foi de 60,11% para 62,43%, e a acima de 4% de 45,80% para 47,57%: o denominador deixou de contar itens sem variação anual. Nesse período a cobertura mínima foi de 93,6% do peso (anual, 246 itens) e 97,3% (mensal, 269 itens).
+**Antes e depois.** Nos meses recentes os números não mudam, porque a cobertura é de 100%. Em ago/26: 67,98% do peso com alta no mês, 62,28% acima de 3% e 37,15% acima de 4%, com 292 itens. As medidas de alta no mês não mudaram em nenhum mês. As anuais mudaram em 19 meses, em dois blocos, porque o denominador deixou de contar itens sem variação anual:
+- **jan a jun/2019**, até 2,4 pp. Em mar/2019, a parte acima de 3% foi de 60,11% para 62,43%, e a acima de 4% de 45,80% para 47,57%. A cobertura anual era de 93,6% do peso (246 itens), contra 97,3% na mensal (269 itens).
+- **jul/2024 a jul/2025**, cerca de 1,2 pp por mês desde set/2024. São as aberturas criadas na cesta 2024, que tiveram 12 meses sem variação anual. A cobertura anual ficou em 98,3% (276 itens).
 
 ## 3. Validação
 
