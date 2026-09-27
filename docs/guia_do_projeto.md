@@ -386,9 +386,9 @@ Os dados vêm de `metricas_resumo.json` e do calendário.
 
 Só o que é ajuste e padrão sazonal.
 
-- **Variação mensal dessazonalizada.** Sem sazonalidade, a inflação de cada mês está acelerando? Barras de 36 meses do INPC e do núcleo. Fonte: `variacao_sa_mensal`.
-- **Momentum do núcleo.** O ritmo recente está acima ou abaixo da anual? SAAR de 6 meses em destaque, SAAR de 3 meses em linha fina e a variação em 12 meses. A nota traz o tamanho da revisão de fim de amostra medido no exercício pseudo-tempo-real. Fonte: `saar_6m`, `saar_3m`.
-- **Perfil sazonal do INPC.** Este ano está subindo mais ou menos do que é normal em cada mês? A faixa de 2010-2019 e a linha de 2026 até agosto. Fonte: padrão sazonal (`norma_*`) e `variacao_periodo` mensal.
+- **Variação mensal dessazonalizada.** Sem sazonalidade, a inflação de cada mês está acelerando? Duas linhas de 36 meses, INPC e núcleo, com bolinha em cada mês e o nome na etiqueta da ponta. Fonte: `variacao_sa_mensal`.
+- **Momentum do núcleo.** O ritmo recente está acima ou abaixo da anual? SAAR de 6 meses em destaque, SAAR de 3 meses em linha fina e a variação em 12 meses. Fonte: `saar_6m`, `saar_3m`.
+- **Perfil sazonal do INPC.** Este ano está subindo mais ou menos do que é normal em cada mês? A faixa p25-p75 e a mediana de 2010-2019, o ano corrente em marinho grosso com bolinha em cada mês, e os 3 anos anteriores em linhas finas (a cor vai pela distância ao ano corrente e é a mesma em todos os perfis). Fonte: padrão sazonal (`norma_*`) e `variacao_periodo` mensal.
 - **Perfil sazonal dos componentes.** O mesmo gráfico, em pares, para núcleo e não núcleo, mercadorias e serviços, agropecuários e energia e tarifas; estes dois últimos entram porque é onde a sazonalidade é mais forte (o subsídio de verão da eletricidade em abr-mai e a volta em out-nov, por exemplo). Cada gráfico tem a sua escala, e o chip avisa. Todos saem da função `perfil_sazonal(componente)` em `graficos.py`, que só lê `norma_mediana`, `norma_p25`, `norma_p75` e `variacao_periodo`: nenhuma conta nova.
 
 ### Explorar

@@ -103,33 +103,36 @@ def decomp_arvore(componentes, nomes, resumo):
 # ==== 4. Sazonalidade e difusão (a difusão aparece na aba Composição) ====
 def tend_dessazonalizado(componentes, nomes, resumo):
     """Tirada a sazonalidade, a inflação de cada mês está acelerando ou perdendo força?"""
-    barras = [go.Bar(x=serie(componentes, c).tail(36)["data"], y=serie(componentes, c).tail(36)["variacao_sa_mensal"],
-                     name=nomes[c], meta={"componente": c}) for c in ("indice_general", "subyacente")]
-    return go.Figure(barras).update_layout(barmode="group", yaxis_title="variação mensal dessazonalizada (%)")
+    linhas = [go.Scatter(x=serie(componentes, c).tail(36)["data"], y=serie(componentes, c).tail(36)["variacao_sa_mensal"], mode="lines",
+                         name=nomes[c], meta={"componente": c, "marcadores": "todos"}) for c in ("indice_general", "subyacente")]
+    return go.Figure(linhas).update_layout(yaxis_title="variação mensal dessazonalizada (%)")
 
 
 def tend_momentum(componentes, nomes, resumo):
     """O ritmo recente do núcleo está acima ou abaixo da inflação em 12 meses?"""
     # se o SAAR está abaixo da anual, a anual tende a cair nos próximos meses, e vice-versa. O 6 meses vem primeiro
-    # e em destaque porque, no exercício pseudo-tempo-real (docs/auditoria_pre_chat.md), a ponta do 3 meses revisou mais
+    # e em destaque porque é o mais estável dos dois (docs/metodologia.md)
     nucleo = serie(componentes, "subyacente")
     tracos = [go.Scatter(x=nucleo["data"], y=nucleo[coluna], mode="lines", name=nome, meta={"componente": "subyacente", "medida": coluna})
-              for coluna, nome in (("saar_6m", "SAAR 6 meses"), ("saar_3m", "SAAR 3 meses (revisa mais)"), ("variacao_anual", "Variação em 12 meses"))]
+              for coluna, nome in (("saar_6m", "SAAR 6 meses"), ("saar_3m", "SAAR 3 meses"), ("variacao_anual", "Variação em 12 meses"))]
     return com_meta(go.Figure(tracos).update_layout(yaxis_title="% ao ano"))
 
 
 def perfil_sazonal(componentes, componente):
-    """A variação mensal do ano corrente de um componente contra o seu padrão sazonal de 2010-2019."""
-    # a faixa vai do p25 ao p75 da variação mensal de 2010-2019, e a linha tracejada é a mediana; tudo já vem das métricas
+    """A variação mensal do ano corrente e dos 3 anteriores de um componente contra o seu padrão sazonal de 2010-2019."""
+    # a faixa vai do p25 ao p75 da variação mensal de 2010-2019, e a linha tracejada é a mediana; tudo já vem das métricas.
+    # Os anos saem do ano do último dado, e a cor vai pela distância a ele (ano_0 é o corrente), igual em todo perfil
     mensal = componentes[(componentes["componente"] == componente) & (componentes["frequencia"] == "mensal")]
     norma = mensal.assign(mes=mensal["data"].dt.month).drop_duplicates("mes").sort_values("mes")  # a norma se repete todo ano, basta uma linha por mês
-    ano = mensal[mensal["data"].dt.year == mensal["data"].max().year].sort_values("data")
     meses = norma["rotulo_mes"].str[:3].tolist()  # "ago/26" vira "ago", porque aqui o eixo é o mês do ano e não uma data
-    tracos = [go.Scatter(x=meses, y=norma["norma_p25"], mode="lines", name="Padrão sazonal p25", meta={"serie": "norma_p25"}),
-              go.Scatter(x=meses, y=norma["norma_p75"], mode="lines", fill="tonexty", name="Padrão sazonal p75", meta={"serie": "norma_p75"}),
-              go.Scatter(x=meses, y=norma["norma_mediana"], mode="lines", name="Padrão sazonal (mediana)", meta={"serie": "norma_mediana"}),
-              go.Scatter(x=meses[:len(ano)], y=ano["variacao_periodo"], mode="lines+markers", name=str(ano["data"].max().year),
-                         meta={"componente": componente})]
+    tracos = [go.Scatter(x=meses, y=norma["norma_p25"], mode="lines", name="Faixa p25–p75", meta={"serie": "norma_p25"}),
+              go.Scatter(x=meses, y=norma["norma_p75"], mode="lines", fill="tonexty", name="Faixa p25–p75", meta={"serie": "norma_p75"}),
+              go.Scatter(x=meses, y=norma["norma_mediana"], mode="lines", name="Mediana 2010–2019", meta={"serie": "norma_mediana"})]
+    corrente = mensal["data"].max().year
+    for distancia in (3, 2, 1, 0):   # o ano corrente por último, para ficar por cima
+        ano = mensal[mensal["data"].dt.year == corrente - distancia].sort_values("data")
+        tracos.append(go.Scatter(x=meses[:len(ano)], y=ano["variacao_periodo"], mode="lines", name=str(corrente - distancia),
+                                 meta={"serie": f"ano_{distancia}", "marcadores": "todos" if distancia == 0 else "nenhum"}))
     return go.Figure(tracos).update_layout(yaxis_title="variação mensal (%)")
 
 

@@ -379,29 +379,29 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
     <div class="card c6" data-card="tend_dessazonalizado">
       <h3>Variação mensal dessazonalizada</h3><p class="sub">INPC geral e núcleo, ajuste STL (%)</p>
     </div>
-    <div class="card c6" data-card="tend_momentum" data-nota="Fim de amostra: a ponta costuma ser revisada em cerca de 1 pp. No exercício pseudo-tempo-real (37 cortes mensais de jun/2022 a jun/2025), a revisão média da ponta foi de 1,00 pp no SAAR 6 meses e 1,25 pp no 3 meses.">
+    <div class="card c6" data-card="tend_momentum"">
       <h3>Momentum do núcleo</h3><p class="sub">Variação dessazonalizada anualizada de 6 meses (em destaque) e de 3 meses, e variação em 12 meses (%)</p>
     </div>
     <div class="card c12" data-card="tend_perfil_sazonal">
-      <h3>Perfil sazonal do INPC</h3><p class="sub">Variação mensal (%): faixa p25 a p75 e mediana de 2010–2019; ano corrente</p>
+      <h3>Perfil sazonal do INPC</h3><p class="sub">Variação mensal (%): ano corrente, os 3 anteriores e o padrão de 2010–2019</p>
     </div>
     <div class="card c6" data-card="sazon_perfil_subyacente">
-      <h3>Perfil sazonal: Núcleo</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+      <h3>Perfil sazonal: Núcleo</h3><p class="sub">Variação mensal (%): ano corrente, os 3 anteriores e o padrão de 2010–2019</p>
     </div>
     <div class="card c6" data-card="sazon_perfil_no_subyacente">
-      <h3>Perfil sazonal: Não núcleo</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+      <h3>Perfil sazonal: Não núcleo</h3><p class="sub">Variação mensal (%): ano corrente, os 3 anteriores e o padrão de 2010–2019</p>
     </div>
     <div class="card c6" data-card="sazon_perfil_mercancias">
-      <h3>Perfil sazonal: Mercadorias</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+      <h3>Perfil sazonal: Mercadorias</h3><p class="sub">Variação mensal (%): ano corrente, os 3 anteriores e o padrão de 2010–2019</p>
     </div>
     <div class="card c6" data-card="sazon_perfil_servicios">
-      <h3>Perfil sazonal: Serviços</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+      <h3>Perfil sazonal: Serviços</h3><p class="sub">Variação mensal (%): ano corrente, os 3 anteriores e o padrão de 2010–2019</p>
     </div>
     <div class="card c6" data-card="sazon_perfil_agropecuarios">
-      <h3>Perfil sazonal: Agropecuários</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+      <h3>Perfil sazonal: Agropecuários</h3><p class="sub">Variação mensal (%): ano corrente, os 3 anteriores e o padrão de 2010–2019</p>
     </div>
     <div class="card c6" data-card="sazon_perfil_energeticos">
-      <h3>Perfil sazonal: Energia e tarifas</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+      <h3>Perfil sazonal: Energia e tarifas</h3><p class="sub">Variação mensal (%): ano corrente, os 3 anteriores e o padrão de 2010–2019</p>
     </div>
   </section>
 
@@ -432,10 +432,13 @@ const COR_COMPONENTE = {
   energeticos: css("--serie-energia"), tarifas_autorizadas_por_el_gobierno: css("--serie-tarifas"),
 };
 // o que não é componente (norma, difusão) e as três medidas do momentum, que são todas da subyacente
-const COR_SERIE = { norma: css("--ink"), norma_mediana: css("--ink-3"), pct_cesta_em_alta: css("--azul-escuro"), pct_cesta_anual_acima_3: css("--azul-vivo") };
+// no perfil sazonal a cor vai pela distância ao ano corrente (ano_0), a mesma nos 7 gráficos
+const COR_SERIE = { norma: css("--ink"), norma_mediana: css("--p-tinta-2"),
+  ano_0: css("--p-marinho"), ano_1: css("--p-azul-vivo"), ano_2: css("--p-ambar"), ano_3: css("--p-tinta-3"), pct_cesta_em_alta: css("--azul-escuro"), pct_cesta_anual_acima_3: css("--azul-vivo") };
 const COR_MEDIDA = { saar_6m: css("--azul-btg"), saar_3m: css("--azul-vivo"), variacao_anual: css("--azul-escuro") };
-// a ponta do SAAR 3 meses revisa mais que a do 6 meses (docs/auditoria_pre_chat.md), então ele vai mais fino
+// o SAAR 6 meses é o de destaque, e o 3 meses vai mais fino; no perfil sazonal o ano corrente é grosso e os anteriores, finos
 const LARGURA_MEDIDA = { saar_6m: 3, saar_3m: 1.25 };
+const LARGURA_SERIE = { ano_0: 3, ano_1: 1.25, ano_2: 1.25, ano_3: 1.25 };
 // o leitor vê "Núcleo" e "Não núcleo"; na primeira menção o tooltip mostra o nome que o INEGI usa
 const NOME_OFICIAL = { subyacente: "subyacente", no_subyacente: "no subyacente" };
 const ALTA = new Set(["decomp_arvore"]);
@@ -707,18 +710,20 @@ function estilizarTraco(t, eixo) {
     t.line = { width: 0, color: css("--faixa-sazonal") };   // sem cor, o plotly poria a dele no contorno invisível
     t.fillcolor = css("--faixa-sazonal");
     t.showlegend = serie === "norma_p75";
-    t.name = serie === "norma_p75" ? "Padrão sazonal p25–p75" : t.name;
+    t.name = "Faixa p25–p75";
     t.hoverinfo = "skip";
   } else if (t.mode === "markers") {
     // ponto destacado (última quinzena) ou marcador do padrão sazonal
     t.marker = { size: 10, color: cor, line: { color: css("--surface"), width: 2 } };
     ["error_x", "error_y"].forEach((erro) => { if (t[erro]) t[erro] = { ...t[erro], color: css("--ink-3"), thickness: 1.5, width: 6 }; });
   } else {
-    // linha fina com só o último ponto marcado, que é onde o olho tem de ir
+    // linha fina com só o último ponto marcado, que é onde o olho tem de ir; meta.marcadores pede bolinha em
+    // todo ponto ("todos") ou em nenhum ("nenhum", os anos anteriores do perfil sazonal)
     const ultimo = t.x.length - 1;
+    const tamanho = (i) => ({ todos: 5, nenhum: 0 }[meta.marcadores] ?? (i === ultimo ? 8 : 0));
     t.mode = "lines+markers";
-    t.line = { width: LARGURA_MEDIDA[(t.meta || {}).medida] || 2, color: cor, dash: serie === "norma_mediana" ? "dash" : "solid" };
-    t.marker = { color: cor, size: t.x.map((_, i) => (i === ultimo ? 8 : 0)), line: { color: css("--surface"), width: t.x.map((_, i) => (i === ultimo ? 2 : 0)) } };
+    t.line = { width: LARGURA_MEDIDA[meta.medida] || LARGURA_SERIE[serie] || 2, color: cor, dash: serie === "norma_mediana" ? "dash" : "solid" };
+    t.marker = { color: cor, size: t.x.map((_, i) => tamanho(i)), line: { color: css("--surface"), width: t.x.map((_, i) => (tamanho(i) ? 1 : 0)) } };
   }
 }
 
@@ -726,7 +731,7 @@ function rotulosFinais(dados) {
   // escrevo o último valor ao lado do ponto final, no lugar da legenda. Se houver ponto destacado (a última quinzena),
   // só ele leva rótulo; e um rótulo a menos de 0,3 pp de outro já escrito fica só no tooltip, para não encavalar
   const destacado = dados.filter((t) => t.mode === "markers" && !t.error_y && !t.error_x);
-  const candidatos = destacado.length ? destacado : dados.filter((t) => t.type === "scatter" && t.mode === "lines+markers" && !((t.meta || {}).serie || "").startsWith("norma"));
+  const candidatos = destacado.length ? destacado : dados.filter((t) => t.type === "scatter" && t.mode === "lines+markers" && !/^(norma|ano_[1-9])/.test((t.meta || {}).serie || ""));
   const escritos = [];
   candidatos.forEach((t) => {
     const i = t.x.length - 1;
@@ -814,7 +819,7 @@ function estilizarFigura(slot, figura) {
   // nos gráficos do Banxico a etiqueta da ponta substitui a legenda: nome (cortado em 18 letras) e valor. Nos blocos de
   // aberturas a etiqueta leva só o valor, porque a legenda do bloco já dá os nomes. A margem direita é fixa, a mesma
   // nos dois cards de uma linha, para a etiqueta longa não encolher o gráfico
-  const banxico = /^(grupos|explorar)_/.test(slot);
+  const banxico = /^(grupos|explorar)_/.test(slot) || slot === "tend_dessazonalizado";   // a dessazonalizada também dispensa a legenda
   const comNome = banxico && !dados.some(ehAbertura);
   const legendaVisivel = !banxico && dados.filter((t) => t.showlegend !== false).length >= 2;
   const altura = parseInt(css(ALTA.has(slot) ? "--altura-grafico-alta" : "--altura-grafico"));
