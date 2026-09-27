@@ -51,6 +51,44 @@
   --serie-agropecuarios: #D08E1F;
   --serie-energeticos: #8A97AC;   /* cinza-azulado: verde parecia sinal de coisa boa */
   --serie-no-subyacente: #D08E1F;
+  /* os 9 subíndices: cada um na família do seu grupo (azuis claros em mercadorias, azuis e frios em serviços,
+     âmbar e terra em agropecuários, ardósia em energia e tarifas), mas distintos dos irmãos que dividem o gráfico */
+  --serie-alimentos: #3D8BEA;
+  --serie-nao-alimenticias: #9CC3F2;
+  --serie-habitacao: #2F5FA8;
+  --serie-educacao: #7B61C9;
+  --serie-outros-servicos: #3AA0B5;
+  --serie-frutas-verduras: #E0A526;
+  --serie-pecuarios: #A8611A;
+  --serie-energia: #5A6F92;
+  --serie-tarifas: #A9B4C6;
+  --serie-pai: #0E1F3D;          /* nos pares do Banxico, o pai é sempre a linha escura com marcadores */
+  /* aberturas dos subíndices na aba Explorar: a cor é da posição (1 = maior peso), não da abertura, porque são 54 diferentes */
+  --serie-abertura-1: #2F6AD0;
+  --serie-abertura-2: #D08E1F;
+  --serie-abertura-3: #3AA0B5;
+  --serie-abertura-4: #7B61C9;
+  --serie-abertura-5: #8DB4EA;
+  --serie-abertura-6: #B08A5A;
+  --serie-demais: #C9D2DF;       /* o resto do subíndice, em cinza para não disputar com as seis */
+
+  /* gráficos */
+  --grade: #EDF1F6;
+  --zero: #C9D2DF;
+  --banda-meta: rgba(102, 116, 140, 0.12); /* intervalo da meta: cinza claro, só uma régua, sem juízo de bom ou ruim */
+  --branco: #FFFFFF;
+
+  /* tipografia */
+  --fonte: "DM Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --t-12: 12px; --t-13: 13px; --t-14: 14px; --t-16: 16px; --t-20: 20px; --t-32: 36px;
+
+  /* forma e espaço */
+  --raio-card: 14px;
+  --raio-pilula: 999px;
+  --e-8: 8px; --e-12: 12px; --e-16: 16px; --e-24: 24px; --e-32: 32px;
+  --coluna: 1320px;
+  --altura-grafico: 300px;
+  --altura-grafico-alta: 360px;
 }
 
 /* ==== 2. Base ==== */
@@ -176,6 +214,21 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 .lado-a-lado { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
 @media (max-width: 1100px) { .lado-a-lado { grid-template-columns: 1fr; } }
 
+/* ==== 5. Explorar ==== */
+.indice-explorar { columns: 3 220px; column-gap: var(--e-32); }
+.indice-explorar a { display: block; padding: 3px 0; color: var(--azul-btg); font-weight: 600; text-decoration: none; break-inside: avoid; }
+.indice-explorar a:hover { text-decoration: underline; }
+.indice-explorar .nivel-1 { padding-left: 16px; } .indice-explorar .nivel-2 { padding-left: 32px; font-weight: 500; }
+.indice-explorar .nivel-3 { padding-left: 48px; font-weight: 400; color: var(--ink-2); }
+/* o cabeçalho do bloco para abaixo da barra de navegação fixa quando se clica no índice */
+.bloco-explorar { grid-column: 1 / -1; display: flex; align-items: baseline; gap: var(--e-12); margin-top: var(--e-16); scroll-margin-top: 88px; }
+.bloco-explorar h2 { margin: 0; font-size: var(--t-20); font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+/* uma legenda só por bloco, em HTML: os dois gráficos usam as mesmas cores, e a legenda do plotly espremia o gráfico */
+.legenda-explorar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px var(--e-16); margin-top: -8px; font-size: var(--t-12); color: var(--ink-2); }
+.legenda-explorar i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legenda-explorar i.linha { width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; }
+.bloco-explorar .voltar { margin-left: auto; font-size: var(--t-12); color: var(--ink-3); text-decoration: none; }
+
 /* rodapé */
 .rodape { border-top: 1px solid var(--border); padding: 20px 0 var(--e-32); font-size: var(--t-12); color: var(--ink-3); }
 
@@ -205,6 +258,8 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <button data-aba="resumo" class="ativa">Resumo</button>
       <button data-aba="composicao">Composição</button>
       <button data-aba="tendencia">Tendência</button>
+      <button data-aba="grupos">Grupos</button>
+      <button data-aba="explorar">Explorar</button>
     </nav>
   </div>
 </header>
@@ -278,6 +333,48 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <h3>Difusão</h3><p class="sub">% do peso da cesta com alta no mês e com alta acima de 4% em 12 meses. O 4% é o teto do intervalo da meta do Banxico para o INPC, usado aqui só como régua: item nenhum tem meta. O tooltip mostra a cobertura de cada medida.</p>
     </div>
   </section>
+
+  <!-- ==== Grupos: réplica da seção de inflação do Informe Trimestral do Banxico; subtítulos descrevem, não concluem ==== -->
+  <section class="painel" id="grupos">
+    <div class="card c6" data-card="grupos_inpc_anual">
+      <h3>INPC, núcleo e não núcleo</h3><p class="sub">Variação em 12 meses do INPC e dos seus dois grupos, %</p>
+    </div>
+    <div class="card c6" data-card="grupos_inpc_contrib">
+      <h3>Contribuições para o INPC</h3><p class="sub">Contribuição do núcleo e do não núcleo para a variação em 12 meses do INPC, pp</p>
+    </div>
+    <div class="card c6" data-card="grupos_nucleo_anual">
+      <h3>Núcleo</h3><p class="sub">Variação em 12 meses do núcleo e dos seus dois grupos, %</p>
+    </div>
+    <div class="card c6" data-card="grupos_nucleo_contrib">
+      <h3>Contribuições para o núcleo</h3><p class="sub">Contribuição de mercadorias e serviços para a variação em 12 meses do núcleo, pp</p>
+    </div>
+    <div class="card c6" data-card="grupos_mercadorias_anual">
+      <h3>Mercadorias</h3><p class="sub">Variação em 12 meses de mercadorias e dos seus dois grupos, %</p>
+    </div>
+    <div class="card c6" data-card="grupos_mercadorias_contrib">
+      <h3>Contribuições para mercadorias</h3><p class="sub">Contribuição de cada grupo para a variação em 12 meses de mercadorias, pp</p>
+    </div>
+    <div class="card c6" data-card="grupos_servicos_anual">
+      <h3>Serviços</h3><p class="sub">Variação em 12 meses de serviços e dos seus três grupos, %</p>
+    </div>
+    <div class="card c6" data-card="grupos_servicos_contrib">
+      <h3>Contribuições para serviços</h3><p class="sub">Contribuição de habitação, educação e outros serviços para a variação em 12 meses de serviços, pp</p>
+    </div>
+    <div class="card c6" data-card="grupos_nao_nucleo_anual">
+      <h3>Não núcleo</h3><p class="sub">Variação em 12 meses do não núcleo e dos seus dois grupos, %</p>
+    </div>
+    <div class="card c6" data-card="grupos_nao_nucleo_desde_base">
+      <h3>Não núcleo desde o mês-base</h3><p class="sub"></p>
+    </div>
+  </section>
+
+  <!-- ==== Explorar: o mesmo par de gráficos para todas as categorias, montado a partir dos dados ==== -->
+  <section class="painel" id="explorar">
+    <div class="card c12" id="indice-explorar">
+      <h3>Categorias</h3><p class="sub">Clique para ir ao par de gráficos da categoria: variação em 12 meses à esquerda, contribuições à direita</p>
+      <nav class="indice-explorar"></nav>
+    </div>
+  </section>
 </main>
 
 <footer class="coluna"><div class="rodape">
@@ -295,6 +392,12 @@ const COR_COMPONENTE = {
   indice_general: css("--serie-inpc"), subyacente: css("--serie-subyacente"), no_subyacente: css("--serie-no-subyacente"),
   mercancias: css("--serie-mercancias"), servicios: css("--serie-servicios"), agropecuarios: css("--serie-agropecuarios"),
   energeticos_y_tarifas: css("--serie-energeticos"),
+  alimentos_bebidas_y_tabaco: css("--serie-alimentos"), mercancias_no_alimenticias: css("--serie-nao-alimenticias"),
+  abertura_1: css("--serie-abertura-1"), abertura_2: css("--serie-abertura-2"), abertura_3: css("--serie-abertura-3"),
+  abertura_4: css("--serie-abertura-4"), abertura_5: css("--serie-abertura-5"), abertura_6: css("--serie-abertura-6"), demais: css("--serie-demais"),
+  vivienda: css("--serie-habitacao"), educacion_colegiaturas: css("--serie-educacao"), otros_servicios: css("--serie-outros-servicos"),
+  frutas_y_verduras: css("--serie-frutas-verduras"), pecuarios: css("--serie-pecuarios"),
+  energeticos: css("--serie-energia"), tarifas_autorizadas_por_el_gobierno: css("--serie-tarifas"),
 };
 // o que não é componente (norma, difusão) e as três medidas do momentum, que são todas da subyacente
 const COR_SERIE = { norma: css("--ink"), norma_mediana: css("--ink-3"), pct_cesta_em_alta: css("--azul-escuro"), pct_cesta_anual_acima_4: css("--azul-vivo") };
@@ -303,7 +406,6 @@ const COR_MEDIDA = { saar_6m: css("--azul-btg"), saar_3m: css("--azul-vivo"), va
 const LARGURA_MEDIDA = { saar_6m: 3, saar_3m: 1.25 };
 // o leitor vê "Núcleo" e "Não núcleo"; na primeira menção o tooltip mostra o nome que o INEGI usa
 const NOME_OFICIAL = { subyacente: "subyacente", no_subyacente: "no subyacente" };
-const SUFIXO = { main_contribuicoes: " pp" };
 const ALTA = new Set(["decomp_arvore", "main_contribuicoes"]);
 const RELEASE = new Set(["main_vs_norma", "decomp_arvore"]);   // mostram só o último período do release
 
@@ -375,6 +477,26 @@ function montarDestaques(frases) {
 }
 
 // ==== 4. Cards: cabeçalho com chip, corpo e rodapé ====
+function montarExplorar() {
+  // um bloco por categoria, na ordem em que os gráficos chegam (a da árvore do INEGI): cabeçalho com nome e peso,
+  // e os dois cards embaixo. O nome, o nível e o peso vêm dentro da figura da esquerda
+  const painel = document.getElementById("explorar");
+  const indice = painel.querySelector(".indice-explorar");
+  Object.keys(DADOS.graficos).filter((slot) => slot.startsWith("explorar_") && slot.endsWith("_anual")).forEach((slot) => {
+    const bloco = slot.replace(/_anual$/, "");
+    const { bloco: nome, nivel, peso } = DADOS.graficos[slot].layout.meta;
+    const series = DADOS.graficos[`${bloco}_contrib`].data.filter((t) => t.showlegend !== false);
+    const legenda = series.map((t) => `<span><i class="${t.type === "bar" ? "" : "linha"}" style="background:${corDoTraco(t)}"></i>${t.name}</span>`).join("");
+    indice.insertAdjacentHTML("beforeend", `<a class="nivel-${nivel}" href="#${bloco}">${nome}</a>`);
+    painel.insertAdjacentHTML("beforeend", `
+      <div class="bloco-explorar" id="${bloco}"><h2>${nome}</h2><span class="chip">${numero(peso, 2, "%")} do INPC</span>
+        <a class="voltar" href="#indice-explorar">↑ categorias</a></div>
+      <div class="legenda-explorar">${legenda}</div>
+      <div class="card c6" data-card="${slot}"><h3>Variação em 12 meses</h3><p class="sub"></p></div>
+      <div class="card c6" data-card="${bloco}_contrib"><h3>Contribuições</h3><p class="sub"></p></div>`);
+  });
+}
+
 function chipDoCard(slot, figura) {
   // o chip conta de cara se o gráfico é mensal ou quinzenal e que janela ele cobre
   const frequencia = DADOS.cabecalho.frequencia === "quinzenal" ? "Quinzenal" : "Mensal";
@@ -386,14 +508,21 @@ function chipDoCard(slot, figura) {
   return `Mensal · ${anos[0]}–${anos[anos.length - 1]}`;
 }
 
+// os gráficos no formato do Banxico dizem isso na fonte, porque o desenho segue o Informe Trimestral
+const FONTE = { padrao: "Fonte: INEGI. Elaboração própria.", banxico: "Fonte: INEGI. Elaboração própria, no formato do Informe Trimestral do Banxico." };
+
 function montarCard(card) {
   const slot = card.dataset.card;
-  const titulo = card.innerHTML;
   const figura = DADOS.graficos[slot];
+  // um subtítulo que depende de parâmetro (o mês-base) vem pronto dentro da figura
+  const subtitulo = figura && (figura.layout.meta || {}).subtitulo;
+  if (subtitulo) card.querySelector(".sub").textContent = subtitulo;
+  const titulo = card.innerHTML;
+  const fonte = card.closest("#grupos, #explorar") ? FONTE.banxico : FONTE.padrao;
   const chip = figura ? `<span class="chip">${chipDoCard(slot, figura)}</span>` : "";
   const nota = card.dataset.nota ? ` ${card.dataset.nota}` : "";
   const corpo = card.dataset.tipo === "tabela" ? `<div class="tabela">${DADOS.tabelas[slot]}</div>` : `<div class="grafico" data-grafico="${slot}"></div>`;
-  card.innerHTML = `<div class="card-topo"><div>${titulo}</div>${chip}</div>${corpo}<p class="fonte">Fonte: INEGI. Elaboração própria.${nota}</p>`;
+  card.innerHTML = `<div class="card-topo"><div>${titulo}</div>${chip}</div>${corpo}<p class="fonte">${fonte}${nota}</p>`;
   if (card.dataset.tipo === "tabela") refinarTabelas(card, slot);
 }
 
@@ -461,6 +590,7 @@ function arrumarUltimosPeriodos(tabela) {
 // ==== 6. Tema único dos gráficos ====
 function corDoTraco(t) {
   const meta = t.meta || {};
+  if (meta.papel === "pai") return css("--serie-pai");
   return COR_MEDIDA[meta.medida] || COR_COMPONENTE[meta.componente] || COR_SERIE[meta.serie] || css("--ink");
 }
 
@@ -478,10 +608,14 @@ function faixaDosValores(dados, empilhado, eixo) {
     });
   });
   const barras = dados.filter((t) => t.type === "bar");
-  if (empilhado && barras.length) {
-    barras[0][eixo].forEach((_, i) => {
-      valores.push(barras.reduce((s, t) => s + Math.max(t[eixo][i], 0), 0), barras.reduce((s, t) => s + Math.min(t[eixo][i], 0), 0));
-    });
+  if (empilhado) {
+    // empilho por data, porque a barra da última quinzena é um traço à parte, com um ponto só
+    const pilhas = {};
+    barras.forEach((t) => t.x.forEach((x, i) => {
+      pilhas[x] = pilhas[x] || [0, 0];
+      pilhas[x][t[eixo][i] > 0 ? 0 : 1] += t[eixo][i];
+    }));
+    valores.push(...Object.values(pilhas).flat());
   }
   if (barras.length) valores.push(0);
   const min = Math.min(...valores), max = Math.max(...valores), folga = (max - min) * 0.1;
@@ -498,11 +632,12 @@ function fimDoEixoX(dados) {
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
-function eixoDoTempo(slot, dados) {
-  // eixo anual em todos os gráficos, menos nas contribuições, que têm uma barra por mês e rótulo "jan/25".
+function eixoDoTempo(dados) {
+  // eixo anual nos gráficos longos; nos de até 30 meses (as contribuições do resumo, o não núcleo desde o mês-base e as
+  // aberturas) o eixo anual teria um ou dois rótulos, então vai mês a mês, com rótulo "jan/25".
   // Os rótulos são montados aqui para não depender do idioma do plotly; um a cada 3 meses, contando do último para trás
-  if (slot !== "main_contribuicoes") return { tickformat: "%Y", dtick: "M12", hoverformat: "%m/%Y", range: fimDoEixoX(dados) };
   const datas = dados[0].x;
+  if (datas.length > 30) return { tickformat: "%Y", dtick: "M12", hoverformat: "%m/%Y", range: fimDoEixoX(dados) };
   const marcadas = datas.filter((_, i) => (datas.length - 1 - i) % 3 === 0);
   return { tickvals: marcadas, ticktext: marcadas.map((x) => `${MESES[Number(x.slice(5, 7)) - 1]}/${x.slice(2, 4)}`), hoverformat: "%m/%Y" };
 }
@@ -513,8 +648,18 @@ function estilizarTraco(t, sufixo, eixo) {
   t.hovertemplate = `${t.name}: %{${eixo}:.2f}${sufixo}<extra></extra>`;
   // na difusão, cada ponto diz quanto do peso da cesta tinha dado para a medida
   if ((t.meta || {}).cobertura) t.hovertemplate = `${t.name}: %{y:.2f}%<br>cobertura: %{customdata[0]:.0f}% do peso, %{customdata[1]} itens<extra></extra>`;
+  const meta = t.meta || {};
   if (t.type === "bar") {
-    t.marker = { color: cor, line: { width: 1, color: css("--surface") } };   // a borda branca separa os segmentos empilhados
+    // a borda branca separa os segmentos empilhados; a barra da última quinzena fica mais clara
+    t.marker = { color: cor, opacity: meta.quinzena ? 0.45 : 1, line: { width: 1, color: css("--surface") } };
+  } else if (meta.quinzena) {
+    // a última quinzena na ponta: marcador vazado, para não ser lida como mês fechado
+    t.marker = { symbol: "circle-open", size: 9, color: cor, line: { width: 2 } };
+  } else if (meta.papel === "pai") {
+    // o pai é a linha escura com marcadores, como no Banxico
+    t.mode = "lines+markers";
+    t.line = { width: 2, color: cor };
+    t.marker = { color: cor, size: 4 };
   } else if (serie.startsWith("norma_p")) {
     t.line = { width: 0 };
     t.fillcolor = css("--azul-claro-2");
@@ -551,6 +696,29 @@ function rotulosFinais(dados, sufixo) {
   return escritos;
 }
 
+function rotulosNaPonta(dados, sufixo, comNome, faixa, alturaUtil) {
+  // um rótulo por série, no último valor dela (a quinzena, quando houver), na cor da série, como o Banxico faz.
+  // A barra leva o rótulo no meio do seu pedaço da pilha. Rótulos a menos de 14 px um do outro descem, para não encavalar
+  const ultimos = new Map();
+  dados.forEach((t) => {
+    const i = t.x.length - 1;
+    const atual = ultimos.get(t.meta.componente);
+    if (!atual || t.x[i] >= atual.x) ultimos.set(t.meta.componente, { x: t.x[i], valor: t.y[i], t });
+  });
+  let positivo = 0, negativo = 0;
+  const rotulos = [...ultimos.values()].map((r) => {
+    let y = r.valor;
+    if (r.t.type === "bar" && r.valor > 0) { y = positivo + r.valor / 2; positivo += r.valor; }
+    if (r.t.type === "bar" && r.valor <= 0) { y = negativo + r.valor / 2; negativo += r.valor; }
+    const nome = r.t.name.split(" · ")[0];   // o traço da quinzena carrega o período no nome
+    return { x: r.x, y, text: (comNome ? `${nome} ` : "") + numero(r.valor, 2, sufixo), showarrow: false, xanchor: "left", xshift: 10,
+             yanchor: "middle", font: { size: 12, color: corDoTraco(r.t), family: css("--fonte"), weight: 600 } };
+  });
+  const distancia = 14 * (faixa[1] - faixa[0]) / alturaUtil;
+  rotulos.sort((a, b) => b.y - a.y).forEach((r, i, lista) => { if (i && lista[i - 1].y - r.y < distancia) r.y = lista[i - 1].y - distancia; });
+  return rotulos;
+}
+
 function estilizarArvore(figura) {
   // degradê de azul: mais escuro quanto maior a contribuição; contribuição negativa em cinza.
   // as cores são sólidas (misturadas com branco), porque cor transparente deixava o bloco-pai vazar por trás
@@ -584,7 +752,7 @@ function rotuloDoTooltip() {
 function estilizarFigura(slot, figura) {
   if (figura.data[0].type === "treemap") return estilizarArvore(figura);
   const dados = figura.data;
-  const sufixo = SUFIXO[slot] || "%";
+  const sufixo = figura.layout.barmode === "relative" ? " pp" : "%";   // barras empilhadas são sempre contribuições
   const temDatas = dados.some((t) => /^\d{4}-\d{2}-\d{2}/.test(String((t.x || [])[0])));
   const temBarras = dados.some((t) => t.type === "bar");
   const horizontal = dados.some((t) => t.orientation === "h");
@@ -593,8 +761,15 @@ function estilizarFigura(slot, figura) {
   dados.forEach((t) => estilizarTraco(t, sufixo, eixoValores));
   if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => (t.marker.color = css("--azul-btg")));
   const temMeta = (figura.layout.shapes || []).some((s) => s.name === "meta");
-  const legendaVisivel = dados.filter((t) => t.showlegend !== false).length >= 2;
-  const rotulos = rotulosFinais(dados, sufixo);
+  // nos gráficos do Banxico o rótulo da ponta leva o nome da série no lugar da legenda, quando os nomes são curtos
+  const banxico = slot.startsWith("grupos_") || slot.startsWith("explorar_");
+  const nomes = dados.map((t) => t.name.split(" · ")[0]);
+  const comNome = banxico && Math.max(...nomes.map((n) => n.length)) <= 17;
+  const legendaVisivel = !comNome && !slot.startsWith("explorar_") && dados.filter((t) => t.showlegend !== false).length >= 2;
+  const altura = parseInt(css(ALTA.has(slot) ? "--altura-grafico-alta" : "--altura-grafico"));
+  const margem = { l: horizontal ? 8 : 40, r: comNome ? 16 + 7 * Math.max(...nomes.map((n) => n.length + 9)) : 56, t: legendaVisivel ? 28 : 8, b: 32 };
+  const faixa = faixaDosValores(dados, figura.layout.barmode === "relative", eixoValores);
+  const rotulos = banxico ? rotulosNaPonta(dados, sufixo, comNome, faixa, altura - margem.t - margem.b) : rotulosFinais(dados, sufixo);
   // o "Meta 3%" fica na margem direita; se um rótulo final estiver a menos de 0,5 pp da meta, os dois encavalam,
   // e aí ele vai para dentro do gráfico, no canto esquerdo, logo acima da linha da meta
   const metaNaMargem = !rotulos.some((a) => Math.abs(a.y - 3) < 0.5);
@@ -602,13 +777,13 @@ function estilizarFigura(slot, figura) {
   // eixo dos valores: grade, sufixo e range com folga; nas barras horizontais ele é o x e a linha de zero fica vertical
   const eixoDeValores = { gridcolor: css("--grade"), gridwidth: 1, zeroline: temBarras, zerolinecolor: css("--zero"), zerolinewidth: 1,
                           ticksuffix: sufixo, tickformat: ".1~f", hoverformat: ".2f", title: { text: "" },
-                          range: faixaDosValores(dados, figura.layout.barmode === "relative", eixoValores), fixedrange: true };
+                          range: faixa, fixedrange: true };
   const eixoDeCategorias = { ...(figura.layout.yaxis || {}), showgrid: false, zeroline: false, ticks: "", automargin: true,
                              tickfont: { color: css("--ink-2") }, title: { text: "" } };
   const layout = {
     ...figura.layout,
-    height: parseInt(css(ALTA.has(slot) ? "--altura-grafico-alta" : "--altura-grafico")),
-    margin: { l: horizontal ? 8 : 40, r: 56, t: legendaVisivel ? 28 : 8, b: 32 },
+    height: altura,
+    margin: margem,
     font: { family: css("--fonte"), size: 12, color: css("--ink-3") },
     paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
     separators: ",.", bargap: 0.3, bargroupgap: 0.08, barcornerradius: 4,
@@ -617,7 +792,7 @@ function estilizarFigura(slot, figura) {
     showlegend: legendaVisivel,
     legend: { orientation: "h", x: 0, xanchor: "left", y: 1, yanchor: "bottom", font: { size: 12, color: css("--ink-2") }, itemclick: false },
     xaxis: horizontal ? eixoDeValores : { showgrid: false, zeroline: false, ticks: "", showline: false, tickfont: { color: css("--ink-3") },
-             title: { text: "" }, ...(temDatas ? eixoDoTempo(slot, dados) : {}) },
+             title: { text: "" }, ...(temDatas ? eixoDoTempo(dados) : {}) },
     yaxis: horizontal ? eixoDeCategorias : eixoDeValores,
     shapes: (figura.layout.shapes || []).map((s) => s.name === "meta"
       ? { ...s, layer: "below", line: { color: css("--ink-3"), width: 1, dash: "dot" } }
@@ -633,13 +808,25 @@ function estilizarFigura(slot, figura) {
 // ==== 7. Desenho e abas ====
 const desenhados = new Set();
 
+function desenhar(div) {
+  const { data, layout } = estilizarFigura(div.dataset.grafico, DADOS.graficos[div.dataset.grafico]);
+  Plotly.newPlot(div, data, layout, { displayModeBar: false, responsive: true });
+  desenhados.add(div);
+}
+
+// na aba Explorar são 32 gráficos: cada um só é desenhado quando o card chega perto da tela, e fica desenhado
+const observador = new IntersectionObserver((entradas) => entradas.forEach((entrada) => {
+  if (!entrada.isIntersecting) return;
+  observador.unobserve(entrada.target);
+  desenhar(entrada.target);
+}), { rootMargin: "400px 0px" });
+
 function desenharPainel(painel) {
   // desenho o gráfico só quando a aba aparece; numa aba escondida o plotly não sabe a largura e erra o tamanho
   painel.querySelectorAll("[data-grafico]").forEach((div) => {
     if (desenhados.has(div)) return Plotly.Plots.resize(div);
-    const { data, layout } = estilizarFigura(div.dataset.grafico, DADOS.graficos[div.dataset.grafico]);
-    Plotly.newPlot(div, data, layout, { displayModeBar: false, responsive: true });
-    desenhados.add(div);
+    if (painel.id === "explorar") return observador.observe(div);
+    desenhar(div);
   });
 }
 
@@ -652,6 +839,7 @@ function trocarAba(botao) {
 montarFaixa(DADOS.cabecalho);
 montarKpis(DADOS.cabecalho);
 montarDestaques(DADOS.destaques);
+montarExplorar();
 document.querySelectorAll("[data-card]").forEach(montarCard);
 document.querySelectorAll(".abas button").forEach((b) => b.addEventListener("click", () => trocarAba(b)));
 desenharPainel(document.getElementById("resumo"));

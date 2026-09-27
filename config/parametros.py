@@ -92,6 +92,7 @@ ANOS_NORMA_SAZONAL = (
     2019,
 )  # uma década de inflação comportada, antes da pandemia bagunçar tudo
 ANO_INICIO_GRAFICOS = 2019  # começo o histórico dos gráficos um ano antes da pandemia, alterar conforme preferência.
+MES_BASE_NAO_NUCLEO = "2024-07"  # pico recente do não núcleo (10,36% a/a); mostra o que explicou a queda desde então
 # a cesta 2024 entrou na 2a quinzena de julho de 2024; o primeiro período em que ele e o anterior já estão nela
 INICIO_CESTA_2024 = {"quinzenal": "2024-07-Q2", "mensal": "2024-08"}
 MESES_METRICAS_GENERICOS = 24  # quanto histórico de genéricos vai para o dashboard

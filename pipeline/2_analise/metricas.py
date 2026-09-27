@@ -45,6 +45,12 @@ def acrescentar_norma(tabela, chave):
     return tabela.drop(columns="posicao_no_ano")
 
 
+def contribuicao_em_12_meses(incidencias, inpc, periodos_no_ano):
+    """Contribuição para a inflação em 12 meses de cada coluna de incidências (posição x série), dado o INPC na mesma grade."""
+    soma = incidencias.mul(inpc.shift(1), axis=0).rolling(periodos_no_ano).sum()  # o rolling exige os h valores presentes
+    return soma.div(inpc.shift(periodos_no_ano), axis=0)
+
+
 def acrescentar_contribuicao_anual(tabela, periodos_no_ano):
     """Quantos pontos da inflação em 12 meses vieram de cada componente, pela identidade exata do encadeamento."""
     # a incidência c(s) são pontos da variação do INPC no período s, medidos sobre o nível I(s-1) do INPC geral.
@@ -55,9 +61,53 @@ def acrescentar_contribuicao_anual(tabela, periodos_no_ano):
     grade = range(tabela["posicao"].min(), tabela["posicao"].max() + 1)  # a grade de posições acusa período ausente
     inpc = tabela[tabela["componente"] == "indice_general"].set_index("posicao")["indice"].reindex(grade)
     incidencias = tabela.pivot(index="posicao", columns="componente", values="incidencia_periodo").reindex(grade)
-    soma = incidencias.mul(inpc.shift(1), axis=0).rolling(periodos_no_ano).sum()  # o rolling exige os h valores presentes
-    contribuicao = soma.div(inpc.shift(periodos_no_ano), axis=0).stack(future_stack=True).rename("contribuicao_anual")
+    contribuicao = contribuicao_em_12_meses(incidencias, inpc, periodos_no_ano).stack(future_stack=True).rename("contribuicao_anual")
     return tabela.merge(contribuicao, left_on=["posicao", "componente"], right_index=True, how="left")
+
+
+def contribuicao_na_base(tabela, coluna_base):
+    """Contribuição de cada componente para a variação em 12 meses do componente indicado em coluna_base (pp)."""
+    # a contribuição anual está na base do INPC; multiplicar pela variação anual do pai e dividir pela soma das
+    # contribuições dos irmãos (mesmo pai, mesmo nível) leva para a base do pai. Com cesta fixa a conta é exata:
+    # ex.: habitação 1,63 + educação 0,39 + outros 2,32 = serviços 4,34. Divido pelos irmãos e não pela contribuição
+    # publicada do pai porque o arredondamento das incidências (até 0,004 pp) é ampliado quando o pai quase não varia:
+    # agropecuários a 0,17% em jul/2025 deixava os filhos 0,035 pp longe do pai; assim eles somam o pai exatamente
+    variacoes = tabela[["componente", "periodo", "variacao_anual"]].rename(columns={"componente": coluna_base, "variacao_anual": "variacao_base"})
+    variacao_base = tabela[[coluna_base, "periodo"]].merge(variacoes, on=[coluna_base, "periodo"], how="left")["variacao_base"].values
+    soma_dos_irmaos = tabela.groupby([coluna_base, "periodo", "nivel"], dropna=False)["contribuicao_anual"].transform("sum").values
+    return tabela["contribuicao_anual"].values * variacao_base / soma_dos_irmaos
+
+
+def grupo_de_nivel_1(componente, pais):
+    """Sobe a árvore até o filho direto do INPC (núcleo ou não núcleo); o próprio INPC não tem grupo."""
+    while pais.get(componente) not in ("indice_general", None):
+        componente = pais[componente]
+    return componente if pais.get(componente) == "indice_general" else None
+
+
+def acrescentar_contribuicao_no_pai(tabela):
+    """Contribuição para a variação em 12 meses do pai, e do grupo de nível 1 (núcleo ou não núcleo) acima dele."""
+    # o grupo serve ao gráfico do não núcleo desde o mês-base, que junta os quatro subíndices numa conta só
+    pais = tabela.drop_duplicates("componente").set_index("componente")["pai"].to_dict()
+    tabela["grupo"] = tabela["componente"].map(lambda componente: grupo_de_nivel_1(componente, pais))
+    tabela["contribuicao_no_pai"] = contribuicao_na_base(tabela, "pai")
+    tabela["contribuicao_no_grupo"] = contribuicao_na_base(tabela, "grupo")
+    return tabela.drop(columns="grupo")
+
+
+def conferir_contribuicao_no_pai(componentes, meses):
+    """Para o pipeline se, em algum período recente, os filhos não somarem a variação em 12 meses do pai."""
+    # serve aos componentes e às aberturas dos subíndices; período sem contribuição nenhuma não entra na conta
+    for frequencia, periodos_no_ano in p.PERIODOS_POR_ANO.items():
+        tabela = componentes[componentes["frequencia"] == frequencia]
+        recentes = tabela[tabela["posicao"] > tabela["posicao"].max() - meses * periodos_no_ano // 12]
+        soma = recentes.dropna(subset=["pai"]).groupby(["pai", "periodo"])["contribuicao_no_pai"].sum(min_count=1)
+        pais = recentes[recentes["componente"].isin(soma.index.get_level_values("pai"))]
+        pai = pais.set_index(["componente", "periodo"])["variacao_anual"].reindex(soma.index)
+        diferenca = (soma - pai).abs()
+        if diferenca.max() > p.TOLERANCIA_VALIDACAO_PP:
+            componente, periodo = diferenca.idxmax()
+            raise ValueError(f"Contribuição no pai não fecha: {componente} em {periodo} ({frequencia}), diferença de {diferenca.max():.4f} pp")
 
 
 def residuo_da_contribuicao_anual(componentes, meses):
@@ -95,10 +145,11 @@ def metricas_componentes(series, dessazonalizadas):
         incidencias = da_frequencia[da_frequencia["tipo"] == "incidencia"][["componente", "periodo", "valor"]]
         tabela = indices.merge(incidencias.rename(columns={"valor": "incidencia_periodo"}), on=["componente", "periodo"], how="left")
         tabela = acrescentar_variacoes(tabela.sort_values(["componente", "data"]), "componente", periodos_no_ano)
-        tabelas.append(acrescentar_norma(acrescentar_contribuicao_anual(tabela, periodos_no_ano), "componente"))
+        tabela = acrescentar_contribuicao_no_pai(acrescentar_contribuicao_anual(tabela, periodos_no_ano))
+        tabelas.append(acrescentar_norma(tabela, "componente"))
     tabela = acrescentar_ritmo_dessazonalizado(pd.concat(tabelas), dessazonalizadas)
     return tabela[["componente", "nivel", "pai", "frequencia", "periodo", "posicao", "rotulo_periodo", "rotulo_curto", "rotulo_mes", "data", "indice", "variacao_periodo", "variacao_anual",
-                   "incidencia_periodo", "contribuicao_anual", "norma_mediana", "norma_p25", "norma_p75", "desvio_norma",
+                   "incidencia_periodo", "contribuicao_anual", "contribuicao_no_pai", "contribuicao_no_grupo", "norma_mediana", "norma_p25", "norma_p75", "desvio_norma",
                    "variacao_sa_mensal", "saar_3m", "saar_6m"]]
 
 
@@ -135,7 +186,7 @@ def metricas_genericos(genericos, ponderadores, series):
         # Não é surpresa contra expectativa de mercado, e as medianas dos itens não somam a mediana do INPC
         tabela["desvio_sazonal_ponderado"] = tabela["peso_efetivo"] * tabela["desvio_norma"]
         tabelas.append(tabela)
-    return pd.concat(tabelas)[["codigo_generico", "nome_generico", "subindice", "frequencia", "periodo", "rotulo_periodo", "data", "indice",
+    return pd.concat(tabelas)[["codigo_generico", "nome_generico", "subindice", "frequencia", "periodo", "posicao", "rotulo_periodo", "data", "indice",
                                "variacao_periodo", "variacao_anual", "norma_mediana", "desvio_norma", "incidencia_periodo",
                                "desvio_sazonal_ponderado"]]
 
@@ -171,7 +222,48 @@ def serie_difusao(genericos, ponderadores):
                          "itens_validos_anual": itens_anual, "cobertura_peso_anual": cobertura_anual}).reset_index()
 
 
-# ==== 3. Resumo do último release ====
+# ==== 3. Aberturas dos subíndices ====
+def acrescentar_contribuicao_anual_dos_genericos(genericos, componentes):
+    """A contribuição de cada genérico para a inflação em 12 meses, pela mesma identidade dos componentes."""
+    # a incidência dos genéricos só existe na cesta 2024, então a contribuição em 12 meses começa 12 meses depois
+    partes = []
+    for frequencia, periodos_no_ano in p.PERIODOS_POR_ANO.items():
+        tabela = genericos[genericos["frequencia"] == frequencia]
+        grade = range(tabela["posicao"].min(), tabela["posicao"].max() + 1)
+        geral = componentes[(componentes["componente"] == "indice_general") & (componentes["frequencia"] == frequencia)]
+        inpc = geral.set_index("posicao")["indice"].reindex(grade)
+        incidencias = tabela.pivot(index="posicao", columns="codigo_generico", values="incidencia_periodo").reindex(grade)
+        contribuicao = contribuicao_em_12_meses(incidencias, inpc, periodos_no_ano).stack(future_stack=True).rename("contribuicao_anual")
+        partes.append(tabela.merge(contribuicao, left_on=["posicao", "codigo_generico"], right_index=True, how="left"))
+    return pd.concat(partes)
+
+
+def aberturas_dos_subindices(genericos, componentes, ponderadores):
+    """Para cada subíndice, as 6 aberturas de maior peso na cesta 2024 e as demais, com a contribuição para a variação em 12 meses dele."""
+    # a chave da abertura é a posição dela no subíndice (abertura_1 é a de maior peso), porque o dashboard pinta pela posição.
+    # A troca de base é a mesma dos componentes: dividir pela soma das contribuições dos irmãos, que aqui são todos os
+    # genéricos do subíndice. "Demais" é o subíndice menos a soma das 6; quem tem 6 genéricos ou menos não tem "Demais"
+    pesos = ponderadores[ponderadores["cesta"] == "2024"].dropna(subset=["codigo_generico"])
+    maiores = pesos.sort_values("ponderador", ascending=False).groupby("subindice").head(6)
+    chave = dict(zip(maiores["codigo_generico"], "abertura_" + (maiores.groupby("subindice").cumcount() + 1).astype(str)))
+    tabela = acrescentar_contribuicao_anual_dos_genericos(genericos, componentes)
+    subindices = componentes[["componente", "frequencia", "periodo", "variacao_anual"]].rename(columns={"componente": "subindice", "variacao_anual": "variacao_subindice"})
+    tabela = tabela.merge(subindices, on=["subindice", "frequencia", "periodo"], how="left")
+    soma_do_subindice = tabela.groupby(["subindice", "frequencia", "periodo"])["contribuicao_anual"].transform("sum")
+    tabela["contribuicao_no_pai"] = tabela["contribuicao_anual"] * tabela["variacao_subindice"] / soma_do_subindice
+    tabela["componente"] = tabela["codigo_generico"].map(chave)
+    principais = tabela.dropna(subset=["componente"]).rename(columns={"subindice": "pai", "nome_generico": "nome"})
+    soma_das_6 = principais.groupby(["pai", "frequencia", "periodo"])["contribuicao_no_pai"].sum(min_count=1).rename("soma_das_6")
+    com_demais = pesos.groupby("subindice").size().loc[lambda n: n > 6].index
+    demais = componentes[componentes["componente"].isin(com_demais)].drop(columns="pai").rename(columns={"componente": "pai"})
+    demais = demais.merge(soma_das_6, left_on=["pai", "frequencia", "periodo"], right_index=True, how="left")
+    demais = demais.assign(componente="demais", nome="Demais", contribuicao_no_pai=demais["variacao_anual"] - demais["soma_das_6"], variacao_anual=float("nan"))
+    colunas = ["pai", "componente", "nome", "frequencia", "periodo", "posicao", "rotulo_periodo", "data", "variacao_anual", "contribuicao_no_pai"]
+    aberturas = pd.concat([principais[colunas], demais[colunas]])
+    return aberturas[aberturas["data"].dt.year >= p.ANO_INICIO_GRAFICOS]
+
+
+# ==== 4. Resumo do último release ====
 def arredondar(valor):
     """Guardo 6 casas no JSON e deixo o arredondamento para a tela; arredondar duas vezes já me fez errar o último dígito."""
     return round(float(valor), 6)
@@ -270,6 +362,8 @@ if __name__ == "__main__":
     componentes.to_parquet(p.PASTA_PROCESSED / "metricas_componentes.parquet", index=False)
     genericos[recentes].to_parquet(p.PASTA_PROCESSED / "metricas_genericos.parquet", index=False)
     difusao.to_parquet(p.PASTA_PROCESSED / "metricas_difusao.parquet", index=False)
+    aberturas = aberturas_dos_subindices(genericos, componentes, ponderadores)
+    aberturas.to_parquet(p.PASTA_PROCESSED / "metricas_aberturas.parquet", index=False)
 
     ultimo = componentes.groupby("frequencia")["periodo"].max().to_dict()
     tipo = "1a_quinzena" if ultimo["quinzenal"].endswith("Q1") else "mensal_e_2a_quinzena"
@@ -284,6 +378,7 @@ if __name__ == "__main__":
                           difusao.drop(columns="data").iloc[-1].items()},
               "destaques": destaques(genericos, frequencia_do_release)}
     (p.PASTA_PROCESSED / "metricas_resumo.json").write_text(json.dumps(resumo, ensure_ascii=False, indent=1), encoding="utf-8")
+    conferir_contribuicao_no_pai(pd.concat([componentes, aberturas]), p.MESES_VALIDACAO_ADITIVIDADE)
     residuo = residuo_da_contribuicao_anual(componentes, p.MESES_VALIDACAO_ADITIVIDADE)
     print(f"Métricas: componentes {len(componentes)}, genéricos {int(recentes.sum())}, difusão {len(difusao)} linhas; último release {tipo}; "
           f"contribuição anual fecha com o INPC a menos de {residuo:.4f} pp nos últimos {p.MESES_VALIDACAO_ADITIVIDADE} meses; {time.time() - inicio:.1f} s")
