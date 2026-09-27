@@ -269,15 +269,21 @@ def arredondar(valor):
 
 
 def numeros_principais(componentes, frequencia):
-    """INPC, subyacente e no subyacente: variação no período, em 12 meses e quanto a de 12 meses mudou desde o período anterior."""
+    """INPC, núcleo, não núcleo, serviços e mercadorias: variação no período, em 12 meses e em 12 meses um mês antes."""
+    # o mercado compara a taxa em 12 meses com a de um mês antes: 1a quinzena contra a 1a quinzena do mês anterior
+    # (duas quinzenas atrás), mês contra o mês anterior
+    um_mes = p.PERIODOS_POR_ANO[frequencia] // 12
     resumo = {}
-    for componente in p.COMPONENTES_PRINCIPAIS:
-        serie = componentes[(componentes["componente"] == componente) & (componentes["frequencia"] == frequencia)].sort_values("data")
-        atual, anterior = serie.iloc[-1], serie.iloc[-2]
-        resumo[componente] = {"periodo": atual["periodo"], "rotulo_periodo": atual["rotulo_periodo"], "rotulo_anterior": anterior["rotulo_periodo"],
+    for componente in (*p.COMPONENTES_PRINCIPAIS, "servicios", "mercancias"):
+        serie = componentes[(componentes["componente"] == componente) & (componentes["frequencia"] == frequencia)].set_index("posicao")
+        atual = serie.loc[serie.index.max()]
+        antes = serie.loc[serie.index.max() - um_mes]
+        resumo[componente] = {"periodo": atual["periodo"], "rotulo_periodo": atual["rotulo_periodo"],
                               "variacao_periodo": arredondar(atual["variacao_periodo"]),
+                              "norma_mediana": arredondar(atual["norma_mediana"]),
                               "variacao_anual": arredondar(atual["variacao_anual"]),
-                              "mudanca_da_anual_pp": arredondar(atual["variacao_anual"] - anterior["variacao_anual"])}
+                              "rotulo_um_mes_antes": antes["rotulo_periodo"],
+                              "variacao_anual_um_mes_antes": arredondar(antes["variacao_anual"])}
     return resumo
 
 

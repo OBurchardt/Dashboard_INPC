@@ -42,16 +42,20 @@ def releases():
 
 
 def kpi(principal, frequencia):
-    """Um cartão: variação no período, em 12 meses, e se a de 12 meses subiu ou caiu desde o período anterior."""
-    mudanca = round(principal["mudanca_da_anual_pp"], 2)  # decido a seta pelo que aparece na tela: −0,001 vira "0,00" e fica neutro
-    return {"variacao_periodo": numero(principal["variacao_periodo"]), "variacao_anual": numero(principal["variacao_anual"]),
+    """Um cartão: variação em 12 meses, no período, e quanto a de 12 meses mudou contra um mês antes."""
+    # a mudança é entre as duas taxas como elas aparecem na tela (3,79% − 3,93% = −0,14 pp), que é a conta que o
+    # mercado faz com os números publicados; a diferença sem arredondar podia dar −0,15 e parecer erro
+    agora, antes = round(principal["variacao_anual"], 2), round(principal["variacao_anual_um_mes_antes"], 2)
+    mudanca = round(agora - antes, 2)
+    return {"variacao_periodo": numero(principal["variacao_periodo"]), "variacao_anual": numero(agora),
             "rotulo_periodo": "na quinzena" if frequencia == "quinzenal" else "no mês",
             "mudanca": numero(mudanca, sufixo=" pp", sinal=True), "seta": "▲" if mudanca > 0 else "▼" if mudanca < 0 else "=",
-            "classe": "alta" if mudanca > 0 else "baixa" if mudanca < 0 else "neutro", "anterior": principal["rotulo_anterior"]}
+            "classe": "alta" if mudanca > 0 else "baixa" if mudanca < 0 else "neutro",
+            "anterior": principal["rotulo_um_mes_antes"], "anual_anterior": numero(antes)}
 
 
 def mensal_implicito(implicito):
-    """O cartão do mês estimado no dia da 1a quinzena, com a faixa dos erros do backtest e quantas vezes ela acertou."""
+    """A estimativa do próximo número mensal, no dia da 1a quinzena, com a faixa dos erros do backtest e quantas vezes ela acertou."""
     geral, nucleo = implicito["indice_general"], implicito["subyacente"]
     return {"mes": implicito["rotulo_mes"],
             "variacao_mensal": numero(geral["mediana"]["variacao_mensal"]), "variacao_anual": numero(geral["mediana"]["variacao_anual"]),
@@ -79,8 +83,11 @@ def cabecalho(resumo, agora):
     return {"release": resumo["ultimo_rotulo"][frequencia], "ano": periodo[:4], "divulgado": f"{divulgado['momento'].iloc[0]:%d/%m %H:%M}",
             **proximo_release(calendario, agora), "atualizado": f"{agora:%d/%m %H:%M}", "conferido": resumo["ultimo_rotulo"][frequencia],
             "frequencia": frequencia,
-            "kpis": [{"componente": componente, "nome": p.NOMES_EXIBICAO[componente], **kpi(principal, frequencia)}
-                     for componente, principal in resumo["principais"][frequencia].items()],
+            # os cartões são o que o mercado cita no release: o INPC, o núcleo e, dentro dele, serviços e mercadorias.
+            # O não núcleo fica só na faixa do release
+            "kpis": [{"componente": componente, "nome": p.NOMES_EXIBICAO[componente], **kpi(resumo["principais"][frequencia][componente], frequencia)}
+                     for componente in ("indice_general", "subyacente", "servicios", "mercancias")],
+            "nao_nucleo": numero(resumo["principais"][frequencia]["no_subyacente"]["variacao_anual"]),
             "mensal_implicito": mensal_implicito(resumo["mensal_implicito"]) if resumo["mensal_implicito"] else None}
 
 
@@ -91,17 +98,17 @@ def nome(item):
 
 
 def destaques(resumo):
-    """As quatro frases do topo: ritmo do núcleo, maior contribuição, maior desvio sazonal e difusão, só com os fatos."""
+    """As quatro frases do topo (ritmo do núcleo, maior contribuição, maior desvio sazonal e difusão), só com os fatos; o rótulo de cada uma fica no template."""
     ritmo = resumo["ritmo_do_nucleo"]
     maior = resumo["destaques"]["maiores_incidencias"][0]
     acima, abaixo = resumo["destaques"]["acima_da_norma"][0], resumo["destaques"]["abaixo_da_norma"][0]
     difusao = resumo["difusao"]
     # a inflação do release já está na faixa e nos cartões; aqui vai o ritmo do núcleo contra a anual do mesmo mês
     nucleo = f"SAAR 6 meses {numero(ritmo['saar_6m'])} ({ritmo['rotulo_periodo']}) vs {numero(ritmo['variacao_anual'])} em 12 meses"
-    contribuicao = f"Maior contribuição: {nome(maior)} {numero(maior['incidencia_periodo'], sufixo=' pp', sinal=True)} ({numero(maior['variacao_periodo'], sinal=True)})"
-    desvio = (f"Maior desvio sazonal ponderado: {nome(acima)} {numero(acima['desvio_sazonal_ponderado'], sufixo=' pp', sinal=True)}; "
-              f"para baixo: {nome(abaixo)} {numero(abaixo['desvio_sazonal_ponderado'], sufixo=' pp', sinal=True)}")
-    # sem ": " no texto, porque o template usa o primeiro ": " da frase para separar o rótulo
+    contribuicao = f"{nome(maior)} {numero(maior['incidencia_periodo'], sufixo=' pp', sinal=True)} ({numero(maior['variacao_periodo'], sinal=True)})"
+    # espaço não separável antes do "pp", para a unidade não quebrar de linha longe do número
+    desvio = (f"Acima do padrão: {nome(acima)} {numero(acima['desvio_sazonal_ponderado'], sufixo=chr(160) + 'pp', sinal=True)} · "
+              f"Abaixo: {nome(abaixo)} {numero(abaixo['desvio_sazonal_ponderado'], sufixo=chr(160) + 'pp', sinal=True)}")
     espalhamento = f"{numero(difusao['pct_cesta_anual_acima_3'], 0)} do peso da cesta com alta acima de 3% em 12 meses ({difusao['rotulo_periodo']})"
     return [nucleo, contribuicao, desvio, espalhamento]
 

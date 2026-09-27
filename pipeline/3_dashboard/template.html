@@ -151,6 +151,9 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 .bloco-data { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 #proximo-dias:not(:empty) { align-self: flex-start; background: var(--azul-claro-2); color: var(--azul-btg); font-size: var(--t-13); font-weight: 700; padding: 4px 12px; border-radius: var(--raio-pilula); }
 .bloco-rodape { margin-top: auto; padding-top: var(--e-12); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; font-size: var(--t-12); color: var(--ink-3); }
+/* a estimativa do próximo número mensal, embaixo da data; o método fica no tooltip */
+#estimativa:not(:empty) { font-size: var(--t-13); color: var(--ink-2); line-height: 1.5; cursor: help; }
+#estimativa strong { color: var(--azul-btg); font-variant-numeric: tabular-nums; }
 .conferido { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--melhor); }
 .termo { border-bottom: 1px dotted currentColor; cursor: help; }
 @media (max-width: 1100px) { .faixa-release > * { grid-column: 1 / -1; } }
@@ -181,17 +184,13 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 .kpi::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--border); }
 #kpis > .kpi[data-kpi="indice_general"]::before { background: var(--serie-inpc); }
 #kpis > .kpi[data-kpi="subyacente"]::before { background: var(--serie-subyacente); }
-#kpis > .kpi[data-kpi="no_subyacente"]::before { background: var(--serie-no-subyacente); }
-/* o mensal implícito é estimativa: fundo diferente e faixa tracejada para não ser lido como dado oficial */
-#kpis > .kpi[data-kpi="implicito"] { background: var(--surface-2); border-style: dashed; cursor: help; }
-#kpis > .kpi[data-kpi="implicito"]::before { background: repeating-linear-gradient(90deg, var(--azul-escuro) 0 8px, transparent 8px 14px); }
-#kpis > .kpi[data-kpi="implicito"] .kpi-principal { color: var(--azul-escuro); }
+#kpis > .kpi[data-kpi="servicios"]::before { background: var(--serie-servicios); }
+#kpis > .kpi[data-kpi="mercancias"]::before { background: var(--serie-mercancias); }
 .kpi-rotulo { font-size: var(--t-14); font-weight: 700; color: var(--ink); }
 .kpi-linha { display: flex; align-items: baseline; gap: var(--e-12); flex-wrap: wrap; }
 .kpi-principal { font-size: var(--t-32); font-weight: 800; letter-spacing: -0.03em; line-height: 1; color: var(--azul-btg); font-variant-numeric: tabular-nums; }
 .kpi-secundario { font-size: var(--t-16); color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
 .kpi-secundario small { font-size: var(--t-12); color: var(--ink-3); font-weight: 500; margin-left: 4px; }
-.kpi-nota { font-size: var(--t-12); color: var(--ink-3); line-height: 1.5; }
 .pilula.pior { background: color-mix(in srgb, var(--pior) 10%, transparent); color: var(--pior); align-self: flex-start; }
 .pilula.melhor { background: color-mix(in srgb, var(--melhor) 10%, transparent); color: var(--melhor); align-self: flex-start; }
 .pilula.neutro { background: var(--bg); color: var(--ink-3); align-self: flex-start; }
@@ -299,6 +298,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <div class="bloco-rotulo">Próximo release</div>
       <div class="bloco-data" id="proximo"></div>
       <div id="proximo-dias"></div>
+      <div id="estimativa"></div>
       <div class="bloco-rodape"><span id="atualizado"></span><span class="conferido" id="conferido"></span></div>
     </div>
   </section>
@@ -330,7 +330,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <h3>Último período vs padrão sazonal</h3><p class="sub">Variação no período (%); marcador: padrão sazonal (mediana 2010–2019); traço: p25 a p75</p>
     </div>
     <div class="card c5" data-card="main_ultimos_periodos" data-tipo="tabela">
-      <h3>Últimos períodos</h3><p class="sub">Variação no período e em 12 meses (%)</p>
+      <h3>Último release</h3><p class="sub">Variação no período contra o padrão sazonal (mediana 2010–2019), e em 12 meses agora e um mês antes (%)</p>
     </div>
     <div class="card c12" data-card="main_top_incidencias" data-tipo="tabela">
       <h3>Contribuições por abertura</h3><p class="sub">Contribuição: quanto cada item somou, em pontos percentuais, à variação do INPC cheio no período (pp)</p>
@@ -469,7 +469,8 @@ function termo(k) {
 }
 
 function montarFaixa(c) {
-  const [geral, nucleo, naoNucleo] = c.kpis;
+  const [geral, nucleo] = c.kpis;
+  const naoNucleo = { componente: "no_subyacente", nome: "Não núcleo", variacao_anual: c.nao_nucleo };
   document.getElementById("release").textContent = `Último release · ${c.release.replace("quinz.", "quinzena")} · divulgado ${c.divulgado} CDMX`;
   document.getElementById("release-titulo").textContent = `INPC ${geral.variacao_anual} em 12 meses`;
   document.getElementById("release-linha").innerHTML = `${termo(nucleo)} ${nucleo.variacao_anual} · ${termo(naoNucleo)} ${naoNucleo.variacao_anual}`
@@ -497,39 +498,36 @@ function diasAteProximo(proximo) {
 }
 
 function cartaoKpi(k) {
-  // a pílula é a mudança da taxa de 12 meses, não da variação no período; contra qual período fica no tooltip
+  // a pílula é a mudança da taxa de 12 meses contra um mês antes, como o mercado reporta ("vs 1ª quinz. ago")
   return `<div class="card c3 kpi" data-kpi="${k.componente}">
     <div class="kpi-rotulo">${k.nome}</div>
     <div class="kpi-linha"><span class="kpi-principal">${k.variacao_anual}</span>
       <span class="kpi-secundario">${k.variacao_periodo}<small>${k.rotulo_periodo}</small></span></div>
-    <span class="pilula ${{ alta: "pior", baixa: "melhor", neutro: "neutro" }[k.classe]}" title="Mudança da variação em 12 meses vs ${k.anterior}">${k.seta} ${k.mudanca} em 12m</span>
-  </div>`;
-}
-
-function cartaoMensalImplicito(m) {
-  // a faixa é a estimativa mais os quartis 25 e 75 dos erros do próprio método desde 2020, sem informação futura;
-  // a nota diz em quantos meses ela conteve o realizado, medido fora da amostra (docs/metodologia.md);
-  // no card vai só a taxa de acerto, e o detalhe do teste fica no tooltip
-  return `<div class="card c3 kpi" data-kpi="implicito" title="Núcleo implícito: ${m.subyacente}. Estimativa: 1ª quinzena publicada e 2ª quinzena pela mediana sazonal de 2010–2019. Faixa: a estimativa mais os quartis 25 e 75 dos erros de previsão da variação mensal desde 2020. A faixa conteve o mês realizado em ${m.cobertura} de ${m.meses_testados} meses testados fora da amostra.">
-    <div class="kpi-rotulo">Estimativa do mês · ${m.mes}</div>
-    <div class="kpi-linha"><span class="kpi-principal">${m.variacao_mensal}</span>
-      <span class="kpi-secundario">${m.variacao_anual}<small>em 12 meses</small></span></div>
-    <div class="kpi-nota">faixa ${m.intervalo_mensal.replace(" a ", "–")}; acertou ${m.cobertura} das vezes</div>
+    <span class="pilula ${{ alta: "pior", baixa: "melhor", neutro: "neutro" }[k.classe]}" title="Variação em 12 meses: ${k.variacao_anual} agora e ${k.anual_anterior} em ${k.anterior}">${k.seta} ${k.mudanca} vs ${k.anterior.replace(/\/\d{2}$/, "")}</span>
   </div>`;
 }
 
 function montarKpis(c) {
-  document.getElementById("kpis").innerHTML = c.kpis.map((k) => cartaoKpi(k)).join("")
-    + (c.mensal_implicito ? cartaoMensalImplicito(c.mensal_implicito) : "");
-  if (!c.mensal_implicito) document.querySelectorAll("#kpis .c3").forEach((el) => el.classList.replace("c3", "c4"));
+  document.getElementById("kpis").innerHTML = c.kpis.map((k) => cartaoKpi(k)).join("");
+}
+
+function montarEstimativa(m) {
+  // só existe no dia da 1ª quinzena: é a estimativa do número mensal que sai no próximo release.
+  // A faixa é a estimativa mais os quartis 25 e 75 dos erros do próprio método desde 2020 (docs/metodologia.md)
+  if (!m) return;
+  const caixa = document.getElementById("estimativa");
+  caixa.title = `Estimativa: 1ª quinzena publicada e 2ª quinzena pela mediana sazonal de 2010–2019. Intervalo: a estimativa mais os `
+    + `quartis 25 e 75 dos erros do método desde 2020; conteve o mês realizado em ${m.cobertura} de ${m.meses_testados} meses testados `
+    + `fora da amostra. Em 12 meses: ${m.intervalo_anual}. Núcleo: ${m.subyacente}.`;
+  caixa.innerHTML = `<div>Estimativa para ${m.mes}: <strong>${m.variacao_mensal}</strong> no mês · <strong>${m.variacao_anual}</strong> em 12 meses</div>`
+    + `<div>Intervalo provável: ${m.intervalo_mensal}</div>`;
 }
 
 function montarDestaques(frases) {
-  // as frases chegam como "Rótulo: fato"; o rótulo sai da frase porque já vira o título em caixa-alta
   const rotulos = ["Ritmo do núcleo", "Maior contribuição", "Maior desvio sazonal", "Difusão"];
   document.getElementById("destaques").innerHTML = frases.map((f, i) =>
     `<div class="destaque"><div class="destaque-rotulo">${rotulos[i]}</div>
-     <div class="destaque-texto">${f.includes(": ") ? f.slice(f.indexOf(": ") + 2) : f}</div></div>`).join("");
+     <div class="destaque-texto">${f}</div></div>`).join("");
 }
 
 // ==== 4. Cards: cabeçalho com chip, corpo e rodapé ====
@@ -651,14 +649,11 @@ function arrumarUltimosPeriodos(tabela) {
     else tr.classList.add(tipo);
     corpo.appendChild(tr);
   });
-  // o grupo "Variação no período" tem uma coluna por período; a última dele é a mais recente e a seguinte já é a de 12 meses
-  const grupo = tabela.querySelectorAll("tr.grupo-colunas th");
-  const periodos = Number(grupo[1].getAttribute("colspan"));
-  grupo[1].textContent = DADOS.cabecalho.frequencia === "quinzenal" ? "Variação na quinzena" : "Variação no mês";
-  grupo[2].classList.add("divisa");
+  // a variação do período (coluna 1) fica em destaque; o bloco de 12 meses começa na coluna 3, depois de uma divisa
+  tabela.querySelectorAll("tr.grupo-colunas th")[2].classList.add("divisa");
   tabela.querySelectorAll("tr:not(.grupo-colunas)").forEach((tr) => {
-    tr.children[periodos].classList.add("recente");
-    tr.children[periodos + 1].classList.add("divisa");
+    tr.children[1].classList.add("recente");
+    tr.children[3].classList.add("divisa");
   });
 }
 
@@ -859,6 +854,16 @@ function estilizarFigura(slot, figura) {
   const eixoValores = horizontal ? "x" : "y";
   if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => { t.meta = {}; t.showlegend = false; t.width = 0.4; });
   dados.forEach((t) => estilizarTraco(t, eixoValores));
+  // com o ponto da quinzena, cada linha do tooltip diz o período do próprio ponto: a linha mensal termina no mês
+  // anterior, e sem isso o "09/2026" do topo do tooltip parecia valer para o valor de agosto
+  if (dados.some((t) => (t.meta || {}).rotulo_quinzena)) {
+    dados.forEach((t) => {
+      const meta = t.meta || {};
+      const mensal = dados.find((o) => !(o.meta || {}).rotulo_quinzena && (o.meta || {}).componente === meta.componente) || t;
+      t.customdata = t.x.map((x) => meta.rotulo_quinzena || mesCurto(String(x)));
+      t.hovertemplate = `${mensal.name.split(" · ")[0]} (%{customdata}): %{${eixoValores}:.2f}%<extra></extra>`;
+    });
+  }
   if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => (t.marker.color = css("--azul-btg")));
   // nos gráficos do Banxico a etiqueta da ponta substitui a legenda: nome (cortado em 18 letras) e valor. Nos blocos de
   // aberturas a etiqueta leva só o valor, porque a legenda do bloco já dá os nomes. A margem direita é fixa, a mesma
@@ -946,6 +951,7 @@ function trocarAba(botao) {
 
 montarFaixa(DADOS.cabecalho);
 montarKpis(DADOS.cabecalho);
+montarEstimativa(DADOS.cabecalho.mensal_implicito);
 montarDestaques(DADOS.destaques);
 montarExplorar();
 document.querySelectorAll("[data-card]").forEach(montarCard);

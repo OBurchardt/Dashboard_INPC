@@ -10,10 +10,10 @@ Tudo vem do INEGI, sem chave de API: o app "Índices de Precios", os xlsx de pon
 
 No release de exemplo, o painel abre assim:
 
-- INPC 0,33% na quinzena e 3,42% em 12 meses, 0,16 pp acima da quinzena anterior.
-- Núcleo 0,17% e 3,79% (0,05 pp abaixo); não núcleo 0,88% e 2,17% (0,86 pp acima).
+- INPC 0,33% na quinzena e 3,42% em 12 meses, 0,16 pp acima da 1ª quinzena de agosto (3,26%).
+- Núcleo 0,17% e 3,79% (0,14 pp abaixo dos 3,93% da 1ª quinzena de agosto); serviços 4,33% e mercadorias 3,22% em 12 meses; não núcleo 2,17%.
 - Ritmo do núcleo: SAAR de 6 meses de 3,90% em ago/26, contra 3,88% em 12 meses no mesmo mês.
-- Estimativa do mês de setembro: 0,42% no mês e 3,45% em 12 meses, faixa de 0,37% a 0,50%.
+- Estimativa para setembro: 0,42% no mês e 3,45% em 12 meses, intervalo provável de 0,37% a 0,50%.
 - Maior contribuição: Jitomate, +0,11 pp (o preço subiu 22,79% na quinzena).
 - Maior desvio sazonal ponderado: Jitomate, +0,08 pp; para baixo, Gasolina de bajo octanaje, −0,02 pp.
 - 62% do peso da cesta com inflação acima de 3% em 12 meses (ago/26).
@@ -177,11 +177,11 @@ Estimativa do mês (`mensal_implicito`, `erros_do_mensal_implicito`, `cobertura_
 
 Em setembro: 1ª quinzena 146,010; mediana da 2ª quinzena de setembro de 0,083%, o que dá 146,132; média 146,071; contra agosto (145,462), 0,42% no mês e 3,45% em 12 meses. A faixa é a estimativa mais os quartis 25 e 75 dos erros do próprio método de 2020 em diante: 0,37% a 0,50% no INPC e 0,22% a 0,27% no núcleo. O backtest e a cobertura estão na metodologia.
 
-Resumo (`numeros_principais`, `ritmo_do_nucleo`, `destaques`): o `metricas_resumo.json` guarda o que vai no topo do painel, com 6 casas; o arredondamento fica para a tela. Uma decisão acontece aqui e só aqui: se o último quinzenal termina em "Q1", o release é de 1ª quinzena e o dado principal é quinzenal; senão, é o mês. As etapas seguintes só leem `frequencia_do_release`.
+Resumo (`numeros_principais`, `ritmo_do_nucleo`, `destaques`): o `metricas_resumo.json` guarda o que vai no topo do painel, com 6 casas; o arredondamento fica para a tela. Para o INPC, o núcleo, o não núcleo, serviços e mercadorias, `numeros_principais` guarda a variação no período, o padrão sazonal, a taxa em 12 meses e a taxa em 12 meses de um mês antes, que é a comparação que o mercado faz: num release de 1ª quinzena, a 1ª quinzena do mês anterior (duas quinzenas antes); num release mensal, o mês anterior. Uma decisão acontece aqui e só aqui: se o último quinzenal termina em "Q1", o release é de 1ª quinzena e o dado principal é quinzenal; senão, é o mês. As etapas seguintes só leem `frequencia_do_release`.
 
 ### pipeline/2_analise/tabelas.py
 
-`celula_numero` formata com vírgula, 2 casas e o sinal de menos tipográfico; o que arredonda para zero sai "0,00", sem sinal e sem cor. `main_ultimos_periodos`, `main_top_incidencias` e `decomp_desvios` só escolhem e formatam.
+`celula_numero` formata com vírgula, 2 casas e o sinal de menos tipográfico; o que arredonda para zero sai "0,00", sem sinal e sem cor. `main_ultimos_periodos` (a tabela "Último release"), `main_top_incidencias` e `decomp_desvios` só escolhem e formatam; as duas últimas levam o período num atributo `data-periodo`, que vira o chip do card.
 
 ### pipeline/2_analise/graficos.py
 
@@ -189,7 +189,7 @@ As figuras saem sem estilo: cada traço leva em `meta` o componente e o papel (p
 
 ### pipeline/3_dashboard/montagem.py
 
-`numero` é o formatador dos cartões; `releases` e `proximo_release` leem o calendário; `kpi` monta um cartão com a seta decidida pelo valor já arredondado; `cabecalho` e `destaques` escrevem a faixa do release, os cartões e as quatro frases do topo. No fim, os dados e o plotly.js são colados no template e o HTML é gravado em `output/`.
+`numero` é o formatador dos cartões; `releases` e `proximo_release` leem o calendário; `kpi` monta um cartão, com a mudança em 12 meses calculada entre as duas taxas já arredondadas (3,79% − 3,93% = −0,14 pp, a conta que o leitor faz com os números publicados); `mensal_implicito` formata a estimativa do próximo número mensal; `cabecalho` e `destaques` escrevem a faixa do release, os cartões e as quatro frases do topo. No fim, os dados e o plotly.js são colados no template e o HTML é gravado em `output/`.
 
 ### pipeline/3_dashboard/template.html
 
@@ -250,16 +250,16 @@ tabelas.json e graficos.json: o HTML das tabelas e as figuras do plotly, pelo no
 
 ## 6. As páginas do dashboard
 
-No alto, as quatro abas (Resumo, Composição, Sazonalidade e Explorar) e, visível em todas, a faixa do release: à esquerda o último release, quando saiu e os números do INPC, do núcleo e do não núcleo; à direita o próximo release (os dias que faltam são contados pelo navegador, na hora em que a página abre), a hora da atualização e o selo de conferido com o INEGI. Tudo vem de `metricas_resumo.json` e do calendário.
+No alto, as quatro abas (Resumo, Composição, Sazonalidade e Explorar) e, visível em todas, a faixa do release: à esquerda o último release, quando saiu e os números do INPC, do núcleo e do não núcleo; à direita o próximo release (os dias que faltam são contados pelo navegador, na hora em que a página abre) e, no dia da 1ª quinzena, a estimativa do número mensal que sai nele ("Estimativa para set/26: 0,42% no mês · 3,45% em 12 meses", com o intervalo provável; o método e a cobertura de 50% em 56 meses fora da amostra ficam no tooltip), a hora da atualização e o selo de conferido com o INEGI. Tudo vem de `metricas_resumo.json` e do calendário.
 
 Resumo:
 
-- Cartões: INPC, Núcleo e Não núcleo no período e em 12 meses, com a mudança da taxa de 12 meses na pílula (o período de comparação fica no tooltip). No dia da 1ª quinzena, um quarto cartão tracejado traz a estimativa do mês, com a faixa e quantas vezes ela acertou.
-- Destaques: ritmo do núcleo, maior contribuição, maior desvio sazonal e difusão.
-- INPC geral e Núcleo vs meta: a linha é mensal e, em release de quinzena, o ponto destacado é a última quinzena. Em todo gráfico com a meta, o eixo mostra a banda de 2% a 4% inteira.
+- Cartões: INPC, Núcleo, Serviços e Mercadorias, o que o mercado cita no release. Cada um tem a taxa em 12 meses, a variação no período e a pílula com a mudança da taxa em 12 meses contra um mês antes ("▼ −0,14 pp vs 1ª quinz. ago"; no release mensal, "vs jul"). O não núcleo fica na faixa do release.
+- Destaques: ritmo do núcleo, maior contribuição, maior desvio sazonal ("Acima do padrão: Jitomate +0,08 pp · Abaixo: Gasolina de bajo octanaje −0,02 pp") e difusão.
+- INPC geral e Núcleo vs meta: a linha é mensal e, em release de quinzena, o ponto destacado é a última quinzena. Em todo gráfico com a meta, o eixo mostra a banda de 2% a 4% inteira. Nos gráficos com o ponto da quinzena, cada linha do tooltip diz o período do próprio ponto ("Núcleo (ago/26): 3,88%" e "Núcleo (1ª quinz. set/26): 3,79%").
 - Os quatro gráficos de grupo mais usados, os mesmos da aba Composição.
 - Último período vs padrão sazonal: barras dos sete principais com a mediana e o intervalo p25 a p75.
-- Últimos períodos: as três últimas quinzenas (ou meses) e a variação em 12 meses, em hierarquia.
+- Último release: para os sete principais, em hierarquia, a variação no período (em destaque) contra o padrão sazonal, e a taxa em 12 meses agora e um mês antes. Responde se o dado surpreendeu e se acelerou.
 - Contribuições por abertura: as cinco que mais puxaram e as cinco que mais seguraram.
 
 Composição:

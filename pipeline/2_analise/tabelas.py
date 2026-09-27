@@ -47,19 +47,21 @@ def grupo(titulo, colunas):
 
 # ==== 2. Tabelas do dashboard ====
 def main_ultimos_periodos(componentes, resumo):
-    """Os três últimos períodos do release lado a lado, mais a variação em 12 meses do mais recente."""
+    """O último release: a variação no período contra o padrão sazonal, e a taxa em 12 meses agora e um mês antes."""
+    # responde às duas perguntas do dia: o dado surpreendeu (variação contra a mediana de 2010-2019) e acelerou
+    # (12 meses contra um mês antes: a 1a quinzena do mês anterior, ou o mês anterior)
     frequencia = resumo["frequencia_do_release"]
-    da_frequencia = componentes[componentes["frequencia"] == frequencia]
-    periodos = sorted(da_frequencia["periodo"].unique())[-3:]
-    valores = da_frequencia[da_frequencia["periodo"].isin(periodos)].set_index(["componente", "periodo"])
-    rotulos = da_frequencia.drop_duplicates("periodo").set_index("periodo")["rotulo_curto"]
-    cabecalho = ["Componente"] + [rotulos[periodo] for periodo in periodos] + [rotulos[periodos[-1]]]
+    da_frequencia = componentes[componentes["frequencia"] == frequencia].set_index(["componente", "posicao"])
+    fim = da_frequencia.index.get_level_values("posicao").max()
+    antes = fim - p.PERIODOS_POR_ANO[frequencia] // 12
+    rotulos = da_frequencia.loc["indice_general"]
+    cabecalho = ["Componente", "Variação", "Padrão sazonal", rotulos.at[fim, "rotulo_curto"], rotulos.at[antes, "rotulo_curto"]]
     linhas = []
     for componente in (*p.COMPONENTES_PRINCIPAIS, *p.COMPONENTES_NIVEL_2):
-        celulas = [celula_numero(valores.at[(componente, periodo), "variacao_periodo"], "%") for periodo in periodos]
-        celulas.append(celula_numero(valores.at[(componente, periodos[-1]), "variacao_anual"], "%"))
+        atual, anterior = da_frequencia.loc[(componente, fim)], da_frequencia.loc[(componente, antes)]
+        celulas = [celula_numero(valor, "%") for valor in (atual["variacao_periodo"], atual["norma_mediana"], atual["variacao_anual"], anterior["variacao_anual"])]
         linhas.append(f"<tr>{celula_texto(p.NOMES_EXIBICAO[componente], 'componente')}{''.join(celulas)}</tr>")
-    return tabela_html(cabecalho, linhas, grupos=[("", 1), ("Variação no período", 3), ("12 meses", 1)])
+    return tabela_html(cabecalho, linhas, grupos=[("", 1), (rotulos.at[fim, "rotulo_periodo"], 2), ("12 meses", 2)])
 
 
 def periodo_das_aberturas(resumo):
