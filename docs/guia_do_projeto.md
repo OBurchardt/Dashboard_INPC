@@ -236,9 +236,9 @@ tabulado_oficial.parquet: `frequencia`, `periodo`, `componente`, `variacao`, `va
 
 series_dessazonalizadas.parquet: `componente`, `periodo`, `data`, `indice_sa`. Só o mensal, desde 2000.
 
-metricas_componentes.parquet: as colunas de identificação de `series` mais `indice`, `variacao_periodo`, `variacao_anual`, `incidencia_periodo`, `contribuicao_anual`, `contribuicao_no_pai`, `contribuicao_no_grupo`, `norma_mediana`, `norma_p25`, `norma_p75`, `desvio_norma`, `variacao_sa_mensal`, `saar_3m` e `saar_6m` (as três últimas só no mensal). Variações em %, incidências e contribuições em pp.
+metricas_componentes.parquet: as colunas de identificação de `series` mais `indice`, `variacao_periodo`, `variacao_anual`, `incidencia_periodo`, `contribuicao_anual`, `contribuicao_no_pai`, `contribuicao_no_grupo`, `norma_mediana`, `norma_p25`, `norma_p75`, `norma_n` (na branch chat: anos de 2010–2019 no padrão), `desvio_norma`, `variacao_sa_mensal`, `saar_3m` e `saar_6m` (as três últimas só no mensal). Variações em %, incidências e contribuições em pp.
 
-metricas_genericos.parquet: os últimos 24 meses de cada genérico, com `variacao_periodo`, `variacao_anual`, `norma_mediana`, `desvio_norma`, `incidencia_periodo` e `desvio_sazonal_ponderado`.
+metricas_genericos.parquet: os últimos 24 meses de cada genérico, com `variacao_periodo`, `variacao_anual`, `norma_mediana` (e, na branch chat, `norma_p25`, `norma_p75` e `norma_n`), `desvio_norma`, `incidencia_periodo` e `desvio_sazonal_ponderado`.
 
 metricas_difusao.parquet: mensal, desde 2019: `pct_genericos_em_alta` (por contagem), `pct_cesta_em_alta` e `pct_cesta_anual_acima_3` (por peso), e para cada medida o número de itens válidos e a cobertura do peso (`itens_validos_mes`, `cobertura_peso_mes`, `itens_validos_anual`, `cobertura_peso_anual`).
 
