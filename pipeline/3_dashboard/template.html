@@ -20,6 +20,7 @@
 /* ==== 1. Tokens: toda cor, tamanho e espaço está aqui, e em nenhum outro lugar ==== */
 :root {
   /* paleta: a única lista de cores do projeto. Todo o resto é var(--p-...) ou transparência de uma delas */
+  --p-azul-noite: #05132A;       /* o mais escuro, o azul do site do BTG */
   --p-marinho: #0B2859;
   --p-azul: #10408D;
   --p-azul-medio: #406BB4;
@@ -34,8 +35,6 @@
   --p-fundo: #EEF2F7;
   --p-superficie-2: #F6F8FB;
   --p-branco: #FFFFFF;
-  --p-ambar: #BF7E12;
-  --p-ambar-escuro: #8A5A0A;
   --p-pior: #B8412C;             /* sinal: só em pílulas e tabelas, nunca em série de gráfico */
   --p-melhor: #0C7A57;
 
@@ -65,7 +64,7 @@
   /* séries: o pai é sempre marinho, com marcadores. Os filhos seguem uma ordem de prioridade, e irmãos que dividem
      um gráfico nunca repetem cor:
        1 --p-azul-vivo (contrasta com o marinho: escuro contra claro)   2 --p-tinta-3 (ardósia)
-       3 --p-azul-medio   4 --p-tinta-2 (ardósia escura)   5 --p-ambar, só se faltar cor
+       3 --p-azul-medio   4 --p-tinta-2 (ardósia escura)
      --p-azul não entra: ao lado do marinho quase não se distingue. Cada componente tem uma cor só, a mesma em todas as abas */
   --serie-pai: var(--p-marinho);
   --serie-inpc: var(--p-marinho);
@@ -93,11 +92,12 @@
   --serie-abertura-4: var(--p-tinta-2);
   --serie-demais: var(--p-cinza);
   /* barras empilhadas: com dezenas de barras finas, duas cores de claridade parecida "vibram". Nas barras a ordem
-     alterna claro e escuro: 1 azul médio, 2 azul claro, 3 ardósia, 4 âmbar. As linhas seguem a ordem de cima */
+     alterna claro e escuro, só em azuis: 1 azul médio, 2 azul claro, 3 azul-noite, 4 azul vivo; "Demais" em cinza.
+     As linhas seguem a ordem de cima */
   --barra-1: var(--p-azul-medio);
   --barra-2: var(--p-azul-claro);
-  --barra-3: var(--p-tinta-3);
-  --barra-4: var(--p-ambar);
+  --barra-3: var(--p-azul-noite);
+  --barra-4: var(--p-azul-vivo);
 
   /* gráficos */
   --grade: var(--p-borda);
@@ -440,7 +440,7 @@ const COR_COMPONENTE = {
 // o que não é componente (norma, difusão) e as três medidas do momentum, que são todas da subyacente
 // no perfil sazonal a cor vai pela distância ao ano corrente (ano_0), a mesma nos 7 gráficos
 const COR_SERIE = { norma: css("--ink"), norma_mediana: css("--p-tinta-2"),
-  ano_0: css("--p-marinho"), ano_1: css("--p-azul-vivo"), ano_2: css("--p-ambar"), ano_3: css("--p-tinta-3"), pct_cesta_em_alta: css("--azul-escuro"), pct_cesta_anual_acima_3: css("--azul-vivo") };
+  ano_0: css("--p-marinho"), ano_1: css("--p-azul-medio"), ano_2: css("--p-azul-vivo"), ano_3: css("--p-tinta-3"), pct_cesta_em_alta: css("--azul-escuro"), pct_cesta_anual_acima_3: css("--azul-vivo") };
 const COR_MEDIDA = { saar_6m: css("--azul-btg"), saar_3m: css("--azul-vivo"), variacao_anual: css("--azul-escuro") };
 // o SAAR 6 meses é o de destaque, e o 3 meses vai mais fino; no perfil sazonal o ano corrente é grosso e os anteriores, finos
 const LARGURA_MEDIDA = { saar_6m: 3, saar_3m: 1.25 };
@@ -642,7 +642,7 @@ function arrumarUltimosPeriodos(tabela) {
 const POSICAO_NA_BARRA = {
   subyacente: 1, no_subyacente: 2, servicios: 1, mercancias: 2, alimentos_bebidas_y_tabaco: 1, mercancias_no_alimenticias: 2,
   otros_servicios: 1, vivienda: 2, educacion_colegiaturas: 3, energeticos_y_tarifas: 1, agropecuarios: 2,
-  energeticos: 1, tarifas_autorizadas_por_el_gobierno: 2, frutas_y_verduras: 3, pecuarios: 4,
+  energeticos: 1, tarifas_autorizadas_por_el_gobierno: 2, pecuarios: 3, frutas_y_verduras: 4,
   abertura_1: 1, abertura_2: 2, abertura_3: 3, abertura_4: 4,
 };
 
@@ -724,7 +724,7 @@ function estilizarTraco(t, eixo) {
     // o pai é a linha escura com marcadores, como no Banxico
     t.mode = "lines+markers";
     t.line = { width: 2, color: cor };
-    t.marker = { color: cor, size: 4 };
+    t.marker = { color: cor, size: 5, line: { color: css("--surface"), width: 1 } };   // a borda branca separa o ponto de uma barra escura
   } else if (serie.startsWith("norma_p")) {
     t.line = { width: 0, color: css("--faixa-sazonal") };   // sem cor, o plotly poria a dele no contorno invisível
     t.fillcolor = css("--faixa-sazonal");
@@ -766,7 +766,7 @@ function rotulosFinais(dados) {
 
 // a etiqueta de texto precisa de 4,5:1 contra o branco. As cores de série abaixo disso escrevem com a mais escura da
 // mesma família; as outras escrevem com a própria cor. --p-tinta-3 fica em 4,45:1, então também passa para --p-tinta-2
-const TEXTO_DA_COR = Object.fromEntries([["--p-azul-vivo", "--p-azul-medio"], ["--p-ambar", "--p-ambar-escuro"],
+const TEXTO_DA_COR = Object.fromEntries([["--p-azul-vivo", "--p-azul-medio"],
   ["--p-tinta-3", "--p-tinta-2"], ["--p-cinza", "--p-tinta-2"], ["--p-azul-claro", "--p-azul"]].map(([serie, texto]) => [css(serie), css(texto)]));
 const corDoTexto = (cor) => TEXTO_DA_COR[cor] || cor;
 
