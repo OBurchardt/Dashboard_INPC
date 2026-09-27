@@ -360,19 +360,19 @@ Toda figura tem uma pergunta, que também é a docstring da função em `grafico
 
 No alto, uma barra branca com "INPC México · Monitor do release" à esquerda e as quatro abas à direita: Resumo, Composição, Sazonalidade e Explorar. Logo abaixo, e visível em todas as abas, a faixa do release em dois blocos:
 
-- à esquerda, em azul: "Último release · 1ª quinzena set/26 · divulgado 24/09 06:00 CDMX", "INPC 3,42% em 12 meses" e "Núcleo 3,79% · Não núcleo 2,17% · variação na quinzena 0,33%";
-- à direita, em azul claro: o próximo release (08/10/2026 06:00, em 12 dias), a hora da atualização e o selo "Conferido com o INEGI · 1ª quinz. set/26".
+- à esquerda, em marinho: "Último release · 1ª quinzena set/26 · divulgado 24/09 06:00 CDMX", "INPC 3,42% em 12 meses" e "Núcleo 3,79% · Não núcleo 2,17% · variação na quinzena 0,33%";
+- à direita, em branco: o próximo release (08/10/2026 06:00, em 12 dias), a hora da atualização e o selo "Conferido com o INEGI · 1ª quinz. set/26".
 
 Os dados vêm de `metricas_resumo.json` e do calendário.
 
 ### Resumo
 
-- **Cartões.** INPC, Núcleo e Não núcleo no período e em 12 meses, com a seta da mudança da anual, mais o cartão do mensal implícito (estimativa) no dia da 1ª quinzena, com a faixa tirada dos erros do backtest e a cobertura dela fora da amostra. Fonte: `metricas_resumo.json`.
+- **Cartões.** INPC, Núcleo e Não núcleo no período e em 12 meses, com uma faixa de cor no topo (a cor da série) e a pílula da mudança da taxa de 12 meses ("▲ +0,16 pp em 12m"; o período de comparação fica no tooltip). O quarto cartão, "Estimativa do mês · set/26", tracejado, é o mensal implícito no dia da 1ª quinzena, com a faixa tirada dos erros do backtest e quantas vezes ela acertou; o detalhe do teste fica no tooltip. Fonte: `metricas_resumo.json`.
 - **Destaques.** As quatro frases da seção 1. Fonte: `metricas_resumo.json`.
 - **INPC geral vs meta** e **Núcleo vs meta.** A inflação cheia está dentro da meta, e para onde aponta a última quinzena? O núcleo está convergindo para 3%? A linha é mensal e o ponto é a última quinzena (3,42% no INPC e 3,79% no núcleo). Fonte: `metricas_componentes`.
 - **Contribuições para o INPC** e **Contribuições para o núcleo**, **Núcleo** e **Não núcleo.** Os quatro gráficos de grupo mais usados, a mesma figura da aba Composição. Fonte: `contribuicao_no_pai` e `variacao_anual`.
 - **Último período vs padrão sazonal.** O último dado veio acima ou abaixo do que costuma acontecer nessa época do ano? Barras dos sete principais, com a mediana e o intervalo p25 a p75. No exemplo, o não núcleo subiu 0,88% e o INPC 0,33% contra um padrão de 0,32%. Fonte: `metricas_componentes`.
-- **Últimos períodos.** Tabela com as três últimas quinzenas (ou meses) e a variação em 12 meses. Fonte: `metricas_componentes`.
+- **Últimos períodos.** Tabela com as três últimas quinzenas (ou meses) e a variação em 12 meses, em hierarquia (INPC; núcleo com mercadorias e serviços recuados; não núcleo com agropecuários e energia e tarifas) e a coluna mais recente em destaque. Fonte: `metricas_componentes`.
 - **Contribuições por abertura.** As cinco que mais puxaram e as cinco que mais seguraram, com o grupo embaixo do nome: Jitomate +0,11 pp, Primaria +0,03 e Cebolla +0,03 de um lado; Servicios profesionales −0,04 e Papa y otros tubérculos −0,03 do outro. O subtítulo define contribuição em uma linha. Fonte: `destaques` do resumo.
 
 ### Composição
