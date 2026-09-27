@@ -52,7 +52,7 @@ def anual_com_meta(componentes, componente, nome):
     figura = go.Figure([linha(serie(componentes, componente), "variacao_anual", componente, nome),
                         go.Scatter(x=[quinzena["data"]], y=[quinzena["variacao_anual"]], mode="markers",
                                    name=f"Última quinzena ({quinzena['rotulo_periodo']})", showlegend=False,
-                                   meta={"componente": componente, "destaque": "ultima_quinzena"})])
+                                   meta={"componente": componente, "destaque": "ultima_quinzena", "rotulo_quinzena": quinzena["rotulo_periodo"]})])
     figura.update_layout(yaxis_title="variação em 12 meses (%)")
     return com_meta(figura)
 
@@ -65,16 +65,6 @@ def main_inpc_meta(componentes, nomes, resumo):
 def main_core_meta(componentes, nomes, resumo):
     """O núcleo, que é o que o Banxico olha para decidir juros, está convergindo para 3%?"""
     return anual_com_meta(componentes, "subyacente", nomes["subyacente"])
-
-
-def main_contribuicoes(componentes, nomes, resumo):
-    """De onde vem a inflação em 12 meses: mercadorias, serviços, agropecuários ou energéticos?"""
-    # dois anos bastam para ver se a composição está mudando
-    barras = [go.Bar(x=serie(componentes, c).tail(24)["data"], y=serie(componentes, c).tail(24)["contribuicao_anual"],
-                     name=nomes[c], meta={"componente": c}) for c in p.COMPONENTES_NIVEL_2]
-    geral = serie(componentes, "indice_general").tail(24)
-    figura = go.Figure(barras + [linha(geral, "variacao_anual", "indice_general", nomes["indice_general"])])
-    return figura.update_layout(barmode="relative", yaxis_title="contribuição à inflação em 12 meses (pp)")
 
 
 def main_vs_norma(componentes, nomes, resumo):
@@ -108,12 +98,6 @@ def decomp_arvore(componentes, nomes, resumo):
                                   values=area, branchvalues="remainder", customdata=ultimo["incidencia_periodo"],
                                   texttemplate="%{label}<br>%{customdata:+.2f} pp", meta={"componentes": list(ultimo["componente"])}))
     return figura
-
-
-def decomp_servicos_mercancias(componentes, nomes, resumo):
-    """Serviços, que são mais inerciais, estão se descolando de mercadorias?"""
-    figura = go.Figure([linha(serie(componentes, c), "variacao_anual", c, nomes[c]) for c in ("servicios", "mercancias")])
-    return figura.update_layout(yaxis_title="variação em 12 meses (%)")
 
 
 # ==== 4. Tendência ====
@@ -155,7 +139,7 @@ def tend_difusao(difusao, resumo):
     tracos = [go.Scatter(x=difusao["data"], y=difusao[coluna], mode="lines", name=nome, meta={"serie": coluna, "cobertura": True},
                          customdata=difusao[[f"cobertura_peso_{base}", f"itens_validos_{base}"]].values)
               for coluna, nome, base in (("pct_cesta_em_alta", "% do peso com alta no mês", "mes"),
-                                         ("pct_cesta_anual_acima_4", "% do peso com alta acima de 4% em 12 meses", "anual"))]
+                                         ("pct_cesta_anual_acima_3", "% do peso com alta acima de 3% em 12 meses", "anual"))]
     return go.Figure(tracos).update_layout(yaxis_title="% do peso da cesta")
 
 
@@ -172,28 +156,30 @@ def valores(componentes, componente, coluna, inicio, mes_base):
     return mensal.assign(**{coluna: mensal[coluna] - base}), quinzena.assign(**{coluna: quinzena[coluna] - base})
 
 
-def traco(tabela, coluna, componente, nome, papel, tipo, quinzena=False):
-    """Uma linha ou barra; o papel (pai ou filho) e a marca de quinzena vão em meta para o template escolher o visual."""
-    # a última quinzena entra como um ponto depois do último mês, como o Banxico faz ("F1-August")
+def traco(tabela, coluna, componente, nome, papel, tipo, unidade, quinzena=False):
+    """Uma linha ou barra; papel (pai ou filho), unidade e a marca de quinzena vão em meta para o template escolher o visual."""
+    # a última quinzena entra como um ponto depois do último mês, como o Banxico faz ("F1-August").
+    # A unidade vai por traço porque, num gráfico de contribuição, as barras são pp e a linha do pai é %
+    meta = {"componente": componente, "papel": papel, "unidade": unidade, "quinzena": quinzena}
     if quinzena:
         nome = f"{nome} · {tabela['rotulo_periodo'].iloc[0]} (quinzenal)"
+        meta["rotulo_quinzena"] = tabela["rotulo_periodo"].iloc[0]
     classe, modo = (go.Bar, {}) if tipo == "barra" else (go.Scatter, {"mode": "markers" if quinzena else "lines"})
-    return classe(x=tabela["data"], y=tabela[coluna], name=nome, showlegend=not quinzena,
-                  meta={"componente": componente, "papel": papel, "quinzena": quinzena}, **modo)
+    return classe(x=tabela["data"], y=tabela[coluna], name=nome, showlegend=not quinzena, meta=meta, **modo)
 
 
-def tracos_da_serie(componentes, nomes, resumo, componente, coluna, papel, tipo, inicio="", mes_base=None):
+def tracos_da_serie(componentes, nomes, resumo, componente, coluna, papel, tipo, unidade, inicio="", mes_base=None):
     """O traço mensal de um componente e, se o último release foi de quinzena, o ponto dela na ponta."""
     mensal, quinzena = valores(componentes, componente, coluna, inicio, mes_base)
-    tracos = [traco(mensal, coluna, componente, nomes[componente], papel, tipo)]
+    tracos = [traco(mensal, coluna, componente, nomes[componente], papel, tipo, unidade)]
     if resumo["frequencia_do_release"] == "quinzenal":
-        tracos.append(traco(quinzena, coluna, componente, nomes[componente], papel, tipo, quinzena=True))
+        tracos.append(traco(quinzena, coluna, componente, nomes[componente], papel, tipo, unidade, quinzena=True))
     return tracos
 
 
 def par_anual(componentes, nomes, resumo, pai, filhos):
     """Variação em 12 meses do pai (a linha escura) e de cada filho."""
-    tracos = [t for c in [pai, *filhos] for t in tracos_da_serie(componentes, nomes, resumo, c, "variacao_anual", "pai" if c == pai else "filho", "linha")]
+    tracos = [t for c in [pai, *filhos] for t in tracos_da_serie(componentes, nomes, resumo, c, "variacao_anual", "pai" if c == pai else "filho", "linha", "%")]
     return go.Figure(tracos).update_layout(yaxis_title="variação em 12 meses (%)")
 
 
@@ -203,8 +189,10 @@ def par_contribuicoes(componentes, nomes, resumo, pai, filhos, coluna="contribui
     # no primeiro mês com contribuição: o INEGI não publica a incidência de ago/2018, quando a base mudou,
     # e a soma de 12 meses precisa de todas, então antes de ago/2019 não há barra para bater com a linha
     inicio = mes_base or serie(componentes, filhos[0]).dropna(subset=[coluna])["periodo"].iloc[0]
-    barras = [t for c in filhos for t in tracos_da_serie(componentes, nomes, resumo, c, coluna, "filho", "barra", inicio, mes_base)]
-    linha_do_pai = tracos_da_serie(componentes, nomes, resumo, pai, "variacao_anual", "pai", "linha", inicio, mes_base)
+    # a linha é a variação em 12 meses do pai, em %; desde um mês-base ela vira diferença de taxas, em pp
+    barras = [t for c in filhos for t in tracos_da_serie(componentes, nomes, resumo, c, coluna, "filho", "barra", " pp", inicio, mes_base)]
+    unidade_da_linha = "%" if mes_base is None else " pp"
+    linha_do_pai = tracos_da_serie(componentes, nomes, resumo, pai, "variacao_anual", "pai", "linha", unidade_da_linha, inicio, mes_base)
     return go.Figure(barras + linha_do_pai).update_layout(barmode="relative", yaxis_title="contribuição (pp)")
 
 
@@ -283,7 +271,7 @@ def explorar(componentes, aberturas, ponderadores, nomes, resumo):
     catalogo = pd.read_csv(p.CATALOGO, dtype=str)
     catalogo = catalogo[(catalogo["tipo"] == "indice") & (catalogo["frequencia"] == "mensal")]
     figuras = {}
-    for componente, nivel in zip(catalogo["componente"], catalogo["nivel"]):
+    for componente in catalogo["componente"]:
         nome = nomes[componente]
         filhos = catalogo.loc[catalogo["pai"] == componente, "componente"].tolist()
         if filhos:
@@ -301,7 +289,7 @@ def explorar(componentes, aberturas, ponderadores, nomes, resumo):
         linhas = [b for b in barras if b != "demais"]  # "Demais" é resto, não tem variação própria
         anual = par_anual(tabela, nomes_do_bloco, resumo, componente, linhas)
         figuras[f"explorar_{componente}_anual"] = (com_meta(anual) if componente == "indice_general" else anual).update_layout(
-            meta={"bloco": nome, "nivel": int(nivel), "peso": round(peso_no_inpc(ponderadores, componente), 2), "subtitulo": subtitulos[0]})
+            meta={"bloco": nome, "peso": round(peso_no_inpc(ponderadores, componente), 2), "subtitulo": subtitulos[0]})
         figuras[f"explorar_{componente}_contrib"] = par_contribuicoes(tabela, nomes_do_bloco, resumo, componente, barras).update_layout(
             meta={"subtitulo": subtitulos[1]})
     return figuras
@@ -312,7 +300,7 @@ if __name__ == "__main__":
     componentes, difusao = ler("metricas_componentes"), ler("metricas_difusao")
     nomes = p.NOMES_EXIBICAO
     resumo = json.loads((p.PASTA_PROCESSED / "metricas_resumo.json").read_text(encoding="utf-8"))
-    slots = [main_inpc_meta, main_core_meta, main_contribuicoes, main_vs_norma, decomp_arvore, decomp_servicos_mercancias,
+    slots = [main_inpc_meta, main_core_meta, main_vs_norma, decomp_arvore,
              tend_dessazonalizado, tend_momentum, tend_perfil_sazonal,
              grupos_inpc_anual, grupos_inpc_contrib, grupos_nucleo_anual, grupos_nucleo_contrib, grupos_mercadorias_anual,
              grupos_mercadorias_contrib, grupos_servicos_anual, grupos_servicos_contrib, grupos_nao_nucleo_anual, grupos_nao_nucleo_desde_base]

@@ -192,8 +192,8 @@ def metricas_genericos(genericos, ponderadores, series):
 
 
 def serie_difusao(genericos, ponderadores):
-    """Mês a mês, quão espalhada está a inflação: quanto da cesta subiu no mês e quanto está acima de 3% e de 4% em 12 meses."""
-    # 3% e 4% são a meta do Banxico para o INPC e o teto do intervalo de tolerância; aqui são só uma régua, porque
+    """Mês a mês, quão espalhada está a inflação: quanto da cesta subiu no mês e quanto está acima de 3% em 12 meses."""
+    # 3% é a meta do Banxico para o INPC; aqui é só uma régua, porque
     # item nenhum tem meta própria. Cada mês usa os pesos da cesta que valia na época. Cada medida conta só os itens
     # que têm o dado que ela usa (variação no mês, ou variação em 12 meses) e divide pelo peso desses itens; a
     # cobertura diz quanto do peso total da cesta esses itens somam, para ninguém ler 60% de 80% como 60% de tudo
@@ -214,10 +214,9 @@ def serie_difusao(genericos, ponderadores):
 
     em_alta, itens_mes, cobertura_mes = medida("variacao_periodo", mensal["variacao_periodo"] > 0)
     acima_3, itens_anual, cobertura_anual = medida("variacao_anual", mensal["variacao_anual"] > 3)
-    acima_4 = medida("variacao_anual", mensal["variacao_anual"] > 4)[0]
     return pd.DataFrame({"data": por_mes["data"].first(), "rotulo_periodo": por_mes["rotulo_periodo"].first(),
                          "pct_genericos_em_alta": (mensal["variacao_periodo"] > 0).groupby(mensal["periodo"]).sum() / itens_mes * 100,
-                         "pct_cesta_em_alta": em_alta, "pct_cesta_anual_acima_3": acima_3, "pct_cesta_anual_acima_4": acima_4,
+                         "pct_cesta_em_alta": em_alta, "pct_cesta_anual_acima_3": acima_3,
                          "itens_validos_mes": itens_mes, "cobertura_peso_mes": cobertura_mes,
                          "itens_validos_anual": itens_anual, "cobertura_peso_anual": cobertura_anual}).reset_index()
 
