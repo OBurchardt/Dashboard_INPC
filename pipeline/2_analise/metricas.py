@@ -238,12 +238,12 @@ def acrescentar_contribuicao_anual_dos_genericos(genericos, componentes):
 
 
 def aberturas_dos_subindices(genericos, componentes, ponderadores):
-    """Para cada subíndice, as 6 aberturas de maior peso na cesta 2024 e as demais, com a contribuição para a variação em 12 meses dele."""
+    """Para cada subíndice, as aberturas de maior peso na cesta 2024 e as demais, com a contribuição para a variação em 12 meses dele."""
     # a chave da abertura é a posição dela no subíndice (abertura_1 é a de maior peso), porque o dashboard pinta pela posição.
     # A troca de base é a mesma dos componentes: dividir pela soma das contribuições dos irmãos, que aqui são todos os
-    # genéricos do subíndice. "Demais" é o subíndice menos a soma das 6; quem tem 6 genéricos ou menos não tem "Demais"
+    # genéricos do subíndice. "Demais" é o subíndice menos a soma das principais; quem não tem mais genéricos que isso fica sem "Demais"
     pesos = ponderadores[ponderadores["cesta"] == "2024"].dropna(subset=["codigo_generico"])
-    maiores = pesos.sort_values("ponderador", ascending=False).groupby("subindice").head(6)
+    maiores = pesos.sort_values("ponderador", ascending=False).groupby("subindice").head(p.ABERTURAS_POR_SUBINDICE)
     chave = dict(zip(maiores["codigo_generico"], "abertura_" + (maiores.groupby("subindice").cumcount() + 1).astype(str)))
     tabela = acrescentar_contribuicao_anual_dos_genericos(genericos, componentes)
     subindices = componentes[["componente", "frequencia", "periodo", "variacao_anual"]].rename(columns={"componente": "subindice", "variacao_anual": "variacao_subindice"})
@@ -252,11 +252,11 @@ def aberturas_dos_subindices(genericos, componentes, ponderadores):
     tabela["contribuicao_no_pai"] = tabela["contribuicao_anual"] * tabela["variacao_subindice"] / soma_do_subindice
     tabela["componente"] = tabela["codigo_generico"].map(chave)
     principais = tabela.dropna(subset=["componente"]).rename(columns={"subindice": "pai", "nome_generico": "nome"})
-    soma_das_6 = principais.groupby(["pai", "frequencia", "periodo"])["contribuicao_no_pai"].sum(min_count=1).rename("soma_das_6")
-    com_demais = pesos.groupby("subindice").size().loc[lambda n: n > 6].index
+    soma_das_principais = principais.groupby(["pai", "frequencia", "periodo"])["contribuicao_no_pai"].sum(min_count=1).rename("soma_das_principais")
+    com_demais = pesos.groupby("subindice").size().loc[lambda n: n > p.ABERTURAS_POR_SUBINDICE].index
     demais = componentes[componentes["componente"].isin(com_demais)].drop(columns="pai").rename(columns={"componente": "pai"})
-    demais = demais.merge(soma_das_6, left_on=["pai", "frequencia", "periodo"], right_index=True, how="left")
-    demais = demais.assign(componente="demais", nome="Demais", contribuicao_no_pai=demais["variacao_anual"] - demais["soma_das_6"], variacao_anual=float("nan"))
+    demais = demais.merge(soma_das_principais, left_on=["pai", "frequencia", "periodo"], right_index=True, how="left")
+    demais = demais.assign(componente="demais", nome="Demais", contribuicao_no_pai=demais["variacao_anual"] - demais["soma_das_principais"], variacao_anual=float("nan"))
     colunas = ["pai", "componente", "nome", "frequencia", "periodo", "posicao", "rotulo_periodo", "data", "variacao_anual", "contribuicao_no_pai"]
     aberturas = pd.concat([principais[colunas], demais[colunas]])
     return aberturas[aberturas["data"].dt.year >= p.ANO_INICIO_GRAFICOS]

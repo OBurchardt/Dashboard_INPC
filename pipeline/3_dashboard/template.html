@@ -19,65 +19,87 @@
 <style>
 /* ==== 1. Tokens: toda cor, tamanho e espaço está aqui, e em nenhum outro lugar ==== */
 :root {
+  /* paleta: a única lista de cores do projeto. Todo o resto é var(--p-...) ou transparência de uma delas */
+  --p-marinho: #0B2859;
+  --p-azul: #10408D;
+  --p-azul-medio: #406BB4;
+  --p-azul-vivo: #4F97F4;
+  --p-azul-claro: #B0D2FF;
+  --p-azul-clarissimo: #E7EFFA;
+  --p-tinta: #0E1F3D;
+  --p-tinta-2: #3A4863;
+  --p-tinta-3: #6B7890;
+  --p-cinza: #C9D2DF;
+  --p-borda: #E1E7EF;
+  --p-fundo: #EEF2F7;
+  --p-superficie-2: #F6F8FB;
+  --p-branco: #FFFFFF;
+  --p-ambar: #BF7E12;
+  --p-ambar-escuro: #8A5A0A;
+  --p-pior: #B8412C;             /* sinal: só em pílulas e tabelas, nunca em série de gráfico */
+  --p-melhor: #0C7A57;
+
   /* superfícies */
-  --bg: #EEF2F7;                 /* fundo da página */
-  --surface: #FFFFFF;            /* cards, barra de navegação, chips */
-  --border: #E1E7EF;             /* bordas e separadores */
-  --surface-2: #F6F8FB;          /* cabeçalho de tabela, blocos de apoio */
+  --bg: var(--p-fundo);                    /* fundo da página */
+  --surface: var(--p-branco);              /* cards, barra de navegação, chips */
+  --border: var(--p-borda);                /* bordas e separadores */
+  --surface-2: var(--p-superficie-2);      /* cabeçalho de tabela, blocos de apoio */
 
   /* tinta */
-  --ink: #0E1F3D;                /* títulos */
-  --ink-2: #3A4863;              /* corpo */
-  --ink-3: #6B7890;              /* rótulos, eixos, notas */
+  --ink: var(--p-tinta);                   /* títulos */
+  --ink-2: var(--p-tinta-2);               /* corpo */
+  --ink-3: var(--p-tinta-3);               /* rótulos, eixos, notas */
 
   /* azuis */
-  --azul-btg: #0B2859;
-  --azul-claro-2: #E7EFFA;       /* fundos suaves, faixa do padrão sazonal */
-  --azul-claro-3: #FFFFFF;       /* bloco do próximo release */
-  --azul-medio: #2F5FA8;
-  --azul-rotulo: #C9DCF7;       /* rótulo sobre o azul médio dos destaques */
-  --azul-vivo: #3D8BEA;
-  --azul-escuro: #5A6F92;
+  --azul-btg: var(--p-marinho);
+  --azul-claro-2: var(--p-azul-clarissimo); /* fundos suaves, faixa do padrão sazonal */
+  --azul-medio: var(--p-azul-medio);
+  --azul-rotulo: var(--p-azul-claro);      /* rótulo sobre o azul médio dos destaques */
+  --azul-vivo: var(--p-azul-vivo);
+  --azul-escuro: var(--p-tinta-3);
 
   /* sinal */
-  --pior: #B8412C;
-  --melhor: #0C7A57;
+  --pior: var(--p-pior);
+  --melhor: var(--p-melhor);
 
-  /* séries */
-  --serie-inpc: #0B2859;
-  --serie-subyacente: #2F6AD0;
-  --serie-mercancias: #5B8FD8;
-  --serie-servicios: #1D4A94;
-  --serie-agropecuarios: #BF7E12;
-  --serie-energeticos: #7C8AA2;   /* cinza-azulado: verde parecia sinal de coisa boa */
-  --serie-no-subyacente: #BF7E12;
-  /* toda cor de série tem pelo menos 3:1 de contraste com o branco; a etiqueta de texto é escurecida no JS até 4,5:1 */
-  /* os 9 subíndices: cada um na família do seu grupo (azuis claros em mercadorias, azuis e frios em serviços,
-     âmbar e terra em agropecuários, ardósia em energia e tarifas), mas distintos dos irmãos que dividem o gráfico */
-  --serie-alimentos: #2360C4;
-  --serie-nao-alimenticias: #5B91DA;
-  --serie-habitacao: #2F5FA8;
-  --serie-educacao: #7B61C9;
-  --serie-outros-servicos: #3AA0B5;
-  --serie-frutas-verduras: #B8860B;
-  --serie-pecuarios: #A8611A;
-  --serie-energia: #44597D;
-  --serie-tarifas: #7E8EA8;
-  --serie-pai: #0E1F3D;          /* nos pares do Banxico, o pai é sempre a linha escura com marcadores */
-  /* aberturas dos subíndices na aba Explorar: a cor é da posição (1 = maior peso), não da abertura, porque são 54 diferentes */
-  --serie-abertura-1: #2F6AD0;
-  --serie-abertura-2: #BF7E12;
-  --serie-abertura-3: #3AA0B5;
-  --serie-abertura-4: #7B61C9;
-  --serie-abertura-5: #C2528B;
-  --serie-abertura-6: #B08A5A;
-  --serie-demais: #8A94A3;       /* o resto do subíndice, em cinza para não disputar com as seis */
+  /* séries: o pai é sempre marinho, com marcadores. Os filhos seguem uma ordem de prioridade, e irmãos que dividem
+     um gráfico nunca repetem cor:
+       1 --p-azul-vivo (contrasta com o marinho: escuro contra claro)   2 --p-tinta-3 (ardósia)
+       3 --p-azul-medio   4 --p-tinta-2 (ardósia escura)   5 --p-ambar, só se faltar cor
+     --p-azul não entra: ao lado do marinho quase não se distingue. Cada componente tem uma cor só, a mesma em todas as abas */
+  --serie-pai: var(--p-marinho);
+  --serie-inpc: var(--p-marinho);
+  --serie-subyacente: var(--p-azul-vivo);
+  --serie-no-subyacente: var(--p-tinta-3);
+  --serie-servicios: var(--p-azul-vivo);
+  --serie-mercancias: var(--p-tinta-3);
+  --serie-alimentos: var(--p-azul-vivo);
+  --serie-nao-alimenticias: var(--p-tinta-3);
+  --serie-outros-servicos: var(--p-azul-vivo);
+  --serie-habitacao: var(--p-tinta-3);
+  --serie-educacao: var(--p-azul-medio);
+  --serie-energeticos: var(--p-azul-vivo);   /* energia e tarifas */
+  --serie-agropecuarios: var(--p-tinta-3);
+  /* os quatro subíndices do não núcleo aparecem juntos no gráfico desde o mês-base, então têm quatro cores distintas */
+  --serie-energia: var(--p-azul-vivo);
+  --serie-tarifas: var(--p-tinta-3);
+  --serie-pecuarios: var(--p-azul-medio);
+  --serie-frutas-verduras: var(--p-tinta-2);
+  /* aberturas dos subíndices na aba Explorar: a cor é da posição (1 = maior peso), não da abertura, pela mesma ordem;
+     "Demais" em cinza, só em barra */
+  --serie-abertura-1: var(--p-azul-vivo);
+  --serie-abertura-2: var(--p-tinta-3);
+  --serie-abertura-3: var(--p-azul-medio);
+  --serie-abertura-4: var(--p-tinta-2);
+  --serie-demais: var(--p-cinza);
 
   /* gráficos */
-  --grade: #EDF1F6;
-  --zero: #C9D2DF;
-  --banda-meta: rgba(102, 116, 140, 0.12); /* intervalo da meta: cinza claro, só uma régua, sem juízo de bom ou ruim */
-  --branco: #FFFFFF;
+  --grade: var(--p-borda);
+  --zero: var(--p-cinza);
+  /* intervalo da meta: --p-tinta-3 a 12%, só uma régua, sem juízo de bom ou ruim. Escrito em rgba porque o plotly
+     não entende color-mix */
+  --banda-meta: rgba(107, 120, 144, 0.12);
+  --branco: var(--p-branco);
 
   /* tipografia */
   --fonte: "DM Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -94,7 +116,7 @@
 
 /* ==== 2. Base ==== */
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; color: var(--ink); }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--fonte); font-size: var(--t-14); line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .coluna { max-width: var(--coluna); margin: 0 auto; padding: 0 var(--e-32); }
 
@@ -389,7 +411,7 @@ const COR_COMPONENTE = {
   energeticos_y_tarifas: css("--serie-energeticos"),
   alimentos_bebidas_y_tabaco: css("--serie-alimentos"), mercancias_no_alimenticias: css("--serie-nao-alimenticias"),
   abertura_1: css("--serie-abertura-1"), abertura_2: css("--serie-abertura-2"), abertura_3: css("--serie-abertura-3"),
-  abertura_4: css("--serie-abertura-4"), abertura_5: css("--serie-abertura-5"), abertura_6: css("--serie-abertura-6"), demais: css("--serie-demais"),
+  abertura_4: css("--serie-abertura-4"), demais: css("--serie-demais"),
   vivienda: css("--serie-habitacao"), educacion_colegiaturas: css("--serie-educacao"), otros_servicios: css("--serie-outros-servicos"),
   frutas_y_verduras: css("--serie-frutas-verduras"), pecuarios: css("--serie-pecuarios"),
   energeticos: css("--serie-energia"), tarifas_autorizadas_por_el_gobierno: css("--serie-tarifas"),
@@ -410,7 +432,6 @@ function numero(valor, casas, sufixo) {
   return valor < 0 ? "−" + texto : texto;
 }
 const lerNumero = (texto) => parseFloat(texto.replace("−", "-").replace(",", "."));
-const comAlfa = (hex, alfa) => `rgba(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")}, ${alfa})`;
 
 // ==== 3. Faixa do release, KPIs e destaques ====
 function termo(k) {
@@ -668,7 +689,7 @@ function estilizarTraco(t, sufixo, eixo) {
     t.line = { width: 2, color: cor };
     t.marker = { color: cor, size: 4 };
   } else if (serie.startsWith("norma_p")) {
-    t.line = { width: 0 };
+    t.line = { width: 0, color: css("--azul-claro-2") };   // sem cor, o plotly poria a dele no contorno invisível
     t.fillcolor = css("--azul-claro-2");
     t.showlegend = serie === "norma_p75";
     t.name = serie === "norma_p75" ? "Padrão sazonal p25–p75" : t.name;
@@ -703,14 +724,11 @@ function rotulosFinais(dados, sufixo) {
   return escritos;
 }
 
-function corDoTexto(cor) {
-  // a etiqueta precisa de 4,5:1 contra o branco (a linha só de 3:1): escureço a cor aos poucos até chegar lá
-  const luminancia = (c) => c.map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
-                             .reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
-  let rgb = [1, 3, 5].map((i) => parseInt(cor.slice(i, i + 2), 16));
-  while (1.05 / (luminancia(rgb) + 0.05) < 4.5) rgb = rgb.map((v) => v * 0.94);
-  return "#" + rgb.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
-}
+// a etiqueta de texto precisa de 4,5:1 contra o branco. As cores de série abaixo disso escrevem com a mais escura da
+// mesma família; as outras escrevem com a própria cor. --p-tinta-3 fica em 4,45:1, então também passa para --p-tinta-2
+const TEXTO_DA_COR = Object.fromEntries([["--p-azul-vivo", "--p-azul-medio"], ["--p-ambar", "--p-ambar-escuro"],
+  ["--p-tinta-3", "--p-tinta-2"], ["--p-cinza", "--p-tinta-2"]].map(([serie, texto]) => [css(serie), css(texto)]));
+const corDoTexto = (cor) => TEXTO_DA_COR[cor] || cor;
 
 const nomeCurto = (nome) => (nome.length > 18 ? nome.slice(0, 17) + "…" : nome);   // o nome inteiro fica no hover
 
@@ -737,19 +755,17 @@ function rotulosNaPonta(dados, sufixo, comNome, faixa, alturaUtil) {
   return rotulos;
 }
 
+// o treemap pinta a contribuição em 5 degraus da paleta, do menor para o maior; texto branco nos dois mais escuros
+const DEGRAUS_DA_ARVORE = ["--p-azul-clarissimo", "--p-azul-claro", "--p-azul-vivo", "--p-azul", "--p-marinho"];
+
 function estilizarArvore(figura) {
-  // degradê de azul: mais escuro quanto maior a contribuição; contribuição negativa em cinza.
-  // as cores são sólidas (misturadas com branco), porque cor transparente deixava o bloco-pai vazar por trás
+  // contribuição negativa (ou zero) em cinza. As cores são sólidas, porque cor transparente deixava o bloco-pai vazar por trás
   const t = figura.data[0];
   const maior = Math.max(...t.customdata.map(Math.abs)) || 1;   // tudo zero: evita dividir por zero
-  const alfas = t.customdata.map((v) => 0.12 + 0.88 * Math.abs(v) / maior);
-  // escala em três paradas: azul bem claro, azul vivo e o marinho; negativo vai do cinza-claro ao cinza
-  const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  const entre = (c1, c2, f) => "#" + rgb(c1).map((v, i) => Math.round(v + (rgb(c2)[i] - v) * f).toString(16).padStart(2, "0")).join("");
-  const escalaAzul = (a) => (a < 0.5 ? entre(css("--azul-claro-2"), css("--azul-vivo"), a / 0.5) : entre(css("--azul-vivo"), css("--azul-btg"), (a - 0.5) / 0.5));
-  t.marker = { colors: t.customdata.map((v, i) => (v > 0 ? escalaAzul(alfas[i]) : entre(css("--grade"), css("--ink-3"), alfas[i]))),
+  const degraus = t.customdata.map((v) => Math.min(4, Math.floor(Math.abs(v) / maior * 5)));
+  t.marker = { colors: t.customdata.map((v, i) => (v > 0 ? css(DEGRAUS_DA_ARVORE[degraus[i]]) : css("--p-cinza"))),
                depthfade: false, line: { width: 2, color: css("--surface") }, cornerradius: 6 };
-  const corTexto = alfas.map((a) => (a > 0.4 ? css("--branco") : css("--ink")));
+  const corTexto = t.customdata.map((v, i) => (v > 0 && degraus[i] >= 3 ? css("--branco") : css("--ink")));
   t.textfont = { family: css("--fonte"), size: 13, color: corTexto };
   t.insidetextfont = { family: css("--fonte"), size: 13, color: corTexto };
   t.outsidetextfont = { family: css("--fonte"), size: 13, color: corTexto };
@@ -760,7 +776,7 @@ function estilizarArvore(figura) {
   t.pathbar = { visible: false };
   t.tiling = { pad: 3 };
   return { data: figura.data, layout: { height: parseInt(css("--altura-grafico-alta")), margin: { l: 0, r: 0, t: 0, b: 0 },
-           separators: ",.", paper_bgcolor: "rgba(0,0,0,0)", hoverlabel: rotuloDoTooltip() } };
+           separators: ",.", paper_bgcolor: "rgba(255, 255, 255, 0)", hoverlabel: rotuloDoTooltip() } };
 }
 
 function rotuloDoTooltip() {
@@ -805,13 +821,14 @@ function estilizarFigura(slot, figura) {
     height: altura,
     margin: margem,
     font: { family: css("--fonte"), size: 12, color: css("--ink-3") },
-    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+    paper_bgcolor: "rgba(255, 255, 255, 0)", plot_bgcolor: "rgba(255, 255, 255, 0)",   // fundo transparente
     // nas barras de tempo o vão é pequeno, senão viram fiapos; nas deitadas o vão maior separa as categorias
     separators: ",.", bargap: temDatas ? 0.15 : 0.3, bargroupgap: 0.08, barcornerradius: temDatas ? 0 : 4,
     hovermode: temDatas ? "x unified" : "closest",
     hoverlabel: rotuloDoTooltip(),
     showlegend: legendaVisivel,
-    legend: { orientation: "h", x: 0, xanchor: "left", y: 1, yanchor: "bottom", font: { size: 12, color: css("--ink-2") }, itemclick: false },
+    legend: { orientation: "h", x: 0, xanchor: "left", y: 1, yanchor: "bottom", font: { size: 12, color: css("--ink-2") }, itemclick: false,
+              bordercolor: css("--border") },
     xaxis: horizontal ? eixoDeValores : { showgrid: false, zeroline: false, ticks: "", showline: false, tickangle: 0, tickfont: { color: css("--ink-3") },
              title: { text: "" }, ...(temDatas ? eixoDoTempo(dados) : {}) },
     yaxis: horizontal ? eixoDeCategorias : eixoDeValores,

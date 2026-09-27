@@ -267,7 +267,7 @@ def peso_no_inpc(ponderadores, componente):
 def explorar(componentes, aberturas, ponderadores, nomes, resumo):
     """Um par de gráficos por categoria, na ordem da árvore: os grupos de cada componente e as aberturas de cada subíndice."""
     # a hierarquia vem da coluna pai do catálogo, que já está na ordem da árvore (cada pai seguido dos seus descendentes).
-    # Quem tem filhos no catálogo mostra os filhos; os subíndices, que não têm, mostram as 6 aberturas de maior peso
+    # Quem tem filhos no catálogo mostra os filhos; os subíndices, que não têm, mostram as aberturas de maior peso
     catalogo = pd.read_csv(p.CATALOGO, dtype=str)
     catalogo = catalogo[(catalogo["tipo"] == "indice") & (catalogo["frequencia"] == "mensal")]
     figuras = {}
@@ -281,10 +281,11 @@ def explorar(componentes, aberturas, ponderadores, nomes, resumo):
             do_subindice = aberturas[aberturas["pai"] == componente]
             tabela = pd.concat([componentes[componentes["componente"] == componente], do_subindice])
             nomes_do_bloco = {componente: nome, **dict(zip(do_subindice["componente"], do_subindice["nome"]))}
-            barras = sorted(do_subindice["componente"].unique())  # abertura_1 a abertura_6 e, se houver, demais
+            barras = sorted(do_subindice["componente"].unique())  # abertura_1, abertura_2... e, se houver, demais
             primeiro = do_subindice[do_subindice["frequencia"] == "mensal"].dropna(subset=["contribuicao_no_pai"]).sort_values("data")["rotulo_periodo"].iloc[0]
-            subtitulos = (f"{nome} e as aberturas de maior peso na cesta 2024: variação em 12 meses, %",
-                          f"{nome}: contribuição das aberturas de maior peso{' e das demais' if 'demais' in barras else ''} para a variação "
+            quantas = len(barras) - ("demais" in barras)
+            subtitulos = (f"{nome} e as {quantas} aberturas de maior peso na cesta 2024: variação em 12 meses, %",
+                          f"{nome}: contribuição das {quantas} aberturas de maior peso{' e das demais' if 'demais' in barras else ''} para a variação "
                           f"em 12 meses, pp. As barras começam em {primeiro}, o primeiro mês com 12 meses inteiros na cesta 2024")
         linhas = [b for b in barras if b != "demais"]  # "Demais" é resto, não tem variação própria
         anual = par_anual(tabela, nomes_do_bloco, resumo, componente, linhas)

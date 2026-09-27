@@ -149,7 +149,7 @@ Um arquivo de constantes, dividido em seções.
 - **Fontes.** As URLs.
 - **Estruturas.** Os ids internos do app que achei navegando nele. `112001700010` é o índice mensal dos 16 componentes, `112001600020` o quinzenal, `112001800030` e `112001800020` as incidências. As árvores `112001700030` e `112001600030` são as únicas que descem até os 292 genéricos.
 - **Componentes e nomes.** Quais são os três principais, quais são os quatro do nível 2 e o nome de cada um na tela, em português (Núcleo, Mercadorias, Energia e tarifas...).
-- **Janelas.** Dessazonalização desde 2000, norma de 2010 a 2019, gráficos desde 2019, o mês-base do gráfico do não núcleo (`MES_BASE_NAO_NUCLEO`, jul/2024, o pico de 10,36%), início da cesta 2024, 24 meses de genéricos no dashboard e tolerância de 0,01 pp na validação.
+- **Janelas.** Dessazonalização desde 2000, norma de 2010 a 2019, gráficos desde 2019, o mês-base do gráfico do não núcleo (`MES_BASE_NAO_NUCLEO`, jul/2024, o pico de 10,36%), 4 aberturas por subíndice na aba Explorar, início da cesta 2024, 24 meses de genéricos no dashboard e tolerância de 0,01 pp na validação.
 
 ### pipeline/1_dados/ingestao.py
 
@@ -245,7 +245,7 @@ contribuição no pai(filho) = contribuição anual(filho) × variação anual(p
 
 Com cesta fixa a conta é exata, e os filhos somam o pai. Divido pela soma dos irmãos, e não pela contribuição publicada do pai, porque o arredondamento das incidências (até 0,004 pp) é ampliado quando o pai quase não varia: com agropecuários a 0,17% em jul/2025, a outra forma deixava os filhos 0,035 pp longe do pai. Na 1ª quinzena de agosto de 2026 os números batem com o Informe: serviços 4,34% = habitação 1,63 + educação 0,39 + outros 2,32. A coluna `contribuicao_no_grupo` é a mesma conta para o núcleo ou o não núcleo acima do componente; é dela que sai o gráfico do não núcleo desde jul/2024 (−9,40 pp: frutas e verduras −4,46, energia −2,99, pecuários −2,90, tarifas +0,94). A conferência `conferir_contribuicao_no_pai` para o pipeline se, nos últimos 24 meses, os filhos não somarem o pai a menos de 0,01 pp.
 
-**Aberturas dos subíndices** (`aberturas_dos_subindices`). Para cada subíndice, as 6 aberturas de maior peso na cesta 2024 e "Demais", o resto. A contribuição de cada genérico para a inflação em 12 meses sai da mesma identidade dos componentes, a partir da incidência calculada com o peso efetivo, e depois vai para a base do subíndice pela mesma troca. "Demais" é o subíndice menos a soma das 6; habitação e energia têm só 5 genéricos e não têm "Demais". Como a incidência dos genéricos só existe na cesta 2024, as contribuições começam em ago/2025, o primeiro mês com 12 meses inteiros nela.
+**Aberturas dos subíndices** (`aberturas_dos_subindices`). Para cada subíndice, as 4 aberturas de maior peso na cesta 2024 (`ABERTURAS_POR_SUBINDICE`) e "Demais", o resto. A contribuição de cada genérico para a inflação em 12 meses sai da mesma identidade dos componentes, a partir da incidência calculada com o peso efetivo, e depois vai para a base do subíndice pela mesma troca. "Demais" é o subíndice menos a soma das 4; todos os subíndices têm mais de 4 genéricos, então todos têm "Demais". Como a incidência dos genéricos só existe na cesta 2024, as contribuições começam em ago/2025, o primeiro mês com 12 meses inteiros nela.
 
 **Ritmo dessazonalizado** (`acrescentar_ritmo_dessazonalizado`). Sobre o índice sem sazonalidade:
 
@@ -297,7 +297,7 @@ Os pares no formato do Banxico saem de duas funções genéricas: `par_anual(pai
 
 ### pipeline/3_dashboard/template.html
 
-HTML, CSS e JavaScript num arquivo só. As cores, fontes e raios estão em variáveis no `:root`: marinho `--azul-btg` #0B2859 como cor primária, fundo #EEF2F7, fonte DM Sans (com Segoe UI de reserva, sem internet) e cantos de 14px. Cada série tem a sua cor, a mesma em todos os gráficos, com pelo menos 3:1 de contraste contra o branco; a etiqueta de texto é escurecida até 4,5:1. O JavaScript lê `window.DADOS`, preenche a faixa do release e os cartões, aplica o estilo a cada figura conforme o `meta` e ajusta as tabelas. Nas tabelas, só uma coluna leva a cor do sinal (`COLUNA_COLORIDA`) e as colunas de contribuição ganham uma barrinha.
+HTML, CSS e JavaScript num arquivo só. As cores, fontes e raios estão em variáveis no `:root`: marinho `--azul-btg` #0B2859 como cor primária, fundo #EEF2F7, fonte DM Sans (com Segoe UI de reserva, sem internet) e cantos de 14px. Toda cor sai de uma paleta fechada de 18 cores (`--p-*`, no topo do `:root`); os outros tokens são `var(--p-...)` ou transparência de uma delas. Cada componente tem uma cor só, a mesma em todas as abas: o pai é sempre marinho e os filhos seguem uma ordem de prioridade (azul vivo, ardósia, azul médio, ardósia escura e, só se faltar cor, âmbar), sem repetir cor entre irmãos; vermelho e verde ficam só em pílulas e tabelas. A etiqueta de texto de uma série com menos de 4,5:1 de contraste usa a cor mais escura da mesma família, e o treemap pinta a contribuição em 5 degraus de azul. O JavaScript lê `window.DADOS`, preenche a faixa do release e os cartões, aplica o estilo a cada figura conforme o `meta` e ajusta as tabelas. Nas tabelas, só uma coluna leva a cor do sinal (`COLUNA_COLORIDA`) e as colunas de contribuição ganham uma barrinha.
 
 ## 6. Dicionário de dados
 
@@ -344,7 +344,7 @@ Os valores ficam como texto, com "N/E" onde o INEGI não publica, e os CSVs abre
 
 **metricas_difusao.parquet**: mensal, desde 2019: `pct_genericos_em_alta` (por contagem), `pct_cesta_em_alta`, `pct_cesta_anual_acima_3` (por peso), e a cobertura de cada base: `itens_validos_mes` e `cobertura_peso_mes` (itens com variação no mês e % do peso da cesta que somam), `itens_validos_anual` e `cobertura_peso_anual` (o mesmo para a variação em 12 meses).
 
-**metricas_aberturas.parquet**: mensal e quinzenal, desde 2019, as 6 aberturas de maior peso de cada subíndice e "Demais": `pai` (o subíndice), `componente` (`abertura_1` a `abertura_6`, pela ordem de peso, ou `demais`), `nome`, `frequencia`, `periodo`, `posicao`, `rotulo_periodo`, `data`, `variacao_anual` (nula em "Demais") e `contribuicao_no_pai` (pp, desde ago/2025).
+**metricas_aberturas.parquet**: mensal e quinzenal, desde 2019, as 4 aberturas de maior peso de cada subíndice e "Demais": `pai` (o subíndice), `componente` (`abertura_1` a `abertura_4`, pela ordem de peso, ou `demais`), `nome`, `frequencia`, `periodo`, `posicao`, `rotulo_periodo`, `data`, `variacao_anual` (nula em "Demais") e `contribuicao_no_pai` (pp, desde ago/2025).
 
 **metricas_resumo.json**: `ultimo_periodo`, `ultimo_rotulo`, `tipo_ultimo_release`, `frequencia_do_release`, `principais`, `mensal_implicito` (nulo em release mensal), `difusao` e `destaques`.
 
@@ -393,7 +393,7 @@ A seção de inflação do Informe Trimestral do Banxico, em 10 gráficos (5 lin
 
 ### Explorar
 
-O mesmo par para as 16 categorias do INPC, na ordem da árvore, cada uma com o nome e o peso na cesta 2024. Nos 7 blocos de componentes os filhos são os grupos; nos 9 subíndices, as 6 aberturas de maior peso e "Demais", com uma legenda por bloco (a cor é da posição, não da abertura). Cada gráfico só é desenhado quando chega perto da tela. Fonte: `metricas_componentes` e `metricas_aberturas`.
+O mesmo par para as 16 categorias do INPC, na ordem da árvore, cada uma com o nome e o peso na cesta 2024. Nos 7 blocos de componentes os filhos são os grupos; nos 9 subíndices, as 4 aberturas de maior peso e "Demais", com uma legenda por bloco (a cor é da posição, não da abertura: com a paleta fechada só há 4 cores bem distintas). Cada gráfico só é desenhado quando chega perto da tela. Fonte: `metricas_componentes` e `metricas_aberturas`.
 
 A aba "Fontes externas", que só tinha um card "Em construção", saiu. Consenso de mercado e projeções do Banxico ficam para quando houver fonte.
 
