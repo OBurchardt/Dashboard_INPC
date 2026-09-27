@@ -141,7 +141,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 /* faixa do release */
 .faixa-release { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--e-16); margin-bottom: 20px; }
 .bloco-release, .bloco-proximo { border-radius: var(--raio-card); padding: 28px var(--e-32); display: flex; flex-direction: column; gap: 10px; }
-.bloco-release { grid-column: span 8; background: var(--p-azul-noite); color: var(--branco); justify-content: center; }
+.bloco-release { grid-column: span 8; background: color-mix(in srgb, var(--p-azul-noite) 75%, var(--p-marinho));   /* o azul-noite um tom acima, misturado com o marinho da paleta */ color: var(--branco); justify-content: center; }
 .bloco-release .bloco-rotulo { color: rgba(255,255,255,0.7); }
 .bloco-proximo { grid-column: span 4; background: var(--surface); color: var(--azul-btg); border: 1px solid var(--border); }
 .bloco-proximo .bloco-rotulo { color: var(--ink-3); }
