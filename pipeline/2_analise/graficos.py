@@ -45,26 +45,30 @@ def com_meta(figura):
 
 
 # ==== 2. Visão principal ====
-def anual_com_meta(componentes, componente, nome):
-    """A inflação em 12 meses de um componente contra a meta, com a última quinzena como um ponto à parte."""
-    # a linha é mensal e o ponto é quinzenal: no dia da 1a quinzena ele é o dado mais novo que existe
-    quinzena = serie(componentes, componente, "quinzenal").iloc[-1]
-    figura = go.Figure([linha(serie(componentes, componente), "variacao_anual", componente, nome),
-                        go.Scatter(x=[quinzena["data"]], y=[quinzena["variacao_anual"]], mode="markers",
-                                   name=f"Última quinzena ({quinzena['rotulo_periodo']})", showlegend=False,
-                                   meta={"componente": componente, "destaque": "ultima_quinzena", "rotulo_quinzena": quinzena["rotulo_periodo"]})])
-    figura.update_layout(yaxis_title="variação em 12 meses (%)")
+def anual_com_meta(componentes, componente, nome, resumo):
+    """A inflação em 12 meses de um componente contra a meta; em release de quinzena, a última quinzena vai como um ponto à parte."""
+    # a linha é mensal e o ponto é quinzenal: no dia da 1a quinzena ele é o dado mais novo que existe. Depois de um
+    # release mensal o mês já é o dado novo, e a 2a quinzena ao lado dele só confundiria (como nos gráficos de grupos)
+    tracos = [linha(serie(componentes, componente), "variacao_anual", componente, nome)]
+    subtitulo = "Variação em 12 meses (%)"
+    if resumo["frequencia_do_release"] == "quinzenal":
+        quinzena = serie(componentes, componente, "quinzenal").iloc[-1]
+        tracos.append(go.Scatter(x=[quinzena["data"]], y=[quinzena["variacao_anual"]], mode="markers",
+                                 name=f"Última quinzena ({quinzena['rotulo_periodo']})", showlegend=False,
+                                 meta={"componente": componente, "destaque": "ultima_quinzena", "rotulo_quinzena": quinzena["rotulo_periodo"]}))
+        subtitulo += "; ponto destacado: última quinzena"
+    figura = go.Figure(tracos).update_layout(yaxis_title="variação em 12 meses (%)", meta={"subtitulo": subtitulo})
     return com_meta(figura)
 
 
 def main_inpc_meta(componentes, nomes, resumo):
     """A inflação cheia está dentro da meta do Banxico, e para onde aponta a última quinzena?"""
-    return anual_com_meta(componentes, "indice_general", nomes["indice_general"])
+    return anual_com_meta(componentes, "indice_general", nomes["indice_general"], resumo)
 
 
 def main_core_meta(componentes, nomes, resumo):
     """O núcleo, que é o que o Banxico olha para decidir juros, está convergindo para 3%?"""
-    return anual_com_meta(componentes, "subyacente", nomes["subyacente"])
+    return anual_com_meta(componentes, "subyacente", nomes["subyacente"], resumo)
 
 
 def main_vs_norma(componentes, nomes, resumo):

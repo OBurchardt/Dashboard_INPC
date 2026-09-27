@@ -30,7 +30,7 @@ pipeline/
 docs/
   metodologia.md                    registro das escolhas metodológicas e justificativas
   guia_do_projeto.md                guia completo: como rodar, fluxo, fórmulas, dicionário de dados, páginas
-  auditoria_pre_chat.md             auditoria antes do chat: problemas, evidências, correções e testes de falha
+  auditoria.md                      auditoria final: cada número conferido com o INEGI e o Banxico, e os bugs achados
 .github/workflows/
   atualizar_inpc.yml                no dia do release, roda o pipeline no GitHub e grava o HTML novo na main
 data/                               [gerada pelo pipeline]

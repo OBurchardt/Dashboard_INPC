@@ -386,7 +386,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
     <div class="card c6" data-card="tend_dessazonalizado">
       <h3>Variação mensal dessazonalizada</h3><p class="sub">INPC geral e núcleo, ajuste STL (%)</p>
     </div>
-    <div class="card c6" data-card="tend_momentum"">
+    <div class="card c6" data-card="tend_momentum">
       <h3>Momentum do núcleo</h3><p class="sub">Variação dessazonalizada anualizada de 6 meses (em destaque) e de 3 meses, e variação em 12 meses (%)</p>
     </div>
     <div class="card c12" data-card="tend_perfil_sazonal">
@@ -455,8 +455,10 @@ const RELEASE = new Set(["main_vs_norma", "decomp_arvore"]);   // mostram só o 
 
 // ==== 2. Formatação ====
 function numero(valor, casas, sufixo) {
-  const texto = Math.abs(valor).toFixed(casas).replace(".", ",") + sufixo;
-  return valor < 0 ? "−" + texto : texto;
+  // o sinal sai do valor já arredondado: −0,004 aparece "0,00", sem sinal, como nas tabelas e nos cartões
+  const arredondado = Number(valor.toFixed(casas));
+  const texto = Math.abs(arredondado).toFixed(casas).replace(".", ",") + sufixo;
+  return arredondado < 0 ? "−" + texto : texto;
 }
 const lerNumero = (texto) => parseFloat(texto.replace("−", "-").replace(",", "."));
 
@@ -494,7 +496,7 @@ function cartaoKpi(k) {
 
 function cartaoMensalImplicito(m) {
   // a faixa é a estimativa mais os quartis 25 e 75 dos erros do próprio método desde 2020, sem informação futura;
-  // a nota diz em quantos meses ela conteve o realizado, medido fora da amostra (docs/auditoria_pre_chat.md);
+  // a nota diz em quantos meses ela conteve o realizado, medido fora da amostra (docs/metodologia.md);
   // no card vai só a taxa de acerto, e o detalhe do teste fica no tooltip
   return `<div class="card c3 kpi" data-kpi="implicito" title="Núcleo implícito: ${m.subyacente}. Estimativa: 1ª quinzena publicada e 2ª quinzena pela mediana sazonal de 2010–2019. Faixa: a estimativa mais os quartis 25 e 75 dos erros de previsão da variação mensal desde 2020. A faixa conteve o mês realizado em ${m.cobertura} de ${m.meses_testados} meses testados fora da amostra.">
     <div class="kpi-rotulo">Estimativa do mês · ${m.mes}</div>
@@ -562,7 +564,7 @@ function chipDoCard(slot, figura) {
   const datas = figura.data.flatMap((t) => (t.x || [])).filter((x) => /^\d{4}-/.test(String(x)));
   if (!datas.length) return `Mensal · ${DADOS.cabecalho.ano}`;
   const anos = datas.map((x) => String(x).slice(0, 4)).sort();
-  return `Mensal · ${anos[0]}–${anos[anos.length - 1]}`;
+  return `Mensal · ${anos[0] === anos[anos.length - 1] ? anos[0] : `${anos[0]}–${anos[anos.length - 1]}`}`;
 }
 
 // os gráficos no formato do Banxico dizem isso na fonte, porque o desenho segue o Informe Trimestral
@@ -577,9 +579,8 @@ function montarCard(card) {
   const titulo = card.innerHTML;
   const fonte = /^(grupos|explorar)_/.test(slot) ? FONTE.banxico : FONTE.padrao;
   const chip = figura ? `<span class="chip">${chipDoCard(slot, figura)}</span>` : "";
-  const nota = card.dataset.nota ? ` ${card.dataset.nota}` : "";
   const corpo = card.dataset.tipo === "tabela" ? `<div class="tabela">${DADOS.tabelas[slot]}</div>` : `<div class="grafico" data-grafico="${slot}"></div>`;
-  card.innerHTML = `<div class="card-topo"><div>${titulo}</div>${chip}</div>${corpo}<p class="fonte">${fonte}${nota}</p>`;
+  card.innerHTML = `<div class="card-topo"><div>${titulo}</div>${chip}</div>${corpo}<p class="fonte">${fonte}</p>`;
   if (card.dataset.tipo === "tabela") refinarTabelas(card, slot);
 }
 
@@ -820,7 +821,7 @@ function estilizarArvore(figura) {
   t.insidetextfont = { family: css("--fonte"), size: 13, color: corTexto };
   t.outsidetextfont = { family: css("--fonte"), size: 13, color: corTexto };
   // o modelo de texto pedia +.2f, mas o plotly ignorava o formato no treemap e mostrava 10 casas; aqui ele sai pronto
-  t.text = t.customdata.map((v) => (v > 0 ? "+" : "") + numero(v, 2, " pp"));
+  t.text = t.customdata.map((v) => (Number(v.toFixed(2)) > 0 ? "+" : "") + numero(v, 2, " pp"));
   t.texttemplate = "%{label}<br>%{text}";
   t.hovertemplate = "%{label}: %{text}<extra></extra>";
   t.pathbar = { visible: false };
