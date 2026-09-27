@@ -4,7 +4,7 @@
 # comparação com o "normal" daquele mês (norma sazonal de 2010 a 2019) e o ritmo dessazonalizado
 # anualizado. Para os 292 genéricos, as mesmas leituras e a incidência de cada um. No fim monto um
 # resumo com o que vai no topo do dashboard: os números principais, o mensal implícito no dia da
-# 1a quinzena, a difusão e os genéricos que mais pesaram.
+# 1a quinzena, o realizado contra a expectativa, a difusão e os genéricos que mais pesaram.
 
 import json
 import sys
@@ -314,11 +314,26 @@ def cobertura_fora_da_amostra(erros, primeiros=24):
     return sum(dentro) / len(dentro) * 100, len(dentro)
 
 
-def ritmo_do_nucleo(componentes):
-    """SAAR de 6 meses e variação em 12 meses do núcleo no último mês, para o destaque "Ritmo do núcleo"."""
-    # os dois do mesmo mês: o SAAR só existe na série mensal, então comparo com a anual mensal, não com a da quinzena
-    ultimo = componentes[(componentes["componente"] == "subyacente") & (componentes["frequencia"] == "mensal")].sort_values("data").iloc[-1]
-    return {"rotulo_periodo": ultimo["rotulo_periodo"], "saar_6m": arredondar(ultimo["saar_6m"]), "variacao_anual": arredondar(ultimo["variacao_anual"])}
+def expectativa(principais, periodo, rotulo, frequencia):
+    """Realizado contra esperado no último release, para o INPC e o núcleo, com a fonte de cada expectativa."""
+    # a prioridade é a linha digitada em config/expectativas_manuais.csv (a expectativa de mercado da véspera); sem ela,
+    # num release mensal, a mediana da pesquisa do Banxico daquele mês; sem nenhuma, o indicador fica sem expectativa
+    manuais = pd.read_csv(p.EXPECTATIVAS_MANUAIS, dtype={"periodo": str, "indicador": str, "fonte": str}, encoding="utf-8")
+    arquivo_banxico = p.PASTA_RAW / "expectativas_banxico.csv"
+    banxico = pd.read_csv(arquivo_banxico, dtype={"periodo": str}, encoding="utf-8") if arquivo_banxico.exists() else None
+    resultado = {"periodo": periodo, "rotulo_periodo": rotulo, "indicadores": {}}
+    for indicador in ("indice_general", "subyacente"):
+        manual = manuais[(manuais["periodo"] == periodo) & (manuais["indicador"] == indicador)]
+        pesquisa = banxico[(banxico["periodo"] == periodo) & (banxico["indicador"] == indicador)] if banxico is not None else []
+        if len(manual):
+            esperado, fonte = manual["variacao_esperada"].iloc[0], manual["fonte"].iloc[0]
+        elif frequencia == "mensal" and len(pesquisa):
+            esperado, fonte = pesquisa["variacao_esperada"].iloc[0], f"Pesquisa Banxico, {rotulo}"
+        else:
+            continue
+        resultado["indicadores"][indicador] = {"realizado": arredondar(principais[indicador]["variacao_periodo"]),
+                                               "esperado": arredondar(esperado), "fonte": fonte}
+    return resultado
 
 
 def mensal_implicito(componentes, mes):
@@ -383,9 +398,11 @@ if __name__ == "__main__":
     # e as etapas seguintes só leem frequencia_do_release
     frequencia_do_release = "quinzenal" if tipo == "1a_quinzena" else "mensal"
     rotulos = componentes[componentes["periodo"].isin(ultimo.values())].groupby("frequencia")["rotulo_periodo"].first().to_dict()
+    principais = {frequencia: numeros_principais(componentes, frequencia) for frequencia in p.PERIODOS_POR_ANO}
     resumo = {"ultimo_periodo": ultimo, "ultimo_rotulo": rotulos, "tipo_ultimo_release": tipo, "frequencia_do_release": frequencia_do_release,
-              "principais": {frequencia: numeros_principais(componentes, frequencia) for frequencia in p.PERIODOS_POR_ANO},
-              "ritmo_do_nucleo": ritmo_do_nucleo(componentes),
+              "principais": principais,
+              "expectativa": expectativa(principais[frequencia_do_release], ultimo[frequencia_do_release],
+                                         rotulos[frequencia_do_release], frequencia_do_release),
               "mensal_implicito": mensal_implicito(componentes, ultimo["quinzenal"][:7]) if tipo == "1a_quinzena" else None,
               "difusao": {coluna: (valor if coluna in ("periodo", "rotulo_periodo") else arredondar(valor)) for coluna, valor in
                           difusao.drop(columns="data").iloc[-1].items()},

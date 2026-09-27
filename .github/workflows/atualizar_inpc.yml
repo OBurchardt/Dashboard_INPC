@@ -70,6 +70,8 @@ jobs:
 
       - name: Rodar o pipeline
         if: steps.release.outputs.seguir == 'true' && steps.feito.outputs.ja != 'true'
+        env:
+          BANXICO_TOKEN: ${{ secrets.BANXICO_TOKEN }}   # sem o secret, o dashboard sai sem a expectativa do Banxico
         run: python run_pipeline.py
 
       - name: O período do release está na base?

@@ -201,7 +201,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 .destaque { background: var(--azul-medio); border-radius: var(--raio-card); padding: 18px 20px; border-left: none; }
 .destaque:first-child { padding-left: 20px; }
 .destaque-rotulo { font-size: var(--t-13); font-weight: 700; color: var(--azul-rotulo); margin-bottom: 6px; }
-.destaque-texto { font-size: var(--t-14); color: var(--branco); font-weight: 500; line-height: 1.55; font-variant-numeric: tabular-nums; }
+.destaque-texto { font-size: var(--t-14); color: var(--branco); font-weight: 500; line-height: 1.55; font-variant-numeric: tabular-nums; white-space: pre-line; }   /* pre-line: o realizado x expectativa vem em linhas */
 
 /* ==== 4. Tabelas ==== */
 .tabela { overflow-x: auto; }
@@ -524,7 +524,7 @@ function montarEstimativa(m) {
 }
 
 function montarDestaques(frases) {
-  const rotulos = ["Ritmo do núcleo", "Maior contribuição", "Maior desvio sazonal", "Difusão"];
+  const rotulos = ["Realizado x expectativa", "Maior contribuição", "Maior desvio sazonal", "Difusão"];
   document.getElementById("destaques").innerHTML = frases.map((f, i) =>
     `<div class="destaque"><div class="destaque-rotulo">${rotulos[i]}</div>
      <div class="destaque-texto">${f}</div></div>`).join("");

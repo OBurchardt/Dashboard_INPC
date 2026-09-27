@@ -6,10 +6,12 @@
 # No dia a dia a etapa é preguiçosa de propósito: olha o calendário, e se não saiu dado novo nem
 # vai à rede. Se saiu, rebaixa só os últimos meses e sobrescreve esses períodos. O histórico
 # inteiro só é baixado quando eu peço (IMPORTAR_DO_ZERO) ou quando a base ficou muito para trás.
+# No fim, a expectativa de inflação da pesquisa do Banxico, a única coisa que não vem do INEGI.
 
 import csv
 import io
 import json
+import os
 import re
 import sys
 import time
@@ -28,10 +30,11 @@ MESES = {"Ene": 1, "Feb": 2, "Mar": 3, "Abr": 4, "May": 5, "Jun": 6, "Jul": 7, "
 
 # ==== 1. Rede ====
 def pedir(metodo, url, **argumentos):
-    """GET ou POST ao INEGI com até 3 tentativas, porque o servidor derruba conexão sem avisar."""
+    """GET ou POST com até 3 tentativas, porque o servidor do INEGI derruba conexão sem avisar."""
+    cabecalhos = {"User-Agent": "Mozilla/5.0", **argumentos.pop("headers", {})}
     for tentativa in range(1, p.TENTATIVAS_REDE + 1):
         try:
-            resposta = requests.request(metodo, url, timeout=p.TEMPO_LIMITE_SEGUNDOS, headers={"User-Agent": "Mozilla/5.0"}, **argumentos)
+            resposta = requests.request(metodo, url, timeout=p.TEMPO_LIMITE_SEGUNDOS, headers=cabecalhos, **argumentos)
             resposta.raise_for_status()
             return resposta
         except requests.RequestException:
@@ -221,10 +224,44 @@ def atualizar():
     print(f"Base atualizada de {base} para {ultimo_na_base()} (janela desde {ano_inicio})")
 
 
+# ==== 8. Expectativas do Banxico ====
+def token_do_banxico():
+    """O token da API do Banxico: do ambiente (no GitHub, o secret) ou do .env local, que fica fora do git."""
+    if not os.environ.get("BANXICO_TOKEN") and (p.RAIZ / ".env").exists():
+        for linha in (p.RAIZ / ".env").read_text(encoding="utf-8").splitlines():
+            chave, _, valor = linha.partition("=")
+            if chave.strip() == "BANXICO_TOKEN":
+                os.environ["BANXICO_TOKEN"] = valor.strip().strip('"')
+    return os.environ.get("BANXICO_TOKEN")
+
+
+def baixar_expectativas_banxico():
+    """A mediana da inflação mensal esperada pela pesquisa do Banxico, INPC e núcleo, para data/raw/expectativas_banxico.csv."""
+    # a única falha que eu deixo passar: sem token ou com a API fora, o dashboard sai sem a expectativa do Banxico,
+    # porque a validação contra o INEGI não pode depender dele. A mensagem não traz a URL nem o token
+    token = token_do_banxico()
+    if not token:
+        print("Expectativas do Banxico: sem BANXICO_TOKEN, sigo sem elas")
+        return
+    series = {serie: indicador for indicador, serie in p.SERIES_EXPECTATIVA_BANXICO.items()}
+    try:
+        resposta = pedir("GET", p.URL_BANXICO_SIE.format(series=",".join(series)), headers={"Bmx-Token": token}).json()
+    except requests.RequestException as erro:
+        print(f"Expectativas do Banxico: API indisponível ({type(erro).__name__}), sigo sem elas")
+        return
+    linhas = [{"periodo": f"{dado['fecha'][6:]}-{dado['fecha'][3:5]}", "indicador": series[serie["idSerie"]], "variacao_esperada": dado["dato"]}
+              for serie in resposta["bmx"]["series"] for dado in serie["datos"] if dado["dato"] != "N/E"]  # fecha vem como "01/08/2026"
+    tabela = pd.DataFrame(linhas).sort_values(["periodo", "indicador"])
+    tabela.to_csv(p.PASTA_RAW / "expectativas_banxico.csv", index=False, encoding="utf-8")
+    print(f"Expectativas do Banxico: pesquisas até {tabela['periodo'].max()}")
+
+
 if __name__ == "__main__":
     inicio = time.time()
     if globals().get("importar_do_zero"):  # a opção chega pelo run_pipeline.py; rodando a etapa sozinha, é False
         baixar_historico_completo()
     else:
         atualizar()
+    # a pesquisa do Banxico sai no começo do mês, fora do calendário do INEGI, então peço a cada rodada (é um pedido só)
+    baixar_expectativas_banxico()
     print(f"Ingestão: {time.time() - inicio:.1f} s")

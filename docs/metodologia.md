@@ -10,6 +10,8 @@ Todos os números vêm do INEGI, sem token:
 - Planilhas de ponderadores: a cesta 2024 (vigente desde a 2ª quinzena de julho de 2024) e a cesta 2018 (da 2ª quinzena de julho de 2018 até a 1ª quinzena de julho de 2024). As planilhas marcam com um X o subíndice de cada genérico; essa é a classificação oficial que uso.
 - Tabulados CA55 (mensal) e CA56 (quinzenal): os números que o INEGI publica no release. São o gabarito da validação.
 
+As expectativas do destaque "Realizado x expectativa" vêm da Pesquisa do Banxico com os especialistas do setor privado ou de entrada manual (`config/expectativas_manuais.csv`); todo o resto vem do INEGI.
+
 A API do Banco de Indicadores (BIE) foi testada como segundo canal. Ela entrega os mesmos números que o app (na auditoria final, idênticos em todo o histórico dos 7 componentes que ela tem), mas não tem os subíndices nem os genéricos, e por isso saiu do pipeline.
 
 ## Fatos sobre os dados

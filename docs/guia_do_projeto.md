@@ -6,13 +6,13 @@ Escrevi este guia para quem abre a pasta pela primeira vez, inclusive eu daqui a
 
 Baixa do INEGI as séries do INPC, o índice de preços ao consumidor do México, confere com o que o próprio INEGI publicou no release, faz as contas que um economista quer ver no dia e junta tudo num único HTML que abre sem internet. Às 06:00 da Cidade do México sai o dado, alguém roda `python run_pipeline.py` e, em poucos minutos, tem a inflação cheia e a do núcleo contra a meta do Banxico, de onde veio a alta, o que fugiu do normal daquela época do ano e se o ritmo está acelerando.
 
-Tudo vem do INEGI, sem chave de API: o app "Índices de Precios", os xlsx de ponderadores e os tabulados do release são públicos.
+Tudo vem do INEGI, sem chave de API: o app "Índices de Precios", os xlsx de ponderadores e os tabulados do release são públicos. A única exceção é a expectativa do destaque "Realizado x expectativa" (seção "Expectativas" do README): digitada à mão, ou a Pesquisa do Banxico, que precisa de um token gratuito no `.env`.
 
 No release de exemplo, o painel abre assim:
 
 - INPC 0,33% na quinzena e 3,42% em 12 meses, 0,16 pp acima da 1ª quinzena de agosto (3,26%).
 - Núcleo 0,17% e 3,79% (0,14 pp abaixo dos 3,93% da 1ª quinzena de agosto); serviços 4,33% e mercadorias 3,22% em 12 meses; não núcleo 2,17%.
-- Ritmo do núcleo: SAAR de 6 meses de 3,90% em ago/26, contra 3,88% em 12 meses no mesmo mês.
+- Realizado x expectativa: com a Encuesta Citi digitada em `config/expectativas_manuais.csv`, "INPC 0,33% vs 0,28% esperado (+0,05 pp)" e "Núcleo 0,17% vs 0,19% esperado (−0,02 pp)"; sem linha manual, "Sem expectativa cadastrada para 1ª quinz. set/26".
 - Estimativa para setembro: 0,42% no mês e 3,45% em 12 meses, intervalo provável de 0,37% a 0,50%.
 - Maior contribuição: Jitomate, +0,11 pp (o preço subiu 22,79% na quinzena).
 - Maior desvio sazonal ponderado: Jitomate, +0,08 pp; para baixo, Gasolina de bajo octanaje, −0,02 pp.
@@ -101,6 +101,7 @@ As constantes que eu posso querer mudar, em seções: caminhos (importar o arqui
 - `baixar_ponderadores`, `baixar_tabulados`: os dois xlsx e os dois tabulados do release.
 - `ultimo_divulgado`, `ultimo_na_base`: o que o calendário diz que já saiu e o que a base tem. Cuidado: o release "mensal" traz também a 2ª quinzena do mesmo mês.
 - `baixar_historico_completo`, `atualizar`, `avisar_se_o_calendario_acabou`: os dois modos e o aviso de que o calendário acabou.
+- `token_do_banxico`, `baixar_expectativas_banxico`: a mediana da inflação mensal esperada na Pesquisa do Banxico (INPC e núcleo, séries SR14223 e SR14314 do SIE), para `data/raw/expectativas_banxico.csv`. Roda a cada execução, porque a pesquisa sai no começo do mês, fora do calendário do INEGI. Sem token, ou com a API fora, imprime um aviso e o pipeline segue: é a única falha que passa, porque a validação do INEGI não pode depender do Banxico.
 
 ### pipeline/1_dados/tratamento.py
 
@@ -177,7 +178,7 @@ Estimativa do mês (`mensal_implicito`, `erros_do_mensal_implicito`, `cobertura_
 
 Em setembro: 1ª quinzena 146,010; mediana da 2ª quinzena de setembro de 0,083%, o que dá 146,132; média 146,071; contra agosto (145,462), 0,42% no mês e 3,45% em 12 meses. A faixa é a estimativa mais os quartis 25 e 75 dos erros do próprio método de 2020 em diante: 0,37% a 0,50% no INPC e 0,22% a 0,27% no núcleo. O backtest e a cobertura estão na metodologia.
 
-Resumo (`numeros_principais`, `ritmo_do_nucleo`, `destaques`): o `metricas_resumo.json` guarda o que vai no topo do painel, com 6 casas; o arredondamento fica para a tela. Para o INPC, o núcleo, o não núcleo, serviços e mercadorias, `numeros_principais` guarda a variação no período, o padrão sazonal, a taxa em 12 meses e a taxa em 12 meses de um mês antes, que é a comparação que o mercado faz: num release de 1ª quinzena, a 1ª quinzena do mês anterior (duas quinzenas antes); num release mensal, o mês anterior. Uma decisão acontece aqui e só aqui: se o último quinzenal termina em "Q1", o release é de 1ª quinzena e o dado principal é quinzenal; senão, é o mês. As etapas seguintes só leem `frequencia_do_release`.
+Resumo (`numeros_principais`, `expectativa`, `destaques`): o `metricas_resumo.json` guarda o que vai no topo do painel, com 6 casas; o arredondamento fica para a tela. Para o INPC, o núcleo, o não núcleo, serviços e mercadorias, `numeros_principais` guarda a variação no período, o padrão sazonal, a taxa em 12 meses e a taxa em 12 meses de um mês antes, que é a comparação que o mercado faz: num release de 1ª quinzena, a 1ª quinzena do mês anterior (duas quinzenas antes); num release mensal, o mês anterior. Uma decisão acontece aqui e só aqui: se o último quinzenal termina em "Q1", o release é de 1ª quinzena e o dado principal é quinzenal; senão, é o mês. As etapas seguintes só leem `frequencia_do_release`. `expectativa` junta o realizado no período com a expectativa de cada indicador: primeiro a linha de `config/expectativas_manuais.csv` daquele período; senão, num release mensal, a pesquisa do Banxico daquele mês (a pesquisa de agosto sai no 1º dia útil de setembro, antes do INPC de agosto); senão, nada.
 
 ### pipeline/2_analise/tabelas.py
 
@@ -207,6 +208,7 @@ HTML, CSS e JavaScript num arquivo só. Toda cor sai de uma paleta fechada de 17
 | `arvore_genericos_{freq}.json` | os 463 nós da árvore: `id_no`, `nome`, `id_serie`, `generico`, `id_pai`, `nivel` |
 | `ponderadores_2018.xlsx`, `ponderadores_2024.xlsx` | as planilhas oficiais, sem alteração |
 | `tabulado_{freq}.json` | a resposta do tabulado do release mais o meu `periodo` |
+| `expectativas_banxico.csv` | `periodo` (mês da pesquisa), `indicador`, `variacao_esperada`: a mediana da inflação mensal esperada, desde 1999 |
 
 Os valores ficam como texto, com "N/E" onde o INEGI não publica; os CSVs abrem direto no Excel.
 
@@ -242,7 +244,7 @@ metricas_difusao.parquet: mensal, desde 2019: `pct_genericos_em_alta` (por conta
 
 metricas_aberturas.parquet: desde 2019, as 4 aberturas de maior peso de cada subíndice e "Demais": `pai` (o subíndice), `componente` (`abertura_1` a `abertura_4` ou `demais`), `nome`, `frequencia`, `periodo`, `posicao`, `rotulo_periodo`, `data`, `variacao_anual` (nula em "Demais") e `contribuicao_no_pai`.
 
-metricas_resumo.json: `ultimo_periodo`, `ultimo_rotulo`, `tipo_ultimo_release`, `frequencia_do_release`, `principais`, `ritmo_do_nucleo`, `mensal_implicito` (nulo em release mensal), `difusao` e `destaques`.
+metricas_resumo.json: `ultimo_periodo`, `ultimo_rotulo`, `tipo_ultimo_release`, `frequencia_do_release`, `principais`, `expectativa`, `mensal_implicito` (nulo em release mensal), `difusao` e `destaques`.
 
 validacao.json: data da checagem, último período e, para cada comparação, o desvio máximo e se passou. O dashboard não lê esse arquivo.
 
@@ -255,7 +257,7 @@ No alto, as quatro abas (Resumo, Composição, Sazonalidade e Explorar) e, visí
 Resumo:
 
 - Cartões: INPC, Núcleo, Serviços e Mercadorias, o que o mercado cita no release. Cada um tem a taxa em 12 meses, a variação no período e a pílula com a mudança da taxa em 12 meses contra um mês antes ("▼ −0,14 pp vs 1ª quinz. ago"; no release mensal, "vs jul"). O não núcleo fica na faixa do release.
-- Destaques: ritmo do núcleo, maior contribuição, maior desvio sazonal ("Acima do padrão: Jitomate +0,08 pp · Abaixo: Gasolina de bajo octanaje −0,02 pp") e difusão.
+- Destaques: realizado x expectativa (a diferença é entre os dois números já arredondados, como na pílula, e o card diz de onde veio a expectativa), maior contribuição, maior desvio sazonal ("Acima do padrão: Jitomate +0,08 pp · Abaixo: Gasolina de bajo octanaje −0,02 pp") e difusão.
 - INPC geral e Núcleo vs meta: a linha é mensal e, em release de quinzena, o ponto destacado é a última quinzena. Em todo gráfico com a meta, o eixo mostra a banda de 2% a 4% inteira. Nos gráficos com o ponto da quinzena, cada linha do tooltip diz o período do próprio ponto ("Núcleo (ago/26): 3,88%" e "Núcleo (1ª quinz. set/26): 3,79%").
 - Os quatro gráficos de grupo mais usados, os mesmos da aba Composição.
 - Último período vs padrão sazonal: barras dos sete principais com a mediana e o intervalo p25 a p75.

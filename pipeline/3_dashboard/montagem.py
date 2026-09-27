@@ -6,6 +6,7 @@
 # 2010 a 2019, não contra expectativa de mercado, por isso não chamo de surpresa. Esta etapa só
 # roda se a validação passou, então tudo o que ela mostra já foi conferido com o INEGI.
 
+import html
 import json
 import sys
 from datetime import datetime
@@ -97,20 +98,36 @@ def nome(item):
     return item["nome_generico"][:1].upper() + item["nome_generico"][1:]
 
 
+def realizado_x_esperado(expectativa):
+    """O primeiro destaque: INPC e núcleo no período contra o esperado, e de onde veio a expectativa."""
+    # a diferença é entre os dois números já arredondados em 2 casas, como na pílula dos cartões
+    linhas, fontes = [], []
+    for indicador, nome_na_tela in (("indice_general", "INPC"), ("subyacente", "Núcleo")):
+        item = expectativa["indicadores"].get(indicador)
+        if item is None:
+            linhas.append(f"{nome_na_tela}: sem expectativa cadastrada")
+            continue
+        realizado, esperado = round(item["realizado"], 2), round(item["esperado"], 2)
+        diferenca = numero(round(realizado - esperado, 2), sufixo=chr(160) + "pp", sinal=True)
+        linhas.append(f"{nome_na_tela} {numero(realizado)} vs {numero(esperado)} esperado ({diferenca})")
+        fontes += [] if item["fonte"] in fontes else [item["fonte"]]
+    if not fontes:
+        return f"Sem expectativa cadastrada para {expectativa['rotulo_periodo']}"
+    # a fonte é texto livre do CSV manual e vai para dentro do HTML, então escapo
+    return "\n".join(linhas + [f"Fonte da expectativa: {html.escape('; '.join(fontes))}"])
+
+
 def destaques(resumo):
-    """As quatro frases do topo (ritmo do núcleo, maior contribuição, maior desvio sazonal e difusão), só com os fatos; o rótulo de cada uma fica no template."""
-    ritmo = resumo["ritmo_do_nucleo"]
+    """As quatro frases do topo (realizado x expectativa, maior contribuição, maior desvio sazonal e difusão), só com os fatos; o rótulo de cada uma fica no template."""
     maior = resumo["destaques"]["maiores_incidencias"][0]
     acima, abaixo = resumo["destaques"]["acima_da_norma"][0], resumo["destaques"]["abaixo_da_norma"][0]
     difusao = resumo["difusao"]
-    # a inflação do release já está na faixa e nos cartões; aqui vai o ritmo do núcleo contra a anual do mesmo mês
-    nucleo = f"SAAR 6 meses {numero(ritmo['saar_6m'])} ({ritmo['rotulo_periodo']}) vs {numero(ritmo['variacao_anual'])} em 12 meses"
     contribuicao = f"{nome(maior)} {numero(maior['incidencia_periodo'], sufixo=' pp', sinal=True)} ({numero(maior['variacao_periodo'], sinal=True)})"
     # espaço não separável antes do "pp", para a unidade não quebrar de linha longe do número
     desvio = (f"Acima do padrão: {nome(acima)} {numero(acima['desvio_sazonal_ponderado'], sufixo=chr(160) + 'pp', sinal=True)} · "
               f"Abaixo: {nome(abaixo)} {numero(abaixo['desvio_sazonal_ponderado'], sufixo=chr(160) + 'pp', sinal=True)}")
     espalhamento = f"{numero(difusao['pct_cesta_anual_acima_3'], 0)} do peso da cesta com alta acima de 3% em 12 meses ({difusao['rotulo_periodo']})"
-    return [nucleo, contribuicao, desvio, espalhamento]
+    return [realizado_x_esperado(resumo["expectativa"]), contribuicao, desvio, espalhamento]
 
 
 if __name__ == "__main__":

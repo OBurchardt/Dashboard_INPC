@@ -12,6 +12,7 @@ PASTA_PROCESSED = RAIZ / "data" / "processed"
 PASTA_OUTPUT = RAIZ / "output"
 CATALOGO = RAIZ / "config" / "catalogo_series.csv"
 CALENDARIO = RAIZ / "config" / "calendario_releases.csv"
+EXPECTATIVAS_MANUAIS = RAIZ / "config" / "expectativas_manuais.csv"  # a expectativa de mercado digitada na véspera do release
 for pasta in (PASTA_RAW, PASTA_PROCESSED, PASTA_OUTPUT):
     pasta.mkdir(parents=True, exist_ok=True)
 
@@ -33,7 +34,14 @@ URLS_PONDERADORES = {
     "ponderadores_2018.xlsx": "https://www.inegi.org.mx/contenidos/programas/inpc/2018/doc/PonderadoresINPC_Nacional.xlsx",
 }
 
-# ==== 5. Estruturas do app indicesdeprecios (cesta 2024) ====
+# ==== 5. Expectativas do Banxico (a única fonte fora do INEGI) ====
+# Encuesta sobre las Expectativas de los Especialistas en Economía del Sector Privado, no SIE: mediana da inflação
+# mensal esperada para o mês da pesquisa ("mes en curso"). A pesquisa de agosto sai no 1º dia útil de setembro,
+# antes do INPC de agosto, então ela é a expectativa daquele release mensal. O token vem de BANXICO_TOKEN
+URL_BANXICO_SIE = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/{series}/datos"
+SERIES_EXPECTATIVA_BANXICO = {"indice_general": "SR14223", "subyacente": "SR14314"}
+
+# ==== 6. Estruturas do app indicesdeprecios (cesta 2024) ====
 # ids que achei navegando no app: onde moram os 16 componentes e as 16 incidências, por tipo e frequência
 ESTRUTURAS = {
     ("indice", "mensal"): "112001700010",
@@ -49,7 +57,7 @@ ARVORES = {
 # o tabulado que o INEGI publica no release é o gabarito da validação
 TABULADOS = {"mensal": "CA55_2018A", "quinzenal": "CA56_2018A"}
 
-# ==== 6. Componentes e nomes na tela ====
+# ==== 7. Componentes e nomes na tela ====
 PERIODOS_POR_ANO = {"mensal": 12, "quinzenal": 24}  # a variação anual compara com 12 meses ou 24 quinzenas antes
 COMPONENTES_PRINCIPAIS = ("indice_general", "subyacente", "no_subyacente")
 COMPONENTES_NIVEL_2 = ("mercancias", "servicios", "agropecuarios", "energeticos_y_tarifas")
@@ -73,7 +81,7 @@ NOMES_EXIBICAO = {
     "tarifas_autorizadas_por_el_gobierno": "Tarifas do governo",
 }
 
-# ==== 7. Janelas das análises e tolerância da validação ====
+# ==== 8. Janelas das análises e tolerância da validação ====
 ANO_INICIO_DESSAZONALIZACAO = 2000  # antes disso a inflação era alta e o padrão sazonal se perde no ruído
 ANOS_NORMA_SAZONAL = (2010, 2019)  # uma década de inflação comportada, antes da pandemia
 ANO_INICIO_GRAFICOS = 2019  # um ano antes da pandemia

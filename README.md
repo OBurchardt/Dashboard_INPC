@@ -10,13 +10,15 @@ CLAUDE.md                           regras permanentes do projeto
 run_pipeline.py                     orquestra as etapas na ordem; IMPORTAR_DO_ZERO no topo
 requirements.txt                    dependências Python
 .gitignore                          arquivos fora do controle de versão
+.env.example                        a chave BANXICO_TOKEN, sem valor; copie para .env e preencha
 config/
   parametros.py                     caminhos, fuso, URLs e ids do INEGI, janela de atualização
   catalogo_series.csv               lista das séries do INEGI a baixar
   calendario_releases.csv           calendário oficial de divulgação do INPC
+  expectativas_manuais.csv          expectativa de mercado digitada na véspera do release
 pipeline/
   1_dados/
-    ingestao.py                     baixa do INEGI (app indicesdeprecios, ponderadores, tabulados) para data/raw/
+    ingestao.py                     baixa do INEGI (app indicesdeprecios, ponderadores, tabulados) e a pesquisa do Banxico para data/raw/
     tratamento.py                   organiza o bruto em parquet (séries, genéricos, ponderadores, tabulado)
     validacao.py                    confere completude, tabulado em dia, último release e incidências; para o pipeline se falhar
     dessazonalizacao.py             gera séries dessazonalizadas e comparação sazonal
@@ -50,6 +52,32 @@ INEGI (indicesdeprecios, ponderadores, tabulados) → ingestao → data/raw → 
 Instale as dependências (`pip install -r requirements.txt`) e rode `python run_pipeline.py`.
 No topo do `run_pipeline.py`, `IMPORTAR_DO_ZERO = False` só atualiza a base com o dado mais recente;
 `True` rebaixa todo o histórico do INEGI como se a base não existisse.
+
+## Expectativas
+
+O projeto não tem acesso a Bloomberg nem a outras fontes pagas de consenso. Por isso o destaque "Realizado x
+expectativa" usa duas fontes, nesta ordem, para o INPC geral e o núcleo:
+
+1. a linha de `config/expectativas_manuais.csv` para o período do release, digitada à mão na véspera (por exemplo,
+   a Encuesta Citi para a quinzena, ou o consenso Bloomberg quando houver);
+2. no release mensal, sem linha manual, a mediana da inflação mensal esperada na Pesquisa do Banxico com os
+   especialistas do setor privado (séries SR14223 e SR14314 do SIE), baixada pela ingestão;
+3. sem nenhuma das duas, o card diz "Sem expectativa cadastrada para <período>".
+
+O CSV tem quatro colunas: `periodo` no formato do projeto (`2026-09-Q1` para a 1ª quinzena, `2026-09` para o mês),
+`indicador` (`indice_general` ou `subyacente`), `variacao_esperada` (variação no período, em %, com ponto decimal)
+e `fonte` (o texto que aparece no card). Uma linha por indicador:
+
+```
+periodo,indicador,variacao_esperada,fonte
+2026-09-Q1,indice_general,0.28,"Encuesta Citi, 22/09/2026"
+2026-09-Q1,subyacente,0.19,"Encuesta Citi, 22/09/2026"
+```
+
+A Pesquisa do Banxico precisa de um token gratuito da API SIE
+(https://www.banxico.org.mx/SieAPIRest/service/v1/token): localmente, no `.env` como `BANXICO_TOKEN` (veja o
+`.env.example`); no GitHub, em Settings → Secrets and variables → Actions, com o mesmo nome. Sem token, ou com a
+API fora do ar, o pipeline segue normalmente, só sem a expectativa do Banxico.
 
 ## Ver ao vivo
 
