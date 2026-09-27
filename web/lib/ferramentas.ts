@@ -63,6 +63,16 @@ export const schemas = {
       operacao: z.literal("comparacao_sazonal"),
       serie: ID_SERIE, frequencia: FREQUENCIA, periodo: PERIODO.optional(),
     }),
+    z.strictObject({
+      operacao: z.literal("tendencia"),
+      series: z.array(z.enum(["indice_general", "subyacente", "no_subyacente", "servicios", "mercancias"])).min(1).max(5).default(["subyacente", "servicios", "mercancias"]),
+      meses: z.number().int().min(3).max(24).default(6).describe("quantos meses para trás, no mensal"),
+    }),
+    z.strictObject({
+      operacao: z.literal("exclusao_contabil"),
+      excluir: z.array(ID_SERIE).min(1).max(5).describe("componentes ou genéricos cuja contribuição no período sai da conta"),
+      frequencia: FREQUENCIA, periodo: PERIODO.optional(),
+    }),
   ]),
   consultar_metodologia: z.strictObject({
     tema: z.enum(TEMAS),
@@ -332,12 +342,92 @@ function comparacaoSazonal(c: Contexto, a: Extract<Analise, { operacao: "compara
   ]);
 }
 
+function tendencia(c: Contexto, a: Extract<Analise, { operacao: "tendencia" }>): Envelope {
+  // só o que o pipeline já calculou, lado a lado e sem nota nem índice composto: 12 meses, SAAR e variação
+  // dessazonalizada no mensal, e a difusão. A leitura fica com o economista
+  const { pacote } = c;
+  const evidencias: Evidencia[] = [];
+  const janela = (id: string, metrica: string) => (colunaDaSerie(pacote, id, "mensal", metrica) ?? []).filter((p) => p.valor != null).slice(-a.meses);
+  const comEvidencias = (s: Serie, metrica: string) => {
+    const pontos = janela(s.id, metrica);
+    if (!pontos.length) return null;
+    const pontas = [pontos[0], pontos[pontos.length - 1]].map((p) => evidenciaNumero(pacote, s, metrica, "mensal", p.periodo, p.rotulo, p.valor));
+    evidencias.push(...pontas);
+    return { unidade: pacote.metricas[metrica].unidade, valores: pontos.map((p) => ({ periodo: p.periodo, rotulo: p.rotulo, valor: p.valor })),
+             evidencia_inicio: pontas[0].id, evidencia_fim: pontas[1].id };
+  };
+  const series = Object.fromEntries(a.series.map((id) => {
+    const s = serie(pacote, id)!;
+    return [id, { nome: s.nome_exibicao, variacao_anual: comEvidencias(s, "variacao_anual"), saar_6m: comEvidencias(s, "saar_6m"),
+                  saar_3m: comEvidencias(s, "saar_3m"), variacao_sa_mensal: comEvidencias(s, "variacao_sa_mensal") }];
+  }));
+  const difusao = serie(pacote, "difusao")!;
+  return envelope(pacote, "ok", {
+    operacao: "tendencia", frequencia: "mensal", meses: a.meses, series,
+    difusao: { pct_cesta_em_alta: comEvidencias(difusao, "pct_cesta_em_alta"), pct_cesta_anual_acima_3: comEvidencias(difusao, "pct_cesta_anual_acima_3") },
+    ultima_quinzena: `a tendência é mensal (até ${pacote.release.ultimo_rotulo.mensal}); a quinzena de ${pacote.release.ultimo_rotulo.quinzenal} não é dessazonalizada`,
+    como_citar: COMO_CITAR,
+  }, evidencias, [
+    "SAAR e variação dessazonalizada vêm do STL do projeto, não do INEGI; a ponta revisa quando entra um mês novo (SAAR 6m do núcleo: 1,00 pp em média).",
+    "A taxa em 12 meses mais baixa não prova melhora subjacente; compare com o SAAR e a difusão, sabendo que nenhuma medida sozinha decide.",
+  ]);
+}
+
+function exclusaoContabil(c: Contexto, a: Extract<Analise, { operacao: "exclusao_contabil" }>): Envelope {
+  // a variação observada do INPC no período menos as contribuições (incidências) retiradas. Soma e subtração de
+  // valores exportados, e nada mais: não é índice reponderado nem previsão
+  const { pacote } = c;
+  const periodo = periodoPadrao(pacote, a.frequencia, a.periodo);
+  const itens = a.excluir.map((id) => serie(pacote, id));
+  const inexistente = a.excluir.find((id, i) => !itens[i] || itens[i]!.tipo === "generico_saido" || itens[i]!.tipo === "indicador");
+  if (inexistente) return envelope(pacote, "erro_parametro", { erro: `não dá para excluir ${inexistente}: não é componente nem genérico com série` });
+  if (a.excluir.includes("indice_general")) return envelope(pacote, "erro_parametro", { erro: "o INPC não pode ser excluído dele mesmo" });
+  // um item e um ancestral dele contariam a mesma contribuição duas vezes
+  for (const s of itens) {
+    let pai = s!.pai;
+    while (pai) {
+      if (a.excluir.includes(pai)) return envelope(pacote, "erro_parametro", { erro: `${s!.id} já está dentro de ${pai}; excluir os dois contaria duas vezes` });
+      pai = serie(pacote, pai)?.pai ?? null;
+    }
+  }
+  const inpc = serie(pacote, "indice_general")!;
+  const observado = valorEm(pacote, inpc.id, a.frequencia, "variacao_periodo", periodo);
+  if (observado?.valor == null) return envelope(pacote, "indisponivel", { periodo, motivo: "sem variação do INPC nesse período" });
+  const partes = itens.map((s) => ({ s: s!, ponto: valorEm(pacote, s!.id, a.frequencia, "incidencia_periodo", periodo) }));
+  const semDado = partes.filter((x) => x.ponto?.valor == null).map((x) => x.s.id);
+  if (semDado.length) return envelope(pacote, "indisponivel", { periodo, motivo: `sem contribuição no período para ${semDado.join(", ")}` });
+  const evidencias = [evidenciaNumero(pacote, inpc, "variacao_periodo", a.frequencia, periodo, observado.rotulo, observado.valor)];
+  const retiradas = partes.map(({ s, ponto }) => {
+    const ev = evidenciaNumero(pacote, s, "incidencia_periodo", a.frequencia, periodo, ponto!.rotulo, ponto!.valor);
+    evidencias.push(ev);
+    return { id: s.id, nome: s.nome_exibicao, contribuicao_pp: ponto!.valor, evidencia: ev.id };
+  });
+  const soma = retiradas.reduce((t, x) => t + x.contribuicao_pp!, 0);
+  const resultado = evidenciaDerivada(pacote, `exclusao|${a.frequencia}|${periodo}|${[...a.excluir].sort().join(",")}`, "derivado",
+    `INPC ${observado.rotulo} menos a contribuição de ${retiradas.map((x) => x.nome).join(", ")} (exclusão contábil)`, observado.valor - soma, "%",
+    "subtração de valores do pacote: variação observada menos incidências");
+  evidencias.push(resultado);
+  return envelope(pacote, "ok", {
+    operacao: "exclusao_contabil", periodo, rotulo_periodo: observado.rotulo, frequencia: a.frequencia,
+    inpc_observado: { valor: observado.valor, unidade: "%", evidencia: evidencias[0].id },
+    retiradas, soma_retirada_pp: soma, resultado: { valor: resultado.valor, unidade: "%", evidencia: resultado.id },
+    hipotese: "conta o que sobraria da variação do período se os itens retirados tivessem contribuído zero, com os demais iguais",
+    como_citar: COMO_CITAR,
+  }, evidencias, [
+    "Exclusão contábil: não é índice reponderado (os pesos dos outros itens não foram redistribuídos) nem previsão.",
+    "Não diz o que teria acontecido sem o choque: os preços dos outros itens podem depender dele.",
+    ...(a.frequencia === "quinzenal" ? ["Vale para a quinzena; a variação em 12 meses sem o item exigiria encadear a conta período a período, o que esta ferramenta não faz."] : []),
+  ]);
+}
+
 function analisarComponentes(c: Contexto, a: Analise): Envelope {
   switch (a.operacao) {
     case "ranking": return ranking(c, a);
     case "decomposicao": return decomposicao(c, a);
     case "comparacao_temporal": return comparacaoTemporal(c, a);
     case "comparacao_sazonal": return comparacaoSazonal(c, a);
+    case "tendencia": return tendencia(c, a);
+    case "exclusao_contabil": return exclusaoContabil(c, a);
   }
 }
 

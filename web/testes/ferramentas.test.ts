@@ -157,3 +157,24 @@ test("estimativa do mês vem marcada como estimativa, com a faixa do backtest", 
   assert.deepEqual([r2(estimativa.indice_general.p25_variacao_mensal.valor), r2(estimativa.indice_general.p75_variacao_mensal.valor)], [0.37, 0.5]);
   assert.ok(r.evidencias.some((ev) => ev.tipo === "estimado"));
 });
+
+test("fase 2, tendência: só medidas do pipeline, lado a lado, sem nota", () => {
+  const t = executar("analisar_componentes", { operacao: "tendencia", series: ["subyacente"], meses: 6 });
+  const nucleo = dados(t).series.subyacente;
+  const ultimo = (m: string) => nucleo[m].valores[nucleo[m].valores.length - 1];
+  assert.equal(ultimo("saar_6m").periodo, "2026-08");
+  assert.equal(r2(ultimo("saar_6m").valor), 3.9);   // guia do projeto: SAAR 6m do núcleo em ago/26
+  assert.equal(r2(ultimo("variacao_anual").valor), 3.88);
+  assert.ok(!JSON.stringify(t.dados).includes("score"));
+  assert.ok(t.limitacoes.some((l) => l.includes("STL do projeto")));
+});
+
+test("fase 2, exclusão contábil: variação observada menos a contribuição, sem dupla contagem e sem chamar de índice", () => {
+  const e = executar("analisar_componentes", { operacao: "exclusao_contabil", excluir: ["g070"], frequencia: "quinzenal" });
+  assert.equal(r2(dados(e).inpc_observado.valor), 0.33);
+  assert.equal(Math.round(dados(e).soma_retirada_pp * 1000) / 1000, 0.105);
+  assert.equal(r2(dados(e).resultado.valor), 0.22);
+  assert.ok(e.limitacoes.some((l) => l.includes("não é índice reponderado")));
+  assert.equal(executar("analisar_componentes", { operacao: "exclusao_contabil", excluir: ["g070", "frutas_y_verduras"], frequencia: "quinzenal" }).status, "erro_parametro");
+  assert.equal(executar("analisar_componentes", { operacao: "exclusao_contabil", excluir: ["indice_general"], frequencia: "quinzenal" }).status, "erro_parametro");
+});

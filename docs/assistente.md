@@ -81,7 +81,7 @@ período, frequência, natureza, origem, validação e a visualização onde o n
 | `consultar_contexto` | servidor | `{}` | 1, feita |
 | `buscar_series` | servidor | `termo` (1–60), `tipo` (componente, generico, indicador, todos), `limite` (1–10) | 1, feita |
 | `consultar_dados` | servidor | `series` (1–6 ids), `metricas` (1–6, enum), `frequencia`, `inicio`/`fim` ou `ultimos` (1–48), `snapshot_id` opcional | 1, feita |
-| `analisar_componentes` | servidor | união por `operacao`: `ranking`, `decomposicao`, `comparacao_temporal`, `comparacao_sazonal` | 1, feita; `tendencia` e `exclusao_contabil` ficam para a fase 2 |
+| `analisar_componentes` | servidor | união por `operacao`: `ranking`, `decomposicao`, `comparacao_temporal`, `comparacao_sazonal`; na fase 2, `tendencia` e `exclusao_contabil` | 1, feita; as duas da fase 2 também, só no servidor |
 | `consultar_metodologia` | servidor | `tema` (17, enum), `termo` opcional | 1, feita |
 | `controlar_dashboard` | navegador | união por `acao`: `mostrar` (`visualizacao` do registro, `aba`, `destacar_serie`), `desfazer`, `restaurar_inicial` | 1, feita; filtros e janela ficam para a fase 2 |
 
@@ -100,7 +100,12 @@ Regras que ficam no código, não no modelo:
   dashboard) e vem separada da variação do índice no período;
 - comparação sazonal: a mesma quinzena ou o mesmo mês de 2010–2019, com n, mediana, p25 e p75 do pipeline; período
   dentro de 2010–2019 é recusado (o ponto não pode estar na própria referência); com menos de 8 anos, `amostra_insuficiente`;
-- realizado contra esperado: só com a expectativa registrada, e a diferença usa os dois números arredondados, como o card.
+- realizado contra esperado: só com a expectativa registrada, e a diferença usa os dois números arredondados, como o card;
+- tendência (fase 2): 12 meses, SAAR de 3 e 6 meses, variação dessazonalizada e difusão, lado a lado, sem nota nem
+  índice composto, com o aviso de que o STL é do projeto e a ponta revisa;
+- exclusão contábil (fase 2): variação do INPC no período menos as incidências retiradas, com a hipótese escrita;
+  recusa item junto com um ancestral dele (dupla contagem) e diz que não é índice reponderado nem previsão; na
+  quinzena, avisa que a conta em 12 meses exigiria encadear período a período, o que ela não faz.
 
 `controlar_dashboard`: o schema só aceita visualização registrada e destaque de uma série que aparece nela. O
 navegador confere o snapshot e a revisão do estado da tela capturada quando a pergunta saiu; se o usuário trocou de
@@ -157,12 +162,12 @@ frequência, unidade, janela, destaques suportados e `filtros_suportados` (sempr
 
 ## 7. Testes
 
-`cd web && npm test` roda 38 testes com `node:test`. Todos usam um modelo simulado por roteiro: provam o protocolo,
+`cd web && npm test` roda 40 testes com `node:test`. Todos usam um modelo simulado por roteiro: provam o protocolo,
 as proteções e as contas, não a qualidade do modelo real.
 
 | arquivo | o que cobre |
 |---|---|
-| `ferramentas.test.ts` (14) | snapshot; tomate ambíguo entre Jitomate e Tomate verde; núcleo, core e serviços; termo sem correspondência; ranking por incidência igual ao quadro 2 do boletim e diferente do ranking por variação; unidades, sinais e frequência; quinzenal, mensal e 12 meses; padrão sazonal da mesma quinzena com n e faixa (INPC 0,32%, p25 0,23%, p75 0,34%); amostra insuficiente e ponto dentro da referência; decomposição do Informe do Banxico (serviços 4,34 = 2,32 + 1,63 + 0,39) sem dupla contagem; dado ausente, métrica inexistente e expectativa inexistente; snapshot divergente, parâmetro inválido, id inexistente e alvo de tela inválido; evidências rastreáveis; estimativa do mês marcada como estimativa |
+| `ferramentas.test.ts` (16) | snapshot; tomate ambíguo entre Jitomate e Tomate verde; núcleo, core e serviços; termo sem correspondência; ranking por incidência igual ao quadro 2 do boletim e diferente do ranking por variação; unidades, sinais e frequência; quinzenal, mensal e 12 meses; padrão sazonal da mesma quinzena com n e faixa (INPC 0,32%, p25 0,23%, p75 0,34%); amostra insuficiente e ponto dentro da referência; decomposição do Informe do Banxico (serviços 4,34 = 2,32 + 1,63 + 0,39) sem dupla contagem; dado ausente, métrica inexistente e expectativa inexistente; snapshot divergente, parâmetro inválido, id inexistente e alvo de tela inválido; evidências rastreáveis; estimativa do mês marcada como estimativa; fase 2: tendência (SAAR 6m do núcleo 3,90% em ago/26) e exclusão contábil (0,33% − 0,105 pp = 0,22%, sem dupla contagem) |
 | `rota.test.ts` (14) | stream com andamento, evidência e verificação; número sem evidência e citação inventada; histórico adulterado pelo navegador; orçamento de 8 consultas; "Acompanhar no dashboard" desligado; cena que para o stream e continuação; ação que falhou e texto que diz ter aberto; alvo de tela inexistente; instrução maliciosa como conteúdo; system prompt do cliente recusado; snapshot divergente; erro do Gateway sem vazar detalhe; falta de chave, chat desligado, limite por IP, origem de fora e pedido inválido; cancelamento |
 | `sse.test.ts` (2) | o leitor de SSE do painel, tirado do template: eventos partidos em pedaços de 7 bytes e acentos partidos no meio; `[DONE]` e cancelamento |
 | `navegador.test.ts` (8) | no Edge: HTML aberto do disco sem chamar servidor; backend fora do ar; fluxo do jitomate (consulta, abre o bloco de Frutas e verduras no Explorar, card centralizado, só o Jitomate opaco, evidência clicável, painel sem cobrir o gráfico); troca manual de aba durante a resposta (`stale_state`); parar; teclado, foco e plotly redimensionado; texto do modelo sem HTML nem link; tela de 390 px |
@@ -176,9 +181,9 @@ avaliação; o roteiro está na seção 9.
 
 ## 8. Limitações conhecidas
 
-- Fase 2 não começou: tendência (núcleo, serviços, mercadorias, SAAR, difusão), exclusão contábil ("sem tomate"),
-  filtro e janela temporal nos gráficos, várias cenas com "Continuar", reconexão do SSE e retomada do histórico.
-  Hoje, "desde 2022" abre o gráfico inteiro e o chat deve dizer que não há filtro de período.
+- Da fase 2, só a tendência e a exclusão contábil foram feitas. Ficaram de fora: filtro e janela temporal nos
+  gráficos, várias cenas com "Continuar", reconexão do SSE e retomada do histórico. Hoje, "desde 2022" abre o
+  gráfico inteiro e o chat deve dizer que não há filtro de período.
 - A conversa some ao recarregar a página (nada é guardado); por isso não há ação antiga a reexecutar.
 - O limite por IP não é global (seção 6). O teto de gasto depende de configurar o orçamento no Gateway.
 - A verificação confere número e unidade, não o sentido da frase: um número certo pode estar na frase errada.
@@ -200,7 +205,7 @@ Julgar separado: precisão numérica (cada número bate com a evidência e com o
 4. Mostre serviços contra mercadorias desde 2022.
 5. Veio acima do consenso? (e, em seguida, para ago/26, que não tem expectativa registrada)
 6. A inflação subjacente melhorou ou foi só o não núcleo?
-7. Quanto daria sem o tomate? (fase 2: hoje deve dizer que a exclusão contábil não existe ainda)
+7. Quanto daria sem o tomate?
 8. Abra o gráfico anterior · Pare · Volte · Só explique, sem mexer na tela.
 
 ## 10. Para o documento do case (Word)
@@ -232,5 +237,5 @@ nunca vai ao navegador. Cada pergunta tem orçamento de consultas e de tempo, e 
 o dashboard. [Orçamento de gasto configurado no Gateway: US$ ___ por ___ — a confirmar.]
 
 **Validação.** [A confirmar pelo candidato: avaliação com o modelo real nas oito perguntas da seção 9, com os
-resultados.] Os testes automáticos (38) usam um modelo simulado e cobrem protocolo, contas e navegação, não a
+resultados.] Os testes automáticos (40) usam um modelo simulado e cobrem protocolo, contas e navegação, não a
 qualidade das respostas do modelo real.

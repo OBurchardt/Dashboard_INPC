@@ -54,7 +54,7 @@ web/                                [branch chat] a versão online com o assiste
   servidor_local.ts                 roda a versão online em localhost
   api/chat.ts, api/estado.ts        funções da Vercel
   lib/                              pacote.ts, ferramentas.ts, chat.ts, verificacao.ts, limites.ts
-  testes/                           38 testes (node:test; os de navegador usam o Edge)
+  testes/                           40 testes (node:test; os de navegador usam o Edge)
   public/index.html                 [gerada pela montagem] cópia do output/index.html
   dados/pacote.json                 [gerada pela montagem] cópia do pacote do assistente
 ```
@@ -142,7 +142,7 @@ Rodar e testar:
 
 ```
 npm run local                       versão online em http://localhost:3000 (sem chave, o painel diz que falta AI_GATEWAY_API_KEY)
-npm test                            38 testes com modelo simulado; os de navegador usam o Microsoft Edge instalado
+npm test                            40 testes com modelo simulado; os de navegador usam o Microsoft Edge instalado
 npm run tipos                       checagem de tipos
 ```
 
