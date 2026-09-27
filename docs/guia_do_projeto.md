@@ -81,7 +81,7 @@ pipeline/
   2_analise/
     metricas.py              todas as contas: variações, incidências, norma, SAAR, difusão, resumo
     tabelas.py               as três tabelas em HTML
-    graficos.py              as dez figuras em JSON do plotly
+    graficos.py              as figuras em JSON do plotly, inclusive os pares do Banxico (abas Grupos e Explorar)
   3_dashboard/
     montagem.py              cabeçalho, cartões, destaques e o HTML final
     template.html            o visual inteiro: layout, cores, fontes e o JavaScript que desenha
@@ -149,7 +149,7 @@ Um arquivo de constantes, dividido em seções.
 - **Fontes.** As URLs.
 - **Estruturas.** Os ids internos do app que achei navegando nele. `112001700010` é o índice mensal dos 16 componentes, `112001600020` o quinzenal, `112001800030` e `112001800020` as incidências. As árvores `112001700030` e `112001600030` são as únicas que descem até os 292 genéricos.
 - **Componentes e nomes.** Quais são os três principais, quais são os quatro do nível 2 e o nome de cada um na tela, em português (Núcleo, Mercadorias, Energia e tarifas...).
-- **Janelas.** Dessazonalização desde 2000, norma de 2010 a 2019, gráficos desde 2019, início da cesta 2024, 24 meses de genéricos no dashboard e tolerância de 0,01 pp na validação.
+- **Janelas.** Dessazonalização desde 2000, norma de 2010 a 2019, gráficos desde 2019, o mês-base do gráfico do não núcleo (`MES_BASE_NAO_NUCLEO`, jul/2024, o pico de 10,36%), início da cesta 2024, 24 meses de genéricos no dashboard e tolerância de 0,01 pp na validação.
 
 ### pipeline/1_dados/ingestao.py
 
@@ -237,6 +237,16 @@ Somando os componentes de um nível, isso dá exatamente a variação do INPC em
 
 Em agosto de 2026: Mercadorias 1,29 pp, Serviços 1,72 pp, Energia e tarifas 0,41 pp e Agropecuários −0,16 pp, somando 3,26%, que é o INPC em 12 meses. Até esta versão eu somava as incidências e reescalava para fechar; a diferença para a identidade chegava a 0,02 pp por componente.
 
+**Contribuição para o pai** (`acrescentar_contribuicao_no_pai`). A contribuição anual está na base do INPC. Para saber quanto um filho soma à variação em 12 meses do seu pai, como o Banxico mostra no Informe Trimestral, troco a base:
+
+```
+contribuição no pai(filho) = contribuição anual(filho) × variação anual(pai) / soma das contribuições anuais dos irmãos
+```
+
+Com cesta fixa a conta é exata, e os filhos somam o pai. Divido pela soma dos irmãos, e não pela contribuição publicada do pai, porque o arredondamento das incidências (até 0,004 pp) é ampliado quando o pai quase não varia: com agropecuários a 0,17% em jul/2025, a outra forma deixava os filhos 0,035 pp longe do pai. Na 1ª quinzena de agosto de 2026 os números batem com o Informe: serviços 4,34% = habitação 1,63 + educação 0,39 + outros 2,32. A coluna `contribuicao_no_grupo` é a mesma conta para o núcleo ou o não núcleo acima do componente; é dela que sai o gráfico do não núcleo desde jul/2024 (−9,40 pp: frutas e verduras −4,46, energia −2,99, pecuários −2,90, tarifas +0,94). A conferência `conferir_contribuicao_no_pai` para o pipeline se, nos últimos 24 meses, os filhos não somarem o pai a menos de 0,01 pp.
+
+**Aberturas dos subíndices** (`aberturas_dos_subindices`). Para cada subíndice, as 6 aberturas de maior peso na cesta 2024 e "Demais", o resto. A contribuição de cada genérico para a inflação em 12 meses sai da mesma identidade dos componentes, a partir da incidência calculada com o peso efetivo, e depois vai para a base do subíndice pela mesma troca. "Demais" é o subíndice menos a soma das 6; habitação e energia têm só 5 genéricos e não têm "Demais". Como a incidência dos genéricos só existe na cesta 2024, as contribuições começam em ago/2025, o primeiro mês com 12 meses inteiros nela.
+
 **Ritmo dessazonalizado** (`acrescentar_ritmo_dessazonalizado`). Sobre o índice sem sazonalidade:
 
 ```
@@ -246,7 +256,7 @@ SAAR de m meses    = ((SAₜ / SAₜ₋ₘ)^(12/m) − 1) × 100,   m = 3 ou 6
 
 O núcleo de agosto tem SAAR de 6 meses de 3,90% e de 3 meses de 4,03%, contra 3,88% em 12 meses. A ponta desses números revisa: num exercício pseudo-tempo-real (o STL reestimado com a série cortada em cada mês de jun/2022 a jun/2025), a ponta do SAAR 6 meses do núcleo mudou em média 1,0 pp quando entraram os meses seguintes, e a do 3 meses 1,25 pp. Por isso o gráfico destaca o 6 meses.
 
-**Difusão** (`serie_difusao`). Mês a mês, a parte do peso da cesta que está em genéricos com alta no mês, com alta anual acima de 3% e acima de 4%. O 3% é a meta do Banxico para o INPC e o 4% o teto do intervalo de tolerância; para um item são só réguas, porque item nenhum tem meta. Cada mês usa os pesos da cesta que valia na época, 2018 ou 2024. Cada medida tem o seu conjunto válido: a alta no mês conta os itens com variação no período, e as anuais os itens com variação em 12 meses; o denominador é o peso desses itens. A tabela guarda, por mês e por medida, o número de itens válidos e a cobertura (quanto do peso total da cesta eles somam), e o tooltip do gráfico mostra a cobertura. Em agosto de 2026: 68% da cesta subiu no mês, 62% está acima de 3% em 12 meses e 37% acima de 4%, com cobertura de 100% e 292 itens. A menor cobertura desde 2019 foi de 93,6% (anual, no primeiro semestre de 2019).
+**Difusão** (`serie_difusao`). Mês a mês, a parte do peso da cesta que está em genéricos com alta no mês e com alta anual acima de 3%. O 3% é a meta do Banxico para o INPC; para um item é só régua, porque item nenhum tem meta. Um corte só, o mesmo no gráfico e no destaque. Cada mês usa os pesos da cesta que valia na época, 2018 ou 2024. Cada medida tem o seu conjunto válido: a alta no mês conta os itens com variação no período, e as anuais os itens com variação em 12 meses; o denominador é o peso desses itens. A tabela guarda, por mês e por medida, o número de itens válidos e a cobertura (quanto do peso total da cesta eles somam), e o tooltip do gráfico mostra a cobertura. Em agosto de 2026: 68% da cesta subiu no mês e 62% está acima de 3% em 12 meses, com cobertura de 100% e 292 itens. A menor cobertura desde 2019 foi de 93,6% (anual, no primeiro semestre de 2019).
 
 **Mensal implícito** (`mensal_implicito`). No dia da 1ª quinzena ainda não existe o mês. Como o índice mensal é a média das duas quinzenas, metade da média já está publicada, e a outra metade parte do mesmo nível. O único incerto é quanto a 2ª quinzena sobe sobre a 1ª, e para isso uso a norma:
 
@@ -274,6 +284,8 @@ Uma decisão importante acontece aqui e só aqui: se o último quinzenal termina
 
 Uma função por gráfico, com o mesmo nome do espaço que ele ocupa no template. As figuras saem sem estilo nenhum; cada traço leva em `meta` o componente a que se refere, e o template decide a cor por ele. As funções de apoio são `serie`, `linha` e `com_meta` (a última desenha a meta de 3% e a banda de 2% a 4%).
 
+Os pares no formato do Banxico saem de duas funções genéricas: `par_anual(pai, filhos)`, a variação em 12 meses do pai e dos filhos, e `par_contribuicoes(pai, filhos)`, as barras com a contribuição de cada filho e a linha do pai. Os 10 gráficos `grupos_*` só chamam as duas, e `explorar` usa as mesmas para as 16 categorias, com a hierarquia tirada da coluna `pai` do catálogo. Em release de quinzena, cada série ganha um ponto a mais depois do último mês, com a última quinzena. Cada traço leva em `meta` o papel (pai ou filho) e a unidade: nos gráficos de contribuição as barras são pp e a linha do pai é %, exceto desde o mês-base, onde a linha é diferença de taxas, em pp.
+
 ### pipeline/3_dashboard/montagem.py
 
 - `numero`: o formatador dos cartões; um valor que arredonda para zero sai "0,00", sem sinal.
@@ -285,7 +297,7 @@ Uma função por gráfico, com o mesmo nome do espaço que ele ocupa no template
 
 ### pipeline/3_dashboard/template.html
 
-HTML, CSS e JavaScript num arquivo só. As cores, fontes e raios estão em variáveis no `:root`, com a paleta tirada do site do BTG Pactual (sem logo nem nome do banco): `--azul-btg` #10408D como cor primária, `--azul-claro` #B0D2FF e `--azul-claro-2` #E8F1FF nos blocos e fundos, cantos de 4px. O JavaScript lê `window.DADOS`, preenche a faixa do release e os cartões, aplica o estilo a cada figura conforme o `meta` e ajusta as tabelas. Nas tabelas, só uma coluna leva a cor do sinal (`COLUNA_COLORIDA`) e as colunas de contribuição ganham uma barrinha.
+HTML, CSS e JavaScript num arquivo só. As cores, fontes e raios estão em variáveis no `:root`: marinho `--azul-btg` #0B2859 como cor primária, fundo #EEF2F7, fonte DM Sans (com Segoe UI de reserva, sem internet) e cantos de 14px. Cada série tem a sua cor, a mesma em todos os gráficos, com pelo menos 3:1 de contraste contra o branco; a etiqueta de texto é escurecida até 4,5:1. O JavaScript lê `window.DADOS`, preenche a faixa do release e os cartões, aplica o estilo a cada figura conforme o `meta` e ajusta as tabelas. Nas tabelas, só uma coluna leva a cor do sinal (`COLUNA_COLORIDA`) e as colunas de contribuição ganham uma barrinha.
 
 ## 6. Dicionário de dados
 
@@ -326,11 +338,13 @@ Os valores ficam como texto, com "N/E" onde o INEGI não publica, e os CSVs abre
 
 **series_dessazonalizadas.parquet**: `componente`, `periodo`, `data`, `indice_sa`. Só o mensal, desde 2000.
 
-**metricas_componentes.parquet**: as colunas de identificação de `series` mais `indice`, `variacao_periodo`, `variacao_anual`, `incidencia_periodo`, `contribuicao_anual`, `norma_mediana`, `norma_p25`, `norma_p75`, `desvio_norma`, `variacao_sa_mensal`, `saar_3m` e `saar_6m` (as três últimas só no mensal). Variações em %, incidências e contribuições em pp.
+**metricas_componentes.parquet**: as colunas de identificação de `series` mais `indice`, `variacao_periodo`, `variacao_anual`, `incidencia_periodo`, `contribuicao_anual`, `contribuicao_no_pai` (pp da variação em 12 meses do pai), `contribuicao_no_grupo` (pp da variação em 12 meses do núcleo ou do não núcleo), `norma_mediana`, `norma_p25`, `norma_p75`, `desvio_norma`, `variacao_sa_mensal`, `saar_3m` e `saar_6m` (as três últimas só no mensal). Variações em %, incidências e contribuições em pp.
 
 **metricas_genericos.parquet**: os últimos 24 meses de cada genérico, com `variacao_periodo`, `variacao_anual`, `norma_mediana`, `desvio_norma`, `incidencia_periodo` e `desvio_sazonal_ponderado`.
 
-**metricas_difusao.parquet**: mensal, desde 2019: `pct_genericos_em_alta` (por contagem), `pct_cesta_em_alta`, `pct_cesta_anual_acima_3` e `pct_cesta_anual_acima_4` (por peso), e a cobertura de cada base: `itens_validos_mes` e `cobertura_peso_mes` (itens com variação no mês e % do peso da cesta que somam), `itens_validos_anual` e `cobertura_peso_anual` (o mesmo para a variação em 12 meses).
+**metricas_difusao.parquet**: mensal, desde 2019: `pct_genericos_em_alta` (por contagem), `pct_cesta_em_alta`, `pct_cesta_anual_acima_3` (por peso), e a cobertura de cada base: `itens_validos_mes` e `cobertura_peso_mes` (itens com variação no mês e % do peso da cesta que somam), `itens_validos_anual` e `cobertura_peso_anual` (o mesmo para a variação em 12 meses).
+
+**metricas_aberturas.parquet**: mensal e quinzenal, desde 2019, as 6 aberturas de maior peso de cada subíndice e "Demais": `pai` (o subíndice), `componente` (`abertura_1` a `abertura_6`, pela ordem de peso, ou `demais`), `nome`, `frequencia`, `periodo`, `posicao`, `rotulo_periodo`, `data`, `variacao_anual` (nula em "Demais") e `contribuicao_no_pai` (pp, desde ago/2025).
 
 **metricas_resumo.json**: `ultimo_periodo`, `ultimo_rotulo`, `tipo_ultimo_release`, `frequencia_do_release`, `principais`, `mensal_implicito` (nulo em release mensal), `difusao` e `destaques`.
 
@@ -344,7 +358,7 @@ Toda figura tem uma pergunta, que também é a docstring da função em `grafico
 
 ### Barra de navegação e faixa do release
 
-No alto, uma barra branca com "INPC México · Monitor do release" à esquerda e as três abas à direita. Logo abaixo, e visível em todas as abas, a faixa do release em dois blocos:
+No alto, uma barra branca com "INPC México · Monitor do release" à esquerda e as cinco abas à direita. Logo abaixo, e visível em todas as abas, a faixa do release em dois blocos:
 
 - à esquerda, em azul: "Último release · 1ª quinzena set/26 · divulgado 24/09 06:00 CDMX", "INPC 3,42% em 12 meses" e "Núcleo 3,79% · Não núcleo 2,17% · variação na quinzena 0,33%";
 - à direita, em azul claro: o próximo release (08/10/2026 06:00, em 12 dias), a hora da atualização e o selo "Conferido com o INEGI · 1ª quinz. set/26".
@@ -356,7 +370,7 @@ Os dados vêm de `metricas_resumo.json` e do calendário.
 - **Cartões.** INPC, Núcleo e Não núcleo no período e em 12 meses, com a seta da mudança da anual, mais o cartão do mensal implícito (estimativa) no dia da 1ª quinzena, com a faixa tirada dos erros do backtest e a cobertura dela fora da amostra. Fonte: `metricas_resumo.json`.
 - **Destaques.** As quatro frases da seção 1. Fonte: `metricas_resumo.json`.
 - **INPC geral vs meta** e **Núcleo vs meta.** A inflação cheia está dentro da meta, e para onde aponta a última quinzena? O núcleo está convergindo para 3%? A linha é mensal e o ponto é a última quinzena (3,42% no INPC e 3,79% no núcleo). Fonte: `metricas_componentes`.
-- **Contribuições para a inflação em 12 meses.** De onde vem a inflação anual? Barras empilhadas dos quatro componentes do nível 2 nos últimos 24 meses, e a linha do INPC. Fonte: `contribuicao_anual`.
+- **Contribuições para o INPC** e **Contribuições para o núcleo**, **Núcleo** e **Não núcleo.** Os quatro gráficos de grupo mais usados, a mesma figura da aba Grupos. Fonte: `contribuicao_no_pai` e `variacao_anual`.
 - **Último período vs padrão sazonal.** O último dado veio acima ou abaixo do que costuma acontecer nessa época do ano? Barras dos sete principais, com a mediana e o intervalo p25 a p75. No exemplo, o não núcleo subiu 0,88% e o INPC 0,33% contra um padrão de 0,32%. Fonte: `metricas_componentes`.
 - **Últimos períodos.** Tabela com as três últimas quinzenas (ou meses) e a variação em 12 meses. Fonte: `metricas_componentes`.
 - **Contribuições por abertura.** As cinco que mais puxaram e as cinco que mais seguraram, com o grupo embaixo do nome: Jitomate +0,11 pp, Primaria +0,03 e Cebolla +0,03 de um lado; Servicios profesionales −0,04 e Papa y otros tubérculos −0,03 do outro. O subtítulo define contribuição em uma linha. Fonte: `destaques` do resumo.
@@ -365,14 +379,21 @@ Os dados vêm de `metricas_resumo.json` e do calendário.
 
 - **Decomposição da variação do período.** Do INPC até os grupos, quanto cada parte puxou? Treemap com a contribuição publicada pelo INEGI. No exemplo: Núcleo +0,13 pp e Não núcleo +0,20 pp, e dentro deste, Frutas e verduras +0,14 pp. Fonte: `incidencia_periodo` dos componentes.
 - **Desvio em relação à mediana sazonal (2010 a 2019).** Quais aberturas se mexeram fora do normal, com peso? Colunas: Abertura, Grupo, Variação, Mediana sazonal e Desvio sazonal ponderado, esta a única com cor e barrinha, em duas seções ("Acima da mediana sazonal" e "Abaixo da mediana sazonal"). O subtítulo avisa que não é expectativa de mercado e que as medianas não somam. Para cima, Jitomate +0,08, Pollo +0,02 e Gas doméstico LP +0,02; para baixo, Gasolina de bajo octanaje −0,02, Automóviles −0,02 e Papa y otros tubérculos −0,02. Fonte: `destaques` do resumo.
-- **Serviços vs mercadorias.** Serviços, que são mais inerciais, estão se descolando de mercadorias? Fonte: `variacao_anual`.
 
 ### Tendência
 
 - **Variação mensal dessazonalizada.** Sem sazonalidade, a inflação de cada mês está acelerando? Barras de 36 meses do INPC e do núcleo. Fonte: `variacao_sa_mensal`.
 - **Momentum do núcleo.** O ritmo recente está acima ou abaixo da anual? SAAR de 6 meses em destaque, SAAR de 3 meses em linha fina e a variação em 12 meses. A nota traz o tamanho da revisão de fim de amostra medido no exercício pseudo-tempo-real. Fonte: `saar_6m`, `saar_3m`.
 - **Perfil sazonal do INPC.** Este ano está subindo mais ou menos do que é normal em cada mês? A faixa de 2010-2019 e a linha de 2026 até agosto. Fonte: padrão sazonal (`norma_*`) e `variacao_periodo` mensal.
-- **Difusão.** A inflação está espalhada ou concentrada? Parte da cesta com alta no mês e com alta acima de 4% em 12 meses; o tooltip mostra a cobertura de cada medida, e o subtítulo diz que o 4% é régua, não meta do item. Fonte: `metricas_difusao`.
+- **Difusão.** A inflação está espalhada ou concentrada? Parte da cesta com alta no mês e com alta acima de 3% em 12 meses; o tooltip mostra a cobertura de cada medida, e o subtítulo diz que o 3% é régua, não meta do item. Fonte: `metricas_difusao`.
+
+### Grupos
+
+A seção de inflação do Informe Trimestral do Banxico, em 10 gráficos (5 linhas de 2): à esquerda a variação em 12 meses do pai e dos filhos, à direita a contribuição de cada filho para a variação em 12 meses do pai. INPC, núcleo, mercadorias, serviços e não núcleo; no não núcleo, a direita mostra a mudança desde jul/2024 da contribuição dos quatro subíndices. A etiqueta da ponta, na cor da série, faz o papel da legenda, e o ponto vazado (ou a barra mais clara) é a última quinzena. Fonte: `contribuicao_no_pai`, `contribuicao_no_grupo` e `variacao_anual`.
+
+### Explorar
+
+O mesmo par para as 16 categorias do INPC, na ordem da árvore, cada uma com o nome e o peso na cesta 2024. Nos 7 blocos de componentes os filhos são os grupos; nos 9 subíndices, as 6 aberturas de maior peso e "Demais", com uma legenda por bloco (a cor é da posição, não da abertura). Cada gráfico só é desenhado quando chega perto da tela. Fonte: `metricas_componentes` e `metricas_aberturas`.
 
 A aba "Fontes externas", que só tinha um card "Em construção", saiu. Consenso de mercado e projeções do Banxico ficam para quando houver fonte.
 
