@@ -92,6 +92,12 @@
   --serie-abertura-3: var(--p-azul-medio);
   --serie-abertura-4: var(--p-tinta-2);
   --serie-demais: var(--p-cinza);
+  /* barras empilhadas: com dezenas de barras finas, duas cores de claridade parecida "vibram". Nas barras a ordem
+     alterna claro e escuro: 1 azul médio, 2 azul claro, 3 ardósia, 4 âmbar. As linhas seguem a ordem de cima */
+  --barra-1: var(--p-azul-medio);
+  --barra-2: var(--p-azul-claro);
+  --barra-3: var(--p-tinta-3);
+  --barra-4: var(--p-ambar);
 
   /* gráficos */
   --grade: var(--p-borda);
@@ -521,7 +527,10 @@ function montarExplorar() {
     const bloco = slot.replace(/_anual$/, "");
     const { bloco: nome, peso } = DADOS.graficos[slot].layout.meta;
     const series = DADOS.graficos[`${bloco}_contrib`].data.filter((t) => t.showlegend !== false);
-    const legenda = series.map((t) => `<span><i class="${t.type === "bar" ? "" : "linha"}" style="background:${corDoTraco(t)}"></i>${t.name}</span>`).join("");
+    // cada abertura mostra o quadrado da barra (gráfico da direita) e o traço da linha (gráfico da esquerda); "Demais" só tem barra
+    const linhaDe = (t) => corDoTraco({ ...t, type: "scatter" });
+    const legenda = series.map((t) => `<span>${t.type === "bar" ? `<i style="background:${corDoTraco(t)}"></i>` : ""}`
+      + `${t.meta.componente !== "demais" ? `<i class="linha" style="background:${linhaDe(t)}"></i>` : ""}${t.name}</span>`).join("");
     painel.insertAdjacentHTML("beforeend", `
       <div class="bloco-explorar"><h2>${nome}</h2><span class="chip">${numero(peso, 2, "%")} do INPC</span></div>
       ${series.some(ehAbertura) ? `<div class="legenda-explorar">${legenda}</div>` : ""}
@@ -628,9 +637,19 @@ function arrumarUltimosPeriodos(tabela) {
 }
 
 // ==== 6. Tema único dos gráficos ====
+// posição de cada componente entre os irmãos nas barras empilhadas; os 4 subíndices do não núcleo dividem o gráfico
+// desde o mês-base, então têm posições distintas. "Demais" fica no cinza
+const POSICAO_NA_BARRA = {
+  subyacente: 1, no_subyacente: 2, servicios: 1, mercancias: 2, alimentos_bebidas_y_tabaco: 1, mercancias_no_alimenticias: 2,
+  otros_servicios: 1, vivienda: 2, educacion_colegiaturas: 3, energeticos_y_tarifas: 1, agropecuarios: 2,
+  energeticos: 1, tarifas_autorizadas_por_el_gobierno: 2, frutas_y_verduras: 3, pecuarios: 4,
+  abertura_1: 1, abertura_2: 2, abertura_3: 3, abertura_4: 4,
+};
+
 function corDoTraco(t) {
   const meta = t.meta || {};
   if (meta.papel === "pai") return css("--serie-pai");
+  if (t.type === "bar" && POSICAO_NA_BARRA[meta.componente]) return css(`--barra-${POSICAO_NA_BARRA[meta.componente]}`);
   return COR_MEDIDA[meta.medida] || COR_COMPONENTE[meta.componente] || COR_SERIE[meta.serie] || css("--ink");
 }
 
@@ -748,7 +767,7 @@ function rotulosFinais(dados) {
 // a etiqueta de texto precisa de 4,5:1 contra o branco. As cores de série abaixo disso escrevem com a mais escura da
 // mesma família; as outras escrevem com a própria cor. --p-tinta-3 fica em 4,45:1, então também passa para --p-tinta-2
 const TEXTO_DA_COR = Object.fromEntries([["--p-azul-vivo", "--p-azul-medio"], ["--p-ambar", "--p-ambar-escuro"],
-  ["--p-tinta-3", "--p-tinta-2"], ["--p-cinza", "--p-tinta-2"]].map(([serie, texto]) => [css(serie), css(texto)]));
+  ["--p-tinta-3", "--p-tinta-2"], ["--p-cinza", "--p-tinta-2"], ["--p-azul-claro", "--p-azul"]].map(([serie, texto]) => [css(serie), css(texto)]));
 const corDoTexto = (cor) => TEXTO_DA_COR[cor] || cor;
 
 const nomeCurto = (nome) => (nome.length > 18 ? nome.slice(0, 17) + "…" : nome);   // o nome inteiro fica no hover
