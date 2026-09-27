@@ -1,13 +1,26 @@
-# Roda o pipeline inteiro numa máquina limpa do GitHub e guarda o dashboard como artefato para baixar.
-# Só dispara à mão (aba Actions, "Run workflow"); não publica nada sozinho. Como a máquina começa sem
-# data/, a ingestão baixa o histórico completo do INEGI, e isso leva uns 5 minutos. Se a validação
-# falhar, o run_pipeline.py sai com erro, o job fica vermelho e o dashboard não é gerado; o validacao.json,
-# quando existe, sobe mesmo assim para eu ver o que falhou.
+# No dia de um release do calendário, roda o pipeline numa máquina limpa do GitHub e grava o HTML novo na main;
+# a Vercel publica o output/index.html. São três tentativas, 06:01, 06:05 e 06:10 na Cidade do México (12:01,
+# 12:05 e 12:10 UTC, lá não há horário de verão), uma de cada vez. Nos outros dias o job encerra sem fazer nada.
+# A máquina começa sem data/, então baixa o histórico inteiro do INEGI (uns 5 minutos). Se o INEGI ainda não
+# publicou o período ou a validação falha, o job fica vermelho e não commita; a tentativa seguinte refaz.
+# O disparo manual (aba Actions, "Run workflow") roda sempre, mas só commita se hoje for dia de release.
 
 name: Atualizar dashboard do INPC
 
 on:
+  schedule:
+    - cron: "1 12 * * *"
+    - cron: "5 12 * * *"
+    - cron: "10 12 * * *"
   workflow_dispatch:
+
+# uma execução por vez: a das 06:05 espera a das 06:01 terminar, em vez de rodar junto
+concurrency:
+  group: atualizar-inpc
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   pipeline:
@@ -15,24 +28,82 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # o histórico inteiro, para achar o último commit automático
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
 
+      - name: Hoje é dia de release?
+        id: release
+        run: |
+          python - <<'EOF'
+          import csv, os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          from config import parametros as p
+          hoje = datetime.now(ZoneInfo(p.FUSO)).strftime("%Y-%m-%d")
+          linhas = [l for l in csv.DictReader(open(p.CALENDARIO, encoding="utf-8")) if l["data_divulgacao"] == hoje]
+          # o release de 1a quinzena traz a quinzena; o mensal traz o mês fechado (e a 2a quinzena dele)
+          periodo = linhas[0]["periodo_referencia"] + ("-Q1" if linhas[0]["tipo"] == "1a_quinzena" else "") if linhas else ""
+          manual = os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as saida:
+              saida.write(f"periodo={periodo}\nseguir={str(bool(periodo or manual)).lower()}\n")
+          print(f"Hoje {hoje}: {f'release de {periodo}' if periodo else 'sem release'}{' (disparo manual)' if manual else ''}")
+          EOF
+
+      - name: Uma tentativa anterior já publicou este release?
+        id: feito
+        if: steps.release.outputs.periodo != ''
+        run: |
+          ultimo=$(git log -1 --format=%s --grep="^Atualização automática:")
+          if [ "$ultimo" = "Atualização automática: ${{ steps.release.outputs.periodo }}" ]; then
+            echo "ja=true" >> "$GITHUB_OUTPUT"
+            echo "Já publicado por uma tentativa anterior: $ultimo"
+          fi
+
       - name: Instalar dependências
+        if: steps.release.outputs.seguir == 'true' && steps.feito.outputs.ja != 'true'
         run: pip install -r requirements.txt
 
       - name: Rodar o pipeline
+        if: steps.release.outputs.seguir == 'true' && steps.feito.outputs.ja != 'true'
         run: python run_pipeline.py
 
-      - name: Publicar o dashboard como artefato
+      - name: O período do release está na base?
+        if: steps.release.outputs.periodo != '' && steps.feito.outputs.ja != 'true'
+        env:
+          PERIODO: ${{ steps.release.outputs.periodo }}
+        run: |
+          python - <<'EOF'
+          import json, os
+          from config import parametros as p
+          periodo = os.environ["PERIODO"]
+          ultimo = json.loads((p.PASTA_PROCESSED / "validacao.json").read_text(encoding="utf-8"))["ultimo_periodo"]
+          na_base = ultimo["quinzenal" if periodo.endswith("-Q1") else "mensal"]
+          if na_base != periodo:
+              raise SystemExit(f"O INEGI ainda não publicou {periodo} (a base vai até {na_base}); a próxima tentativa refaz.")
+          print(f"{periodo} está na base e passou na validação")
+          EOF
+
+      - name: Guardar o dashboard como artefato
+        if: steps.release.outputs.seguir == 'true' && steps.feito.outputs.ja != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: dashboard_inpc
           path: output/dashboard_inpc.html
           if-no-files-found: error
+
+      - name: Gravar o dashboard na main
+        if: steps.release.outputs.periodo != '' && steps.feito.outputs.ja != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add output/index.html output/dashboard_inpc.html
+          git commit -m "Atualização automática: ${{ steps.release.outputs.periodo }}"
+          git push
 
       - name: Guardar o relatório da validação
         if: always()

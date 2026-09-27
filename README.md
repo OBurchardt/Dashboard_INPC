@@ -58,10 +58,16 @@ publica a versão nova; o `dashboard_inpc.html` é o mesmo HTML, para abrir offl
 
 ## Rodar no GitHub
 
-Na aba Actions do repositório, o workflow "Atualizar dashboard do INPC" tem o botão "Run workflow". Ele instala
-as dependências numa máquina limpa, roda `python run_pipeline.py` (com a base vazia, a ingestão baixa o histórico
-inteiro), falha se a validação falhar e guarda `dashboard_inpc.html` como artefato para baixar. Não há disparo
-automático nem publicação: o HTML só fica disponível no próprio job.
+O workflow "Atualizar dashboard do INPC" (`.github/workflows/atualizar_inpc.yml`) dispara sozinho todo dia às
+06:01, 06:05 e 06:10 da Cidade do México, uma execução por vez. Se hoje não é dia de release no
+`config/calendario_releases.csv`, ele encerra sem fazer nada. Se é, e nenhuma tentativa anterior já publicou o
+release, ele roda `python run_pipeline.py` numa máquina limpa (a base começa vazia e a ingestão baixa o histórico
+inteiro, uns 5 minutos), confere se o período do release entrou na base e, se entrou e a validação passou, commita
+`output/index.html` e `output/dashboard_inpc.html` na main com a mensagem "Atualização automática: <período>",
+e a Vercel publica. Se o INEGI ainda não publicou ou a validação falha, o job fica vermelho, não commita nada e a
+tentativa seguinte refaz. Se as três falharem, use o botão "Run workflow" na aba Actions: o disparo manual roda
+sempre e guarda o HTML como artefato, mas só commita em dia de release. O push usa o `GITHUB_TOKEN` do próprio
+Actions; não há token novo.
 
 ## Calendário do ano seguinte
 
