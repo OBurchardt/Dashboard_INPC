@@ -18,7 +18,7 @@ const METRICAS = ["indice", "variacao_periodo", "variacao_anual", "incidencia_pe
   "pct_cesta_em_alta", "pct_cesta_anual_acima_3", "cobertura_peso_mes", "cobertura_peso_anual"] as const;
 export const TEMAS = ["fontes", "mensal_e_quinzenal", "incidencia", "contribuicao_12_meses", "contribuicao_no_pai", "padrao_sazonal", "desvio_sazonal_ponderado",
   "ajuste_sazonal", "saar", "difusao", "estimativa_do_mes", "expectativas", "cestas_e_genericos", "validacao", "auditoria", "limitacoes", "vocabulario"] as const;
-const COMO_CITAR = "Cite cada número do texto com o id da evidência entre colchetes logo depois dele, ex.: 0,33% [E-1a2b3c]. Não cite ids que não vieram das ferramentas.";
+const COMO_CITAR = "Cite cada número do texto com o id da evidência dele entre colchetes logo depois dele, ex.: 0,33% [E-1a2b3c], um id por colchete. Não cite ids que não vieram das ferramentas neste turno.";
 
 export const schemas = {
   consultar_contexto: z.strictObject({}),
@@ -29,7 +29,7 @@ export const schemas = {
   }),
   consultar_dados: z.strictObject({
     series: z.array(ID_SERIE).min(1).max(6),
-    metricas: z.array(z.enum(METRICAS)).min(1).max(6),
+    metricas: z.array(z.enum(METRICAS)).min(1).max(8),
     frequencia: FREQUENCIA,
     inicio: PERIODO.optional(), fim: PERIODO.optional(),
     ultimos: z.number().int().min(1).max(48).optional().describe("os últimos N períodos; sem início e fim, o padrão é 1"),
@@ -137,7 +137,7 @@ function buscarSeries(c: Contexto, e: z.infer<typeof schemas.buscar_series>): En
 
 // ==== 5. consultar_dados ====
 function periodosPedidos<T extends { periodo: string }>(pontos: T[], e: { inicio?: string; fim?: string; ultimos?: number }) {
-  if (e.inicio || e.fim) return pontos.filter((p) => (!e.inicio || p.periodo >= e.inicio) && (!e.fim || p.periodo <= e.fim)).slice(-48);
+  if (e.inicio || e.fim) return pontos.filter((p) => (!e.inicio || p.periodo >= e.inicio) && (!e.fim || p.periodo <= e.fim));
   return pontos.slice(-(e.ultimos ?? 1));
 }
 
@@ -160,7 +160,11 @@ function consultarDados(c: Contexto, e: z.infer<typeof schemas.consultar_dados>)
     for (const metrica of e.metricas) {
       const pontos = colunaDaSerie(pacote, id, e.frequencia, metrica);
       if (!pontos) { porMetrica[metrica] = { status: "metrica_indisponivel", disponiveis: metricasDisponiveis(pacote, id) }; continue; }
-      const escolhidos = periodosPedidos(pontos, e);
+      // uma resposta leva até 48 períodos; num intervalo maior ficam os mais recentes, e o corte precisa ser dito
+      const noIntervalo = periodosPedidos(pontos, e);
+      const escolhidos = noIntervalo.slice(-48);
+      if (noIntervalo.length > 48)
+        limitacoes.add(`${metrica}: o intervalo pedido tem ${noIntervalo.length} períodos e vieram só os 48 mais recentes, a partir de ${escolhidos[0].rotulo}; diga isso ao falar do começo do intervalo.`);
       if (!escolhidos.length) { porMetrica[metrica] = { status: "fora_da_cobertura", cobertura: s.cobertura[e.frequencia] ?? null }; continue; }
       const m = metricaDaSerie(pacote, s, metrica);
       const ausentes = escolhidos.filter((p) => p.valor === null).map((p) => p.periodo);
@@ -241,8 +245,10 @@ function decomposicao(c: Contexto, a: Extract<Analise, { operacao: "decomposicao
     return envelope(pacote, "erro_parametro", { erro: "nos genéricos só a incidência do período soma o pai; use medida incidencia_periodo" });
   const filhos = genericos ? descendentesGenericos(pacote, pai.id) : pai.filhos.map((id) => serie(pacote, id)!);
   if (!filhos.length) return envelope(pacote, "erro_parametro", { erro: `${pai.id} não tem componentes abaixo; use nivel_filhos 'genericos'` });
-  // o total de referência de cada medida: a incidência publicada do pai, a contribuição anual dele, ou a variação em 12 meses dele
-  const metricaTotal = a.medida === "contribuicao_no_pai" ? "variacao_anual" : a.medida;
+  // o total de referência de cada medida: a incidência publicada do pai, a contribuição anual dele, ou a variação em 12 meses dele;
+  // no INPC o total é a própria variação, em %, que as contribuições em pp somam
+  const metricaTotal = a.medida === "contribuicao_no_pai" ? "variacao_anual"
+    : pai.id === "indice_general" ? (a.medida === "incidencia_periodo" ? "variacao_periodo" : "variacao_anual") : a.medida;
   const total = valorEm(pacote, pai.id, a.frequencia, metricaTotal, periodo);
   if (!total || total.valor == null) return envelope(pacote, "indisponivel", { periodo, motivo: `${pai.nome_exibicao} não tem ${metricaTotal} nesse período` });
   const partes = filhos.map((s) => ({ s, ponto: valorEm(pacote, s.id, a.frequencia, a.medida, periodo) }));

@@ -95,7 +95,7 @@ const DESCRICOES: Record<FerramentaDeDados | "controlar_dashboard", string> = {
   consultar_contexto: "Snapshot, divulgação ativa (1ª quinzena, ou mensal + 2ª quinzena), estado da tela do usuário (aba, visualização em foco, destaque), visualizações registradas, cobertura, expectativas registradas e limitações. Use no começo e para resolver 'esse dado', 'agora', 'isso'.",
   buscar_series: "Acha séries no catálogo (16 componentes, 292 genéricos, itens que saíram da cesta 2018 e a difusão) por nome oficial em espanhol ou apelido em português. Devolve candidatos com id, hierarquia, cobertura e métricas, e diz se o termo é ambíguo.",
   consultar_dados: "Valores de séries por id, métrica, frequência e intervalo, com unidade, validação e evidências. Série fora da cobertura ou métrica inexistente volta como indisponível, nunca como zero.",
-  analisar_componentes: "Análises determinísticas já calculadas pelo pipeline: ranking (por incidência, variação ou desvio sazonal, critério explícito), decomposição (partes, total, soma e resíduo, sem somar o pai aos filhos), comparação temporal (mudança da taxa em pp), comparação sazonal (mesmo mês ou quinzena em 2010–2019, com n, mediana, p25 e p75), tendência (12 meses, SAAR, dessazonalizada e difusão, sem nota) e exclusão contábil (INPC do período menos as contribuições retiradas; não é índice reponderado).",
+  analisar_componentes: "Análises determinísticas já calculadas pelo pipeline: ranking (por incidência, variação ou desvio sazonal, critério explícito), decomposição (partes, total, soma e resíduo, sem somar o pai aos filhos), comparação temporal (mudança da taxa em pp), comparação sazonal (mesmo mês ou quinzena em 2010–2019, com n, mediana, p25 e p75), tendência (12 meses, SAAR, dessazonalizada e difusão até o último mês fechado, sem nota; é a análise para 'o núcleo melhorou?') e exclusão contábil (INPC do período menos as contribuições retiradas; não é índice reponderado).",
   consultar_metodologia: "Trechos versionados de docs/metodologia.md, docs/guia_do_projeto.md e docs/auditoria.md por tema: definição, fórmula documentada, fonte, cobertura, limitações e validação. Os temas 'expectativas' e 'estimativa_do_mes' trazem também os valores registrados, com evidências.",
   controlar_dashboard: "Executa UMA cena no dashboard do usuário: abrir a aba e rolar até uma visualização registrada, destacando uma série ou linha; desfazer a última mudança; ou restaurar a visão inicial. Roda no navegador e volta com status applied, unsupported, stale_state, cancelled ou error. Só diga que algo está na tela depois de applied. Confirmação de tela não valida número.",
 };
@@ -162,6 +162,8 @@ export async function responderChat(request: Request, dependencias: { modelo?: L
         stopWhen: isStepCount(config.maxPassos),
         maxOutputTokens: config.maxTokensSaida, timeout: { totalMs: config.timeoutMs }, maxRetries: 1,
         abortSignal: request.signal,
+        // cache de prompt do Gateway: o system prompt e as ferramentas se repetem a cada passo e custam 10% no cache
+        providerOptions: { gateway: { caching: "auto" } },
         // o SDK imprimiria o erro inteiro; no log fica só o tipo e o status
         onError: ({ error }) => console.log(JSON.stringify({ evento: "erro_modelo", tipo: (error as Error)?.name, status: (error as { statusCode?: number })?.statusCode ?? null })),
       });
@@ -177,8 +179,10 @@ export async function responderChat(request: Request, dependencias: { modelo?: L
       if (!cenaPendente) writer.write({ type: "data-verificacao", data: verificarResposta(texto, historico.evidencias, historico.houveAcaoAplicada) });
       writer.write({ type: "finish" });
       // diagnóstico só com metadados: nada da conversa, nada de chave
+      const uso = await Promise.resolve(resultado.totalUsage).catch(() => undefined);
       console.log(JSON.stringify({ evento: "chat", snapshot: pacote.snapshot_id, passos, chamadas_dados: contador.dados, cenas: historico.cenas + Number(cenaPendente),
-                                   duracao_ms: Date.now() - inicio }));
+                                   tokens_entrada: uso?.inputTokens ?? null, tokens_cache: uso?.inputTokenDetails?.cacheReadTokens ?? null,
+                                   tokens_saida: uso?.outputTokens ?? null, duracao_ms: Date.now() - inicio }));
     },
   });
   return createUIMessageStreamResponse({ stream });

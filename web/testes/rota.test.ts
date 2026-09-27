@@ -36,6 +36,16 @@ test("número sem evidência, citação inventada e ação de tela sem confirma�
   assert.equal(v.acao_de_tela_sem_confirmacao, true);
 });
 
+test("citações agrupadas e conta numa linha: cada número confere com o grupo que é dele", async () => {
+  const exclusao = { operacao: "exclusao_contabil", excluir: ["g070"], frequencia: "quinzenal" };
+  const [inpc, jitomate, resultado] = executar("analisar_componentes", exclusao).evidencias;
+  const { modelo } = modeloComRoteiro([() => chamar("analisar_componentes", exclusao),
+    () => texto(`Sem o jitomate: 0,33% − 0,11 pp = 0,22% [${resultado.id}]. Observado e retirado: 0,33% e 0,11 pp [${inpc.id}] [${jitomate.id}]. Errado: 0,22% [${inpc.id}].`)]);
+  const v = verificacaoDa(await eventos(await responderChat(requisicao(pedido("Sem o jitomate?")), { modelo })));
+  assert.deepEqual(v.numeros_sem_evidencia, []);
+  assert.deepEqual(v.citacoes_divergentes, [`0,22% ≠ ${inpc.id}`]);
+});
+
 test("resultado de consulta enviado pelo navegador não vale como prova: o servidor refaz", async () => {
   const { modelo, chamadas } = modeloComRoteiro([() => texto("ok")]);
   const adulterado = pedido("E agora?", { mensagens: [

@@ -142,7 +142,7 @@ Rodar e testar:
 
 ```
 npm run local                       versão online em http://localhost:3000 (sem chave, o painel diz que falta AI_GATEWAY_API_KEY)
-npm test                            40 testes com modelo simulado; os de navegador usam o Microsoft Edge instalado
+npm test                            41 testes com modelo simulado; os de navegador usam o Microsoft Edge instalado
 npm run tipos                       checagem de tipos
 ```
 
@@ -155,7 +155,9 @@ Publicar como projeto novo na Vercel (sem mexer no projeto `dashboard-inpc`, que
    Directory: `public` (já está no `vercel.json`). Com a raiz em `web/`, o `requirements.txt` da raiz fica fora do
    projeto e a Vercel não procura funções Python.
 4. Environment Variables: `AI_GATEWAY_API_KEY` (ou deixe vazia e use a autenticação OIDC do próprio projeto, que o
-   Gateway aceita em deploys da Vercel), `AI_MODEL=anthropic/claude-sonnet-5` e, se quiser, os limites do `.env.example`.
+   Gateway aceita em deploys da Vercel), `AI_MODEL` e, se quiser, os limites do `.env.example`. No plano gratuito do
+   Gateway os modelos Claude são recusados: use `AI_MODEL=openai/gpt-5.2`, o modelo avaliado em `docs/assistente.md`
+   §9; com créditos pagos, `anthropic/claude-sonnet-5` (o padrão do código), repetindo a avaliação.
 5. Deploy. Na importação a Vercel usa a branch padrão (main), que não tem `web/`: esse primeiro deploy falha, e é o
    esperado. Em Settings → Git, ponha a Production Branch em `chat` e dispare o deploy da `chat` (Deployments →
    Redeploy do último commit da branch, ou um push nela).

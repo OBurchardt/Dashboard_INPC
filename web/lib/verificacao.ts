@@ -18,6 +18,9 @@ export type Verificacao = {
 const CITACAO = /\[(E-[0-9a-f]{6})\]/g;
 // número com vírgula ou ponto decimal, com sinal opcional, seguido de % ou pp
 const NUMERO = /([+−-]?)(\d+(?:[.,]\d+)?)\s?(%|pp|p\.p\.)/g;
+// o grupo de citações que vem depois do número, até o fim da frase: "3,79% (−0,05 pp) [E-a] [E-b]"
+const GRUPO_DE_CITACOES = /^([^.\n]*?)((?:\s*\[E-[0-9a-f]{6}\])+)/;
+const TEM_NUMERO = /\d+(?:[.,]\d+)?\s?(%|pp|p\.p\.)/;
 const AFIRMA_ACAO = /\b(abri|abrimos|estou mostrando|destaquei|deixei aberto|mostrei no gr[aá]fico|coloquei na tela|est[aá] aberto na tela)\b/i;
 
 function casa(valorDoTexto: number, casas: number, evidencia?: Evidencia) {
@@ -37,12 +40,14 @@ export function verificarResposta(texto: string, evidencias: Map<string, Evidenc
     if (/meta/.test(antes) && m[2] === "3") continue;
     const valor = Number(m[2].replace(",", "."));
     const casas = (m[2].split(/[.,]/)[1] ?? "").length;
-    // a citação que vem logo depois do número (até o fim da frase) é a que precisa bater
-    const depois = texto.slice(m.index! + m[0].length, m.index! + m[0].length + 40);
-    const citacao = /^[^.\n]*?\[(E-[0-9a-f]{6})\]/.exec(depois)?.[1];
+    // o grupo de citações logo depois do número é dele se nenhum outro número vier antes; numa conta como
+    // "0,33% − 0,11 pp = 0,22% [E-x]" a citação é só do resultado. Do grupo, basta uma bater
+    const depois = texto.slice(m.index! + m[0].length, m.index! + m[0].length + 80);
+    const grupo = GRUPO_DE_CITACOES.exec(depois);
+    const citacoes = grupo && !TEM_NUMERO.test(grupo[1]) ? [...grupo[2].matchAll(CITACAO)].map((c) => c[1]).filter((id) => evidencias.has(id)) : [];
     conferidos++;
-    if (citacao && evidencias.has(citacao)) {
-      if (!casa(valor, casas, evidencias.get(citacao))) divergentes.push(`${m[0]} ≠ ${citacao}`);
+    if (citacoes.length) {
+      if (!citacoes.some((id) => casa(valor, casas, evidencias.get(id)))) divergentes.push(`${m[0]} ≠ ${citacoes.join(", ")}`);
     } else if (![...evidencias.values()].some((ev) => casa(valor, casas, ev))) {
       semEvidencia.push(m[0].trim());
     }
