@@ -32,11 +32,11 @@ docs/
   guia_do_projeto.md                guia completo: como rodar, fluxo, fórmulas, dicionário de dados, páginas
   auditoria_pre_chat.md             auditoria antes do chat: problemas, evidências, correções e testes de falha
 .github/workflows/
-  atualizar_inpc.yml                roda o pipeline no GitHub por disparo manual e guarda o HTML como artefato
+  atualizar_inpc.yml                no dia do release, roda o pipeline no GitHub e grava o HTML novo na main
 data/                               [gerada pelo pipeline]
   raw/                              CSVs período x série, árvores de genéricos, ponderadores e tabulados
   processed/                        series, genericos, ponderadores, tabulado_oficial, metricas_* (.parquet), resumo, gráficos, tabelas e validação (.json)
-output/                             [gerada pelo pipeline] dashboard_inpc.html
+output/                             [gerada pelo pipeline e versionada] dashboard_inpc.html e index.html, o mesmo HTML
 ```
 
 ## Fluxo
@@ -50,6 +50,11 @@ INEGI (indicesdeprecios, ponderadores, tabulados) → ingestao → data/raw → 
 Instale as dependências (`pip install -r requirements.txt`) e rode `python run_pipeline.py`.
 No topo do `run_pipeline.py`, `IMPORTAR_DO_ZERO = False` só atualiza a base com o dado mais recente;
 `True` rebaixa todo o histórico do INEGI como se a base não existisse.
+
+## Ver ao vivo
+
+O site na Vercel serve o `output/index.html` da branch `main`. Cada commit na main que muda esse arquivo
+publica a versão nova; o `dashboard_inpc.html` é o mesmo HTML, para abrir offline ou mandar por e-mail.
 
 ## Rodar no GitHub
 

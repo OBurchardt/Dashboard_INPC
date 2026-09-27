@@ -88,22 +88,19 @@ def nome(item):
 
 
 def destaques(resumo):
-    """As quatro frases do topo: inflação, maior contribuição, maior desvio sazonal e difusão, só com os fatos."""
-    frequencia = resumo["frequencia_do_release"]
-    geral, nucleo = resumo["principais"][frequencia]["indice_general"], resumo["principais"][frequencia]["subyacente"]
+    """As quatro frases do topo: ritmo do núcleo, maior contribuição, maior desvio sazonal e difusão, só com os fatos."""
+    ritmo = resumo["ritmo_do_nucleo"]
     maior = resumo["destaques"]["maiores_incidencias"][0]
     acima, abaixo = resumo["destaques"]["acima_da_norma"][0], resumo["destaques"]["abaixo_da_norma"][0]
     difusao = resumo["difusao"]
-    anual = (f"INPC {numero(geral['variacao_anual'])} a/a ({numero(geral['mudanca_da_anual_pp'], sufixo=' pp', sinal=True)}); "
-             f"{p.NOMES_EXIBICAO['subyacente'].lower()} {numero(nucleo['variacao_anual'])} ({numero(nucleo['mudanca_da_anual_pp'], sufixo=' pp', sinal=True)})")
+    # a inflação do release já está na faixa e nos cartões; aqui vai o ritmo do núcleo contra a anual do mesmo mês
+    nucleo = f"SAAR 6 meses {numero(ritmo['saar_6m'])} ({ritmo['rotulo_periodo']}) vs {numero(ritmo['variacao_anual'])} em 12 meses"
     contribuicao = f"Maior contribuição: {nome(maior)} {numero(maior['incidencia_periodo'], sufixo=' pp', sinal=True)} ({numero(maior['variacao_periodo'], sinal=True)})"
     desvio = (f"Maior desvio sazonal ponderado: {nome(acima)} {numero(acima['desvio_sazonal_ponderado'], sufixo=' pp', sinal=True)}; "
               f"para baixo: {nome(abaixo)} {numero(abaixo['desvio_sazonal_ponderado'], sufixo=' pp', sinal=True)}")
-    # 3% é a meta do Banxico para o INPC; para um item é só régua, e a frase diz isso. Sem ": " no texto, porque o template
-    # usa o primeiro ": " da frase para separar o rótulo
-    espalhamento = (f"{numero(difusao['pct_cesta_anual_acima_3'], 0)} do peso da cesta com alta acima de 3% em 12 meses "
-                    f"({difusao['rotulo_periodo']}; 3% é a meta do Banxico para o INPC, usada só como régua)")
-    return [anual, contribuicao, desvio, espalhamento]
+    # sem ": " no texto, porque o template usa o primeiro ": " da frase para separar o rótulo
+    espalhamento = f"{numero(difusao['pct_cesta_anual_acima_3'], 0)} do peso da cesta com alta acima de 3% em 12 meses ({difusao['rotulo_periodo']})"
+    return [nucleo, contribuicao, desvio, espalhamento]
 
 
 def ler(nome_arquivo):
@@ -122,4 +119,6 @@ if __name__ == "__main__":
     html = template.replace("/*__PLOTLY__*/", get_plotlyjs()).replace("/*__DADOS__*/", dados_js)
     destino = p.PASTA_OUTPUT / "dashboard_inpc.html"
     destino.write_text(html, encoding="utf-8")
-    print(f"Montagem: {destino.name} com {destino.stat().st_size / 1e6:.1f} MB")
+    # o mesmo HTML como index.html, que é a página que a Vercel serve a partir de output/
+    (p.PASTA_OUTPUT / "index.html").write_text(html, encoding="utf-8")
+    print(f"Montagem: {destino.name} e index.html com {destino.stat().st_size / 1e6:.1f} MB")

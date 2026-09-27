@@ -120,14 +120,14 @@ def tend_momentum(componentes, nomes, resumo):
 
 def perfil_sazonal(componentes, componente):
     """A variação mensal do ano corrente e dos 3 anteriores de um componente contra o seu padrão sazonal de 2010-2019."""
-    # a faixa vai do p25 ao p75 da variação mensal de 2010-2019, e a linha tracejada é a mediana; tudo já vem das métricas.
-    # Os anos saem do ano do último dado, e a cor vai pela distância a ele (ano_0 é o corrente), igual em todo perfil
+    # a faixa vai do p25 ao p75 da variação mensal de 2010-2019, e a outra linha é a mediana; tudo já vem das métricas.
+    # Os anos saem do ano do último dado, e a cor e o traço vão pela distância a ele (ano_0 é o corrente), igual em todo perfil
     mensal = componentes[(componentes["componente"] == componente) & (componentes["frequencia"] == "mensal")]
     norma = mensal.assign(mes=mensal["data"].dt.month).drop_duplicates("mes").sort_values("mes")  # a norma se repete todo ano, basta uma linha por mês
     meses = norma["rotulo_mes"].str[:3].tolist()  # "ago/26" vira "ago", porque aqui o eixo é o mês do ano e não uma data
     tracos = [go.Scatter(x=meses, y=norma["norma_p25"], mode="lines", name="Faixa p25–p75", meta={"serie": "norma_p25"}),
               go.Scatter(x=meses, y=norma["norma_p75"], mode="lines", fill="tonexty", name="Faixa p25–p75", meta={"serie": "norma_p75"}),
-              go.Scatter(x=meses, y=norma["norma_mediana"], mode="lines", name="Mediana 2010–2019", meta={"serie": "norma_mediana"})]
+              go.Scatter(x=meses, y=norma["norma_mediana"], mode="lines", name="Mediana 2010–2019", meta={"serie": "norma_mediana", "marcadores": "nenhum"})]
     corrente = mensal["data"].max().year
     for distancia in (3, 2, 1, 0):   # o ano corrente por último, para ficar por cima
         ano = mensal[mensal["data"].dt.year == corrente - distancia].sort_values("data")

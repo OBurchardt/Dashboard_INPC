@@ -223,6 +223,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 .tabela-dados td.neutro { color: var(--ink-2); font-weight: 400; }
 .tabela-dados td.generico { padding-top: 8px; padding-bottom: 8px; font-weight: 600; }
 .tabela-dados td.subindice { color: var(--ink-3); white-space: nowrap; }
+.tabela-dados th.texto { text-align: left; }
 .sub-linha { display: block; font-size: var(--t-12); color: var(--ink-3); font-weight: 400; }
 .tabela-dados tr.grupo th { text-align: left; font-size: var(--t-13); font-weight: 700; color: var(--azul-btg); background: none; padding: 20px 0 8px 12px; border-bottom: 2px solid var(--azul-claro-2); border-radius: 0; }
 .barra-inline { display: inline-block; height: 8px; border-radius: 4px; margin-right: var(--e-8); vertical-align: middle; }
@@ -343,10 +344,10 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <h3>Decomposição da variação do período</h3><p class="sub">Contribuição (pp); área proporcional ao tamanho da contribuição de cada grupo</p>
     </div>
     <div class="card c12" data-card="decomp_desvios" data-tipo="tabela">
-      <h3>Desvio em relação à mediana sazonal (2010–2019)</h3><p class="sub">Variação no período menos a mediana do mesmo mês ou quinzena em 2010–2019, vezes o peso efetivo da abertura: desvio sazonal ponderado (pp). Não é expectativa de mercado, e as medianas das aberturas não somam a mediana do INPC.</p>
+      <h3>Desvio em relação à mediana sazonal (2010–2019)</h3><p class="sub">Variação no período menos a mediana do mesmo mês ou quinzena em 2010–2019, vezes o peso efetivo da abertura: desvio sazonal ponderado (pp)</p>
     </div>
     <div class="card c12" data-card="tend_difusao">
-      <h3>Difusão</h3><p class="sub">% do peso da cesta com alta no mês e com alta acima de 3% em 12 meses. O 3% é a meta do Banxico para o INPC, usada aqui só como régua: item nenhum tem meta. O tooltip mostra a cobertura de cada medida.</p>
+      <h3>Difusão</h3><p class="sub">% do peso da cesta com alta no mês e com alta acima de 3% em 12 meses</p>
     </div>
     <div class="card c6" data-card="grupos_inpc_anual">
       <h3>INPC, núcleo e não núcleo</h3><p class="sub">Variação em 12 meses do INPC e dos seus dois grupos, %</p>
@@ -440,11 +441,13 @@ const COR_COMPONENTE = {
 // o que não é componente (norma, difusão) e as três medidas do momentum, que são todas da subyacente
 // no perfil sazonal a cor vai pela distância ao ano corrente (ano_0), a mesma nos 7 gráficos
 const COR_SERIE = { norma: css("--ink"), norma_mediana: css("--p-tinta-2"),
-  ano_0: css("--p-marinho"), ano_1: css("--p-azul-medio"), ano_2: css("--p-azul-vivo"), ano_3: css("--p-tinta-3"), pct_cesta_em_alta: css("--azul-escuro"), pct_cesta_anual_acima_3: css("--azul-vivo") };
+  ano_0: css("--p-marinho"), ano_1: css("--p-azul-vivo"), ano_2: css("--p-azul-medio"), ano_3: css("--p-tinta-3"), pct_cesta_em_alta: css("--azul-escuro"), pct_cesta_anual_acima_3: css("--azul-vivo") };
 const COR_MEDIDA = { saar_6m: css("--azul-btg"), saar_3m: css("--azul-vivo"), variacao_anual: css("--azul-escuro") };
 // o SAAR 6 meses é o de destaque, e o 3 meses vai mais fino; no perfil sazonal o ano corrente é grosso e os anteriores, finos
 const LARGURA_MEDIDA = { saar_6m: 3, saar_3m: 1.25 };
 const LARGURA_SERIE = { ano_0: 3, ano_1: 1.25, ano_2: 1.25, ano_3: 1.25 };
+// só com azuis os anos anteriores se confundem pela cor; o tipo de traço é que separa um do outro
+const TRACEJADO_SERIE = { ano_2: "dash", ano_3: "dot", norma_mediana: "dashdot" };
 // o leitor vê "Núcleo" e "Não núcleo"; na primeira menção o tooltip mostra o nome que o INEGI usa
 const NOME_OFICIAL = { subyacente: "subyacente", no_subyacente: "no subyacente" };
 const ALTA = new Set(["decomp_arvore"]);
@@ -509,7 +512,7 @@ function montarKpis(c) {
 
 function montarDestaques(frases) {
   // as frases chegam como "Rótulo: fato"; o rótulo sai da frase porque já vira o título em caixa-alta
-  const rotulos = ["Inflação", "Maior contribuição", "Maior desvio sazonal", "Difusão"];
+  const rotulos = ["Ritmo do núcleo", "Maior contribuição", "Maior desvio sazonal", "Difusão"];
   document.getElementById("destaques").innerHTML = frases.map((f, i) =>
     `<div class="destaque"><div class="destaque-rotulo">${rotulos[i]}</div>
      <div class="destaque-texto">${f.includes(": ") ? f.slice(f.indexOf(": ") + 2) : f}</div></div>`).join("");
@@ -544,7 +547,12 @@ function chipDoCard(slot, figura) {
   const frequencia = DADOS.cabecalho.frequencia === "quinzenal" ? "Quinzenal" : "Mensal";
   if (RELEASE.has(slot)) return `${frequencia} · ${DADOS.cabecalho.release}`;
   // os perfis sazonais têm eixo em meses do ano, e cada um tem a sua escala (agropecuários e energia oscilam muito mais)
-  if (/perfil/.test(slot)) return `Mensal · 2010–2019 e ${DADOS.cabecalho.ano} · escala própria`;
+  // os anos saem dos traços: do mais antigo ao corrente, e o período da mediana vem do nome dela
+  if (/perfil/.test(slot)) {
+    const anos = figura.data.filter((t) => /^ano_/.test((t.meta || {}).serie)).map((t) => t.name).sort();
+    const mediana = figura.data.find((t) => (t.meta || {}).serie === "norma_mediana").name.replace("Mediana ", "");
+    return `Mensal · ${anos[0]}–${anos[anos.length - 1]} e mediana ${mediana}`;
+  }
   // com a última quinzena na ponta, o chip diz até que mês vai a série mensal e qual quinzena foi acrescentada
   const quinzena = figura.data.find((t) => (t.meta || {}).rotulo_quinzena);
   if (quinzena) {
@@ -587,6 +595,8 @@ function refinarTabelas(card, slot) {
     const titulos = () => [...tabela.querySelectorAll("thead th")].map((th) => th.textContent.trim().toLowerCase());
     // nas contribuições, com duas tabelas lado a lado, o grupo vai para baixo do nome da abertura para caber
     const colunaGrupo = titulos().indexOf("grupo");
+    // o grupo é texto: cabeçalho à esquerda, como os valores
+    if (colunaGrupo >= 0) tabela.querySelectorAll("thead th")[colunaGrupo].classList.add("texto");
     if (slot === "main_top_incidencias" && colunaGrupo >= 0) {
       tabela.querySelectorAll("tbody tr").forEach((tr) => {
         const grupo = tr.querySelector("td.subindice");
@@ -741,7 +751,7 @@ function estilizarTraco(t, eixo) {
     const ultimo = t.x.length - 1;
     const tamanho = (i) => ({ todos: 5, nenhum: 0 }[meta.marcadores] ?? (i === ultimo ? 8 : 0));
     t.mode = "lines+markers";
-    t.line = { width: LARGURA_MEDIDA[meta.medida] || LARGURA_SERIE[serie] || 2, color: cor, dash: serie === "norma_mediana" ? "dash" : "solid" };
+    t.line = { width: LARGURA_MEDIDA[meta.medida] || LARGURA_SERIE[serie] || 2, color: cor, dash: TRACEJADO_SERIE[serie] || "solid" };
     t.marker = { color: cor, size: t.x.map((_, i) => tamanho(i)), line: { color: css("--surface"), width: t.x.map((_, i) => (tamanho(i) ? 1 : 0)) } };
   }
 }
@@ -834,7 +844,6 @@ function estilizarFigura(slot, figura) {
   if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => { t.meta = {}; t.showlegend = false; t.width = 0.4; });
   dados.forEach((t) => estilizarTraco(t, eixoValores));
   if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => (t.marker.color = css("--azul-btg")));
-  const temMeta = (figura.layout.shapes || []).some((s) => s.name === "meta");
   // nos gráficos do Banxico a etiqueta da ponta substitui a legenda: nome (cortado em 18 letras) e valor. Nos blocos de
   // aberturas a etiqueta leva só o valor, porque a legenda do bloco já dá os nomes. A margem direita é fixa, a mesma
   // nos dois cards de uma linha, para a etiqueta longa não encolher o gráfico
@@ -843,7 +852,10 @@ function estilizarFigura(slot, figura) {
   const legendaVisivel = !banxico && dados.filter((t) => t.showlegend !== false).length >= 2;
   const altura = parseInt(css(ALTA.has(slot) ? "--altura-grafico-alta" : "--altura-grafico"));
   const margem = { l: horizontal ? 8 : 40, r: comNome ? 196 : banxico ? 76 : 56, t: legendaVisivel ? 28 : 8, b: 32 };
+  const temMeta = (figura.layout.shapes || []).some((s) => s.name === "meta");
   const faixa = faixaDosValores(dados, figura.layout.barmode === "relative", eixoValores);
+  // com a meta no gráfico, o eixo mostra a banda de 2% a 4% inteira, com meio ponto de folga, e não corta a linha dos 3%
+  if (temMeta) { faixa[0] = Math.min(faixa[0], 1.5); faixa[1] = Math.max(faixa[1], 4.5); }
   const rotulos = banxico ? rotulosNaPonta(dados, comNome, faixa, altura - margem.t - margem.b) : rotulosFinais(dados);
   // o "Meta 3%" fica na margem direita; se um rótulo final estiver a menos de 0,5 pp da meta, os dois encavalam,
   // e aí ele vai para dentro do gráfico, no canto esquerdo, logo acima da linha da meta. Nos gráficos do Banxico a

@@ -308,6 +308,13 @@ def cobertura_fora_da_amostra(erros, primeiros=24):
     return sum(dentro) / len(dentro) * 100, len(dentro)
 
 
+def ritmo_do_nucleo(componentes):
+    """SAAR de 6 meses e variação em 12 meses do núcleo no último mês, para o destaque "Ritmo do núcleo"."""
+    # os dois do mesmo mês: o SAAR só existe na série mensal, então comparo com a anual mensal, não com a da quinzena
+    ultimo = componentes[(componentes["componente"] == "subyacente") & (componentes["frequencia"] == "mensal")].sort_values("data").iloc[-1]
+    return {"rotulo_periodo": ultimo["rotulo_periodo"], "saar_6m": arredondar(ultimo["saar_6m"]), "variacao_anual": arredondar(ultimo["variacao_anual"])}
+
+
 def mensal_implicito(componentes, mes):
     """Minha estimativa do mês fechado no dia em que só a 1a quinzena saiu, com a faixa tirada dos erros do backtest."""
     # no dia da 1a quinzena metade da média já está publicada, e a 2a parte do mesmo nível; o único incerto é quanto
@@ -372,6 +379,7 @@ if __name__ == "__main__":
     rotulos = componentes[componentes["periodo"].isin(ultimo.values())].groupby("frequencia")["rotulo_periodo"].first().to_dict()
     resumo = {"ultimo_periodo": ultimo, "ultimo_rotulo": rotulos, "tipo_ultimo_release": tipo, "frequencia_do_release": frequencia_do_release,
               "principais": {frequencia: numeros_principais(componentes, frequencia) for frequencia in p.PERIODOS_POR_ANO},
+              "ritmo_do_nucleo": ritmo_do_nucleo(componentes),
               "mensal_implicito": mensal_implicito(componentes, ultimo["quinzenal"][:7]) if tipo == "1a_quinzena" else None,
               "difusao": {coluna: (valor if coluna in ("periodo", "rotulo_periodo") else arredondar(valor)) for coluna, valor in
                           difusao.drop(columns="data").iloc[-1].items()},

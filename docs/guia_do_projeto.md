@@ -13,6 +13,7 @@ Tudo vem de uma fonte só, o INEGI. Não uso nenhuma chave de API: o app "Índic
 No release de exemplo, o painel abre dizendo isto:
 
 - INPC 0,33% na quinzena e 3,42% em 12 meses, 0,16 pp acima da quinzena anterior.
+- Ritmo do núcleo: SAAR de 6 meses de 3,90% em ago/26, contra 3,88% em 12 meses no mesmo mês.
 - Núcleo 0,17% na quinzena e 3,79% em 12 meses, 0,05 pp abaixo.
 - Não núcleo 0,88% na quinzena e 2,17% em 12 meses, 0,86 pp acima.
 - Mensal implícito de setembro (estimativa): 0,42% no mês e 3,45% em 12 meses; faixa de 0,37% a 0,50%, tirada dos erros do próprio método desde 2020, que conteve o mês realizado em 50% dos meses fora da amostra.
@@ -90,10 +91,10 @@ docs/
   guia_do_projeto.md         este guia
 data/raw/                    o que veio do INEGI, quase como veio (gerada pelo pipeline)
 data/processed/              as tabelas prontas para as contas e os JSON do dashboard (gerada)
-output/                      dashboard_inpc.html (gerada)
+output/                      dashboard_inpc.html e index.html, o mesmo HTML (gerada e versionada)
 ```
 
-As pastas `data/` e `output/` ficam fora do git: qualquer um recria rodando o pipeline.
+A pasta `data/` fica fora do git: qualquer um recria rodando o pipeline. A `output/` entra no git, porque o site na Vercel serve o `output/index.html` da main.
 
 ## 4. Fluxo dos dados
 
@@ -270,7 +271,7 @@ Num backtest sem informação futura (para cada mês desde 2010, a mediana usa s
 
 A faixa vem do erro do próprio método (`erros_do_mensal_implicito`, `cobertura_fora_da_amostra`): para cada mês de 2020 até o anterior ao atual, onde a mediana de 2010 a 2019 só usa passado, calculo realizado menos estimado; a faixa é a estimativa central mais os quartis 25 e 75 desses erros, com INPC e núcleo separados. Em setembro: 0,37% a 0,50% no INPC e 0,22% a 0,27% no núcleo. A cobertura é medida fora da amostra (cada mês testado só com os erros de antes dele) e fica no cartão: 50% de 56 meses no INPC e 48% no núcleo. A faixa antiga, o p25 a p75 da alta da 2ª quinzena, conteve o realizado em só 35% dos casos.
 
-**Resumo** (`numeros_principais`, `destaques`, `registros`, `arredondar`). O `metricas_resumo.json` guarda o que vai no topo do painel: o último período, se o release foi de 1ª quinzena ou mensal, os números dos três principais, o mensal implícito, a difusão e os cinco genéricos de cada lista. Guardo 6 casas e deixo o arredondamento para a tela; arredondar duas vezes já me fez errar o último dígito.
+**Resumo** (`numeros_principais`, `ritmo_do_nucleo`, `destaques`, `registros`, `arredondar`). O `metricas_resumo.json` guarda o que vai no topo do painel: o último período, se o release foi de 1ª quinzena ou mensal, os números dos três principais, o SAAR de 6 meses e a variação em 12 meses do núcleo no último mês, o mensal implícito, a difusão e os cinco genéricos de cada lista. Guardo 6 casas e deixo o arredondamento para a tela; arredondar duas vezes já me fez errar o último dígito.
 
 Uma decisão importante acontece aqui e só aqui: se o último quinzenal termina em "Q1", o release é de 1ª quinzena e o dado principal é quinzenal; caso contrário, o dado principal é o mês. As etapas seguintes só leem `frequencia_do_release`.
 
@@ -346,7 +347,7 @@ Os valores ficam como texto, com "N/E" onde o INEGI não publica, e os CSVs abre
 
 **metricas_aberturas.parquet**: mensal e quinzenal, desde 2019, as 4 aberturas de maior peso de cada subíndice e "Demais": `pai` (o subíndice), `componente` (`abertura_1` a `abertura_4`, pela ordem de peso, ou `demais`), `nome`, `frequencia`, `periodo`, `posicao`, `rotulo_periodo`, `data`, `variacao_anual` (nula em "Demais") e `contribuicao_no_pai` (pp, desde ago/2025).
 
-**metricas_resumo.json**: `ultimo_periodo`, `ultimo_rotulo`, `tipo_ultimo_release`, `frequencia_do_release`, `principais`, `mensal_implicito` (nulo em release mensal), `difusao` e `destaques`.
+**metricas_resumo.json**: `ultimo_periodo`, `ultimo_rotulo`, `tipo_ultimo_release`, `frequencia_do_release`, `principais`, `ritmo_do_nucleo` (SAAR de 6 meses e variação em 12 meses do núcleo no último mês), `mensal_implicito` (nulo em release mensal), `difusao` e `destaques`.
 
 **validacao.json**: data da checagem, último período e, para cada checagem, desvio máximo e ok. O dashboard não lê esse arquivo; ele fica para consulta.
 
@@ -368,8 +369,8 @@ Os dados vêm de `metricas_resumo.json` e do calendário.
 ### Resumo
 
 - **Cartões.** INPC, Núcleo e Não núcleo no período e em 12 meses, com uma faixa de cor no topo (a cor da série) e a pílula da mudança da taxa de 12 meses ("▲ +0,16 pp em 12m"; o período de comparação fica no tooltip). O quarto cartão, "Estimativa do mês · set/26", tracejado, é o mensal implícito no dia da 1ª quinzena, com a faixa tirada dos erros do backtest e quantas vezes ela acertou; o detalhe do teste fica no tooltip. Fonte: `metricas_resumo.json`.
-- **Destaques.** As quatro frases da seção 1. Fonte: `metricas_resumo.json`.
-- **INPC geral vs meta** e **Núcleo vs meta.** A inflação cheia está dentro da meta, e para onde aponta a última quinzena? O núcleo está convergindo para 3%? A linha é mensal e o ponto é a última quinzena (3,42% no INPC e 3,79% no núcleo). Fonte: `metricas_componentes`.
+- **Destaques.** Ritmo do núcleo (SAAR de 6 meses contra a variação em 12 meses do mesmo mês), maior contribuição, maior desvio sazonal e difusão. A inflação do release não entra, porque a faixa e os cartões já dizem. Fonte: `metricas_resumo.json` (`ritmo_do_nucleo`, `destaques`, `difusao`).
+- **INPC geral vs meta** e **Núcleo vs meta.** A inflação cheia está dentro da meta, e para onde aponta a última quinzena? O núcleo está convergindo para 3%? Em todo gráfico com a meta, o eixo vai pelo menos de 1,5% a 4,5%, para a banda de 2% a 4% aparecer inteira. A linha é mensal e o ponto é a última quinzena (3,42% no INPC e 3,79% no núcleo). Fonte: `metricas_componentes`.
 - **Contribuições para o INPC** e **Contribuições para o núcleo**, **Núcleo** e **Não núcleo.** Os quatro gráficos de grupo mais usados, a mesma figura da aba Composição. Fonte: `contribuicao_no_pai` e `variacao_anual`.
 - **Último período vs padrão sazonal.** O último dado veio acima ou abaixo do que costuma acontecer nessa época do ano? Barras dos sete principais, com a mediana e o intervalo p25 a p75. No exemplo, o não núcleo subiu 0,88% e o INPC 0,33% contra um padrão de 0,32%. Fonte: `metricas_componentes`.
 - **Últimos períodos.** Tabela com as três últimas quinzenas (ou meses) e a variação em 12 meses, em hierarquia (INPC; núcleo com mercadorias e serviços recuados; não núcleo com agropecuários e energia e tarifas) e a coluna mais recente em destaque. Fonte: `metricas_componentes`.
@@ -378,8 +379,8 @@ Os dados vêm de `metricas_resumo.json` e do calendário.
 ### Composição
 
 - **Decomposição da variação do período.** Do INPC até os grupos, quanto cada parte puxou? Treemap com a contribuição publicada pelo INEGI. No exemplo: Núcleo +0,13 pp e Não núcleo +0,20 pp, e dentro deste, Frutas e verduras +0,14 pp. Fonte: `incidencia_periodo` dos componentes.
-- **Desvio em relação à mediana sazonal (2010 a 2019).** Quais aberturas se mexeram fora do normal, com peso? Colunas: Abertura, Grupo, Variação, Mediana sazonal e Desvio sazonal ponderado, esta a única com cor e barrinha, em duas seções ("Acima da mediana sazonal" e "Abaixo da mediana sazonal"). O subtítulo avisa que não é expectativa de mercado e que as medianas não somam. Para cima, Jitomate +0,08, Pollo +0,02 e Gas doméstico LP +0,02; para baixo, Gasolina de bajo octanaje −0,02, Automóviles −0,02 e Papa y otros tubérculos −0,02. Fonte: `destaques` do resumo.
-- **Difusão.** A inflação está espalhada ou concentrada? Parte da cesta com alta no mês e com alta acima de 3% em 12 meses; o tooltip mostra a cobertura de cada medida, e o subtítulo diz que o 3% é régua, não meta do item. Fonte: `metricas_difusao`.
+- **Desvio em relação à mediana sazonal (2010 a 2019).** Quais aberturas se mexeram fora do normal, com peso? Colunas: Abertura, Grupo, Variação, Mediana sazonal e Desvio sazonal ponderado, esta a única com cor e barrinha, em duas seções ("Acima da mediana sazonal" e "Abaixo da mediana sazonal"). Que não é expectativa de mercado e que as medianas não somam fica em `docs/metodologia.md`, não na tela. Para cima, Jitomate +0,08, Pollo +0,02 e Gas doméstico LP +0,02; para baixo, Gasolina de bajo octanaje −0,02, Automóviles −0,02 e Papa y otros tubérculos −0,02. Fonte: `destaques` do resumo.
+- **Difusão.** A inflação está espalhada ou concentrada? Parte da cesta com alta no mês e com alta acima de 3% em 12 meses; o tooltip mostra a cobertura de cada medida. Que o 3% é régua, não meta do item, fica em `docs/metodologia.md`. Fonte: `metricas_difusao`.
 - **Grupos, no formato do Banxico.** A seção de inflação do Informe Trimestral, em 10 gráficos (5 linhas de 2): à esquerda a variação em 12 meses do pai e dos filhos, à direita a contribuição de cada filho para a variação em 12 meses do pai, em %. INPC, núcleo, mercadorias, serviços e não núcleo; no não núcleo, a direita mostra a mudança desde jul/2024 da contribuição dos quatro subíndices. A etiqueta da ponta, na cor da série, faz o papel da legenda, e o ponto vazado (ou a barra mais clara) é a última quinzena. Fonte: `contribuicao_no_pai`, `contribuicao_no_grupo` e `variacao_anual`.
 
 ### Sazonalidade
@@ -388,8 +389,8 @@ Só o que é ajuste e padrão sazonal.
 
 - **Variação mensal dessazonalizada.** Sem sazonalidade, a inflação de cada mês está acelerando? Duas linhas de 36 meses, INPC e núcleo, com bolinha em cada mês e o nome na etiqueta da ponta. Fonte: `variacao_sa_mensal`.
 - **Momentum do núcleo.** O ritmo recente está acima ou abaixo da anual? SAAR de 6 meses em destaque, SAAR de 3 meses em linha fina e a variação em 12 meses. Fonte: `saar_6m`, `saar_3m`.
-- **Perfil sazonal do INPC.** Este ano está subindo mais ou menos do que é normal em cada mês? A faixa p25-p75 e a mediana de 2010-2019, o ano corrente em marinho grosso com bolinha em cada mês, e os 3 anos anteriores em linhas finas (a cor vai pela distância ao ano corrente e é a mesma em todos os perfis). Fonte: padrão sazonal (`norma_*`) e `variacao_periodo` mensal.
-- **Perfil sazonal dos componentes.** O mesmo gráfico, em pares, para núcleo e não núcleo, mercadorias e serviços, agropecuários e energia e tarifas; estes dois últimos entram porque é onde a sazonalidade é mais forte (o subsídio de verão da eletricidade em abr-mai e a volta em out-nov, por exemplo). Cada gráfico tem a sua escala, e o chip avisa. Todos saem da função `perfil_sazonal(componente)` em `graficos.py`, que só lê `norma_mediana`, `norma_p25`, `norma_p75` e `variacao_periodo`: nenhuma conta nova.
+- **Perfil sazonal do INPC.** Este ano está subindo mais ou menos do que é normal em cada mês? A faixa p25-p75 e a mediana de 2010-2019, o ano corrente em marinho grosso com bolinha em cada mês, e os 3 anos anteriores em linhas finas: o ano anterior contínuo em azul vivo, o de dois anos antes tracejado em azul médio e o de três anos antes pontilhado em ardósia; a mediana vai em traço e ponto. Só com azuis, é o tipo de traço que separa os anos. O chip diz os anos e o período da mediana, tirados dos próprios traços. Fonte: padrão sazonal (`norma_*`) e `variacao_periodo` mensal.
+- **Perfil sazonal dos componentes.** O mesmo gráfico, em pares, para núcleo e não núcleo, mercadorias e serviços, agropecuários e energia e tarifas; estes dois últimos entram porque é onde a sazonalidade é mais forte (o subsídio de verão da eletricidade em abr-mai e a volta em out-nov, por exemplo). Cada gráfico tem a sua escala. Todos saem da função `perfil_sazonal(componente)` em `graficos.py`, que só lê `norma_mediana`, `norma_p25`, `norma_p75` e `variacao_periodo`: nenhuma conta nova.
 
 ### Explorar
 
