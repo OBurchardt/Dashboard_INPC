@@ -15,157 +15,185 @@
 <title>INPC México · Monitor do release</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet">
 <style>
 /* ==== 1. Tokens: toda cor, tamanho e espaço está aqui, e em nenhum outro lugar ==== */
 :root {
   /* superfícies */
-  --bg: #F5F5F5;                 /* fundo da página */
+  --bg: #EEF2F7;                 /* fundo da página */
   --surface: #FFFFFF;            /* cards, barra de navegação, chips */
-  --border: #D7DBDF;             /* bordas e separadores */
+  --border: #E1E7EF;             /* bordas e separadores */
+  --surface-2: #F6F8FB;          /* cabeçalho de tabela, blocos de apoio */
 
   /* tinta */
-  --ink: #0A0A0A;                /* títulos */
-  --ink-2: #333333;              /* corpo */
-  --ink-3: #6B7280;              /* rótulos, eixos, notas */
+  --ink: #0E1F3D;                /* títulos */
+  --ink-2: #3A4863;              /* corpo */
+  --ink-3: #6B7890;              /* rótulos, eixos, notas */
 
-  /* azuis do site do BTG: o primário vai em blocos, aba ativa e contornos; os de apoio em séries e fundos */
-  --azul-btg: #10408D;
-  --azul-claro: #B0D2FF;         /* bloco secundário */
-  --azul-claro-2: #E8F1FF;       /* fundos suaves */
-  --azul-medio: #406BB4;
-  --azul-vivo: #4F97F4;
-  --azul-escuro: #253B63;
+  /* azuis */
+  --azul-btg: #0B2859;
+  --azul-claro-2: #E7EFFA;       /* fundos suaves, faixa do padrão sazonal */
+  --azul-claro-3: #FFFFFF;       /* bloco do próximo release */
+  --azul-medio: #2F5FA8;
+  --azul-rotulo: #C9DCF7;       /* rótulo sobre o azul médio dos destaques */
+  --azul-vivo: #3D8BEA;
+  --azul-escuro: #5A6F92;
 
-  /* vermelho e verde só em variação e sinal; se virassem cor de série, o leitor ia achar que é alerta */
-  --pior: #B4432F;               /* inflação subindo */
-  --melhor: #0E7C5A;             /* inflação caindo */
+  /* sinal */
+  --pior: #B8412C;
+  --melhor: #0C7A57;
 
-  /* séries: o que é núcleo em azuis e o que não é em âmbar e verde-azulado, para o olho separar sem ler a legenda */
-  --serie-inpc: #253B63;
-  --serie-subyacente: #10408D;
-  --serie-mercancias: #4F97F4;
-  --serie-servicios: #1B55B5;
-  --serie-agropecuarios: #D48A16;
-  --serie-energeticos: #0E9C8A;
-  --serie-no-subyacente: #D48A16;
-
-  /* gráficos */
-  --grade: #ECEEF0;              /* grade horizontal */
-  --zero: #D7DBDF;               /* linha de zero dos gráficos de barras */
-  --banda-meta: rgba(16, 64, 141, 0.06);   /* intervalo de 2% a 4% do Banxico */
-  --branco: #FFFFFF;             /* texto sobre fundos escuros */
-
-  /* tipografia: escala 12/13/14/16/20/32 */
-  --fonte: "Inter", "Segoe UI", system-ui, sans-serif;
-  --t-12: 12px; --t-13: 13px; --t-14: 14px; --t-16: 16px; --t-20: 20px; --t-32: 32px;
-
-  /* forma e espaço: só 8/12/16/24/32 */
-  --raio-card: 4px;              /* o site deles é quase reto */
-  --raio-pilula: 4px;
-  --e-8: 8px; --e-12: 12px; --e-16: 16px; --e-24: 24px; --e-32: 32px;
-  --coluna: 1320px;              /* largura da coluna única de conteúdo */
-  --altura-grafico: 300px;
-  --altura-grafico-alta: 360px;
+  /* séries */
+  --serie-inpc: #0B2859;
+  --serie-subyacente: #2F6AD0;
+  --serie-mercancias: #8DB4EA;
+  --serie-servicios: #1D4A94;
+  --serie-agropecuarios: #D08E1F;
+  --serie-energeticos: #8A97AC;   /* cinza-azulado: verde parecia sinal de coisa boa */
+  --serie-no-subyacente: #D08E1F;
 }
 
-/* ==== 2. Base e coluna única ==== */
+/* ==== 2. Base ==== */
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--fonte); font-size: var(--t-13); line-height: 1.45; -webkit-font-smoothing: antialiased; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--fonte); font-size: var(--t-14); line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .coluna { max-width: var(--coluna); margin: 0 auto; padding: 0 var(--e-32); }
 
-/* barra de navegação branca, como a do site: a marca à esquerda e as abas como itens de menu à direita */
-.navegacao { background: var(--surface); border-bottom: 1px solid var(--border); }
-.navegacao .coluna { display: flex; align-items: center; gap: var(--e-24); height: 64px; }
-.marca { font-size: var(--t-16); font-weight: 600; color: var(--azul-btg); letter-spacing: -0.01em; white-space: nowrap; }
-.marca span { color: var(--ink-3); font-weight: 400; margin-left: var(--e-8); }
-.abas { margin-left: auto; display: flex; gap: var(--e-24); height: 100%; overflow-x: auto; }
-.abas button { font: inherit; font-size: var(--t-14); font-weight: 500; color: var(--ink-2); background: none; border: none; border-bottom: 2px solid transparent; padding: 0; height: 100%; cursor: pointer; white-space: nowrap; }
-.abas button.ativa { color: var(--azul-btg); border-bottom-color: var(--azul-btg); }
+/* navegação */
+.navegacao { background: rgba(255,255,255,0.92); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+.navegacao .coluna { display: flex; align-items: center; gap: var(--e-24); height: 68px; }
+.marca { display: flex; align-items: baseline; gap: 10px; font-size: 19px; font-weight: 800; color: var(--azul-btg); letter-spacing: -0.02em; white-space: nowrap; }
+.marca span { color: var(--ink-3); font-size: var(--t-14); font-weight: 500; letter-spacing: 0; padding-left: 10px; border-left: 1px solid var(--border); margin-left: 0; }
+.abas { margin-left: auto; display: flex; gap: 2px; padding: 4px; background: var(--bg); border-radius: var(--raio-pilula); overflow-x: auto; }
+.abas button { font: inherit; font-size: var(--t-14); font-weight: 600; color: var(--ink-3); background: none; border: none; border-radius: var(--raio-pilula); padding: 8px 22px; cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s, box-shadow .15s; }
+.abas button:hover { color: var(--azul-btg); background: rgba(255,255,255,0.6); }
+.abas button.ativa { background: var(--surface); color: var(--azul-btg); box-shadow: 0 1px 2px rgba(11,40,89,0.12), 0 0 0 1px rgba(11,40,89,0.06); }
+.abas button:focus-visible { outline: 2px solid var(--azul-vivo); outline-offset: 2px; }
 
-/* faixa do release: dois blocos chapados lado a lado, o azul forte com o dado e o claro com o calendário */
-.faixa-release { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--e-16); margin-bottom: var(--e-16); }
-.bloco-release, .bloco-proximo { border-radius: var(--raio-card); padding: var(--e-24) var(--e-32); display: flex; flex-direction: column; gap: var(--e-8); }
+/* faixa do release */
+.faixa-release { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--e-16); margin-bottom: 20px; }
+.bloco-release, .bloco-proximo { border-radius: var(--raio-card); padding: 28px var(--e-32); display: flex; flex-direction: column; gap: 10px; }
 .bloco-release { grid-column: span 8; background: var(--azul-btg); color: var(--branco); }
-.bloco-proximo { grid-column: span 4; background: var(--azul-claro); color: var(--azul-btg); }
-.bloco-rotulo { font-size: var(--t-12); font-weight: 500; }
-.bloco-titulo { font-size: var(--t-32); font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
-.bloco-linha { font-size: var(--t-16); font-variant-numeric: tabular-nums; }
-.bloco-data { font-size: var(--t-20); font-weight: 600; }
-.bloco-rodape { margin-top: auto; padding-top: var(--e-8); display: flex; flex-direction: column; gap: 4px; font-size: var(--t-12); }
-.conferido { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
-.termo { border-bottom: 1px dotted currentColor; cursor: help; }   /* termo com o nome oficial do INEGI no tooltip */
+.bloco-release .bloco-rotulo { color: rgba(255,255,255,0.7); }
+.bloco-proximo { grid-column: span 4; background: var(--surface); color: var(--azul-btg); border: 1px solid var(--border); }
+.bloco-proximo .bloco-rotulo { color: var(--ink-3); }
+.bloco-rotulo { font-size: var(--t-13); font-weight: 500; }
+.bloco-titulo { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; font-variant-numeric: tabular-nums; }
+.bloco-linha { font-size: var(--t-16); font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.86); }
+.bloco-data { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+#proximo-dias:not(:empty) { align-self: flex-start; background: var(--azul-claro-2); color: var(--azul-btg); font-size: var(--t-13); font-weight: 700; padding: 4px 12px; border-radius: var(--raio-pilula); }
+.bloco-rodape { margin-top: auto; padding-top: var(--e-12); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; font-size: var(--t-12); color: var(--ink-3); }
+.conferido { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--melhor); }
+.termo { border-bottom: 1px dotted currentColor; cursor: help; }
 @media (max-width: 1100px) { .faixa-release > * { grid-column: 1 / -1; } }
-.pilula { display: inline-flex; align-items: center; gap: 4px; border-radius: var(--raio-pilula); padding: 2px 10px; font-size: var(--t-12); font-weight: 500; font-variant-numeric: tabular-nums; }
+.pilula { display: inline-flex; align-items: center; gap: 4px; border-radius: var(--raio-pilula); padding: 3px 10px; font-size: var(--t-12); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-/* grade de 12 colunas */
+/* grade */
 main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
 .painel { display: none; }
-.painel.ativo { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--e-16); }
+.painel.ativo { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; }
 .c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c6 { grid-column: span 6; }
 .c7 { grid-column: span 7; } .c12 { grid-column: span 12; }
-@media (max-width: 1100px) { .painel.ativo > * { grid-column: 1 / -1; } .destaques { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 1100px) {
+  .painel.ativo > * { grid-column: 1 / -1; }
+  #kpis > .card { grid-column: span 6; }   /* os KPIs estão dentro de #kpis (display: contents) */
+  .destaques { grid-template-columns: 1fr 1fr; }
+}
 
 /* ==== 3. Cards ==== */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--raio-card); padding: 20px var(--e-24); min-width: 0; }
-.card-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--e-16); margin-bottom: var(--e-12); }
-.card h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
-.card .sub { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-3); }
-.chip { flex: none; background: var(--surface); color: var(--azul-btg); border: 1px solid var(--azul-btg); font-size: 11px; font-weight: 500; border-radius: var(--raio-pilula); padding: 2px 10px; white-space: nowrap; }
-.fonte { margin: var(--e-8) 0 0; font-size: 11.5px; color: var(--ink-3); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--raio-card); padding: var(--e-24) 28px; min-width: 0; box-shadow: 0 1px 2px rgba(11,40,89,0.04); }
+.card-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--e-16); margin-bottom: 20px; }
+.card h3 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; color: var(--ink); }
+.card .sub { margin: 6px 0 0; font-size: var(--t-13); color: var(--ink-3); line-height: 1.5; max-width: 70ch; }
+.chip { flex: none; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border); font-size: var(--t-12); font-weight: 600; border-radius: var(--raio-pilula); padding: 4px 12px; white-space: nowrap; }
+.fonte { margin: var(--e-16) 0 0; font-size: var(--t-12); color: var(--ink-3); opacity: .85; }
 
-/* cartões de KPI */
-.kpi { display: flex; flex-direction: column; gap: var(--e-8); padding-bottom: var(--e-16); }
-.kpi-rotulo { font-size: var(--t-13); color: var(--ink-3); }
-.kpi-linha { display: flex; align-items: baseline; gap: var(--e-12); }
-.kpi-principal { font-size: var(--t-32); font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
-.kpi-secundario { font-size: var(--t-20); color: var(--ink-2); font-weight: 500; }
-.kpi-secundario small { font-size: var(--t-12); color: var(--ink-3); font-weight: 400; margin-left: 4px; }
-.kpi-nota { font-size: var(--t-12); color: var(--ink-3); }
+/* KPIs: a faixa de cor no topo é a mesma cor da série nos gráficos */
+.kpi { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; position: relative; overflow: hidden; }
+.kpi::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--border); }
+#kpis > .kpi[data-kpi="indice_general"]::before { background: var(--serie-inpc); }
+#kpis > .kpi[data-kpi="subyacente"]::before { background: var(--serie-subyacente); }
+#kpis > .kpi[data-kpi="no_subyacente"]::before { background: var(--serie-no-subyacente); }
+/* o mensal implícito é estimativa: fundo diferente e faixa tracejada para não ser lido como dado oficial */
+#kpis > .kpi[data-kpi="implicito"] { background: var(--surface-2); border-style: dashed; cursor: help; }
+#kpis > .kpi[data-kpi="implicito"]::before { background: repeating-linear-gradient(90deg, var(--azul-escuro) 0 8px, transparent 8px 14px); }
+#kpis > .kpi[data-kpi="implicito"] .kpi-principal { color: var(--azul-escuro); }
+.kpi-rotulo { font-size: var(--t-14); font-weight: 700; color: var(--ink); }
+.kpi-linha { display: flex; align-items: baseline; gap: var(--e-12); flex-wrap: wrap; }
+.kpi-principal { font-size: var(--t-32); font-weight: 800; letter-spacing: -0.03em; line-height: 1; color: var(--azul-btg); font-variant-numeric: tabular-nums; }
+.kpi-secundario { font-size: var(--t-16); color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.kpi-secundario small { font-size: var(--t-12); color: var(--ink-3); font-weight: 500; margin-left: 4px; }
+.kpi-nota { font-size: var(--t-12); color: var(--ink-3); line-height: 1.5; }
 .pilula.pior { background: color-mix(in srgb, var(--pior) 10%, transparent); color: var(--pior); align-self: flex-start; }
 .pilula.melhor { background: color-mix(in srgb, var(--melhor) 10%, transparent); color: var(--melhor); align-self: flex-start; }
 .pilula.neutro { background: var(--bg); color: var(--ink-3); align-self: flex-start; }
-.sparkline { width: 100%; height: 32px; margin-top: auto; }
-.sparkline polyline { fill: none; stroke: var(--azul-claro); stroke-width: 1.5; }
-.sparkline circle { fill: var(--azul-btg); }
 
-/* faixa de destaques: 4 fatos lado a lado */
-.destaques { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.destaque { padding: 0 var(--e-24); border-left: 1px solid var(--border); }
-.destaque:first-child { padding-left: 0; border-left: none; }
-.destaque-rotulo { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 4px; }
-.destaque-texto { font-size: var(--t-14); color: var(--ink); font-variant-numeric: tabular-nums; }
-
+/* destaques: o card vira uma fileira de quatro blocos soltos */
+.card:has(> .destaques) { background: none; border: none; padding: 0; box-shadow: none; }
+.destaques { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.destaque { background: var(--azul-medio); border-radius: var(--raio-card); padding: 18px 20px; border-left: none; }
+.destaque:first-child { padding-left: 20px; }
+.destaque-rotulo { font-size: var(--t-13); font-weight: 700; color: var(--azul-rotulo); margin-bottom: 6px; }
+.destaque-texto { font-size: var(--t-14); color: var(--branco); font-weight: 500; line-height: 1.55; font-variant-numeric: tabular-nums; }
 
 /* ==== 4. Tabelas ==== */
-.tabela-dados { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.tabela-dados caption { text-align: left; font-size: var(--t-13); font-weight: 600; padding-bottom: var(--e-8); }
-.tabela-dados th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); text-align: right; padding: 0 var(--e-8) var(--e-8); border-bottom: 1px solid var(--border); white-space: nowrap; }
-.tabela-dados th:first-child { text-align: left; padding-left: 0; }
-.tabela-dados td { height: 36px; padding: 0 var(--e-8); border-bottom: 1px solid var(--border); color: var(--ink); }
-.tabela-dados td:first-child { padding-left: 0; }
+.tabela { overflow-x: auto; }
+.tabela-dados { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--t-13); font-variant-numeric: tabular-nums; }
+.tabela-dados caption { text-align: left; font-size: var(--t-14); font-weight: 700; color: var(--azul-btg); padding-bottom: 10px; }
+.tabela-dados th { font-size: var(--t-12); font-weight: 600; color: var(--ink-3); text-align: right; padding: 9px var(--e-8); background: var(--surface-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tabela-dados thead tr:last-child th:first-child, .tabela-dados thead tr:only-child th:first-child { border-radius: 8px 0 0 8px; }
+.tabela-dados thead tr:last-child th:last-child { border-radius: 0 8px 8px 0; }
+.tabela-dados thead th { border-bottom: none; }
+.tabela-dados th:first-child { text-align: left; padding-left: 12px; }
+.tabela-dados td { height: 40px; padding: 0 var(--e-8); border-bottom: 1px solid var(--grade); color: var(--ink); }
+.tabela-dados td:first-child { padding-left: 12px; }
+.tabela-dados tbody tr:not(.grupo):hover td { background: var(--azul-claro-2); }
 .tabela-dados tbody tr:last-child td { border-bottom: none; }
 .tabela-dados td.numero { text-align: right; white-space: nowrap; }
-.tabela-dados td.positivo { color: var(--pior); }
-.tabela-dados td.negativo { color: var(--melhor); }
-.tabela-dados td.neutro { color: var(--ink-2); }
-.tabela-dados td.generico { padding-top: 6px; padding-bottom: 6px; }
-.tabela-dados td.subindice { color: var(--ink-2); }
-.sub-linha { display: block; font-size: 11.5px; color: var(--ink-3); }
-.tabela-dados tr.grupo th { text-align: left; font-size: 11px; color: var(--ink-3); padding: var(--e-16) 0 var(--e-8); }   /* título discreto, "Acima do padrão" */
-.barra-inline { display: inline-block; height: 4px; border-radius: 2px; margin-right: var(--e-8); vertical-align: middle; }
+.tabela-dados td.positivo { color: var(--pior); font-weight: 700; }
+.tabela-dados td.negativo { color: var(--melhor); font-weight: 700; }
+.tabela-dados td.neutro { color: var(--ink-2); font-weight: 400; }
+.tabela-dados td.generico { padding-top: 8px; padding-bottom: 8px; font-weight: 600; }
+.tabela-dados td.subindice { color: var(--ink-3); }
+.sub-linha { display: block; font-size: var(--t-12); color: var(--ink-3); font-weight: 400; }
+.tabela-dados tr.grupo th { text-align: left; font-size: var(--t-13); font-weight: 700; color: var(--azul-btg); background: none; padding: 20px 0 8px 12px; border-bottom: 2px solid var(--azul-claro-2); border-radius: 0; }
+.barra-inline { display: inline-block; height: 8px; border-radius: 4px; margin-right: var(--e-8); vertical-align: middle; }
 .barra-inline.positivo { background: var(--pior); }
 .barra-inline.negativo { background: var(--melhor); }
-.tabela-dados tr.grupo-colunas th { text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
-.tabela-dados tr.grupo-colunas th:first-child { border-bottom: none; }
-.tabela-dados td.componente { white-space: nowrap; }
+.tabela-dados tr.grupo-colunas th { text-align: center; border-radius: 8px 8px 0 0; padding-bottom: 2px; color: var(--ink-2); }
+.tabela-dados tr.grupo-colunas th:first-child { background: none; }
+.tabela-dados tr.grupo-colunas th:empty { background: none; }
+.tabela-dados td.componente { white-space: nowrap; font-weight: 600; }
 [data-card="main_ultimos_periodos"] .tabela-dados th, [data-card="main_ultimos_periodos"] .tabela-dados td { padding-left: 6px; padding-right: 6px; }
-[data-card="main_ultimos_periodos"] .tabela-dados td:first-child, [data-card="main_ultimos_periodos"] .tabela-dados th:first-child { padding-left: 0; }
-.lado-a-lado { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-32); }
+[data-card="main_ultimos_periodos"] .tabela-dados td:first-child, [data-card="main_ultimos_periodos"] .tabela-dados th:first-child { padding-left: 10px; }
+/* últimos períodos: hierarquia com recuo, sem linha entre as filhas, e a coluna mais recente em destaque */
+[data-card="main_ultimos_periodos"] .tabela-dados td { border-bottom: none; }
+[data-card="main_ultimos_periodos"] .tabela-dados tr.separador td { border-top: 1px solid var(--border); }
+[data-card="main_ultimos_periodos"] .tabela-dados tr.total td { font-weight: 700; }
+[data-card="main_ultimos_periodos"] .tabela-dados td.filho { padding-left: 28px; font-weight: 400; color: var(--ink-2); }
+[data-card="main_ultimos_periodos"] .tabela-dados .recente { background: var(--azul-claro-2); font-weight: 700; }
+[data-card="main_ultimos_periodos"] .tabela-dados .divisa { border-left: 1px solid var(--border); }
+.lado-a-lado { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
 @media (max-width: 1100px) { .lado-a-lado { grid-template-columns: 1fr; } }
 
 /* rodapé */
-.rodape { border-top: 1px solid var(--border); padding: var(--e-16) 0 var(--e-32); font-size: var(--t-12); color: var(--ink-3); }
+.rodape { border-top: 1px solid var(--border); padding: 20px 0 var(--e-32); font-size: var(--t-12); color: var(--ink-3); }
+
+/* celular */
+@media (max-width: 720px) {
+  .coluna { padding: 0 var(--e-16); }
+  .navegacao .coluna { flex-wrap: wrap; height: auto; padding-top: var(--e-12); padding-bottom: var(--e-12); gap: 10px; }
+  .abas { margin-left: 0; width: 100%; }
+  .abas button { flex: 1; padding: 8px 10px; }
+  .bloco-release, .bloco-proximo { padding: 20px; }
+  .card { padding: 20px 18px; }
+  .card:has(> .destaques) { padding: 0; }
+  .bloco-titulo { font-size: 30px; }
+  #kpis > .card { grid-column: 1 / -1; }
+  .destaques { grid-template-columns: 1fr; gap: 12px; }
+  .card-topo { flex-direction: column; gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .abas button { transition: none; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
@@ -209,7 +237,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <h3>Núcleo vs meta</h3><p class="sub">Variação em 12 meses (%); ponto destacado: última quinzena</p>
     </div>
     <div class="card c12" data-card="main_contribuicoes">
-      <h3>Contribuições para a inflação em 12 meses</h3><p class="sub">Componentes do nível 2 (pp) e INPC geral (%)</p>
+      <h3>Contribuições para a inflação em 12 meses</h3><p class="sub">Componentes do nível 2 (pp) e INPC geral (%). Contribuição em pp; a soma das barras é o INPC em 12 meses (%).</p>
     </div>
     <div class="card c7" data-card="main_vs_norma">
       <h3>Último período vs padrão sazonal</h3><p class="sub">Variação no período (%); marcador: padrão sazonal (mediana 2010–2019); traço: p25 a p75</p>
@@ -310,41 +338,30 @@ function montarFaixa(c) {
     + `<path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2"/></svg>Conferido com o INEGI · ${c.conferido}`;
 }
 
-function sparkline(slot) {
-  // dois anos da inflação em 12 meses, sem eixo: a ideia é só mostrar se a trajetória sobe ou desce
-  const traco = DADOS.graficos[slot].data[0];
-  const y = traco.y.slice(-24), min = Math.min(...y), max = Math.max(...y);
-  const pontos = y.map((v, i) => [i / (y.length - 1) * 100, 28 - (v - min) / (max - min || 1) * 24 + 2]);
-  const [ux, uy] = pontos[pontos.length - 1];
-  return `<svg class="sparkline" viewBox="0 0 104 32" preserveAspectRatio="none">
-    <polyline points="${pontos.map((p) => p.join(",")).join(" ")}" vector-effect="non-scaling-stroke"/>
-    <circle cx="${ux}" cy="${uy}" r="2.5"/></svg>`;
-}
-
-function cartaoKpi(k, slotSparkline) {
-  return `<div class="card c3 kpi">
+function cartaoKpi(k) {
+  // a pílula é a mudança da taxa de 12 meses, não da variação no período
+  return `<div class="card c3 kpi" data-kpi="${k.componente}">
     <div class="kpi-rotulo">${k.nome}</div>
     <div class="kpi-linha"><span class="kpi-principal">${k.variacao_anual}</span>
       <span class="kpi-secundario">${k.variacao_periodo}<small>${k.rotulo_periodo}</small></span></div>
-    <span class="pilula ${{ alta: "pior", baixa: "melhor", neutro: "neutro" }[k.classe]}">${k.seta} ${k.mudanca} vs ${periodoCurto(k.anterior)}</span>
-    ${slotSparkline ? sparkline(slotSparkline) : ""}
+    <span class="pilula ${{ alta: "pior", baixa: "melhor", neutro: "neutro" }[k.classe]}">${k.seta} 12m: ${k.mudanca} vs ${periodoCurto(k.anterior)}</span>
   </div>`;
 }
 
 function cartaoMensalImplicito(m) {
   // a faixa é a estimativa mais os quartis 25 e 75 dos erros do próprio método desde 2020, sem informação futura;
-  // a nota diz em quantos meses ela conteve o realizado, medido fora da amostra (docs/auditoria_pre_chat.md)
-  return `<div class="card c3 kpi" title="Núcleo implícito: ${m.subyacente}. Estimativa: 1ª quinzena publicada e 2ª quinzena pela mediana sazonal de 2010–2019. Faixa: a estimativa mais os quartis 25 e 75 dos erros de previsão da variação mensal desde 2020.">
+  // a nota diz em quantos meses ela conteve o realizado, medido fora da amostra (docs/auditoria_pre_chat.md);
+  // no card vai só a taxa de acerto, e o detalhe do teste fica no tooltip
+  return `<div class="card c3 kpi" data-kpi="implicito" title="Núcleo implícito: ${m.subyacente}. Estimativa: 1ª quinzena publicada e 2ª quinzena pela mediana sazonal de 2010–2019. Faixa: a estimativa mais os quartis 25 e 75 dos erros de previsão da variação mensal desde 2020. A faixa conteve o mês realizado em ${m.cobertura} de ${m.meses_testados} meses testados fora da amostra.">
     <div class="kpi-rotulo">Mensal implícito (estimativa) · ${m.mes}</div>
     <div class="kpi-linha"><span class="kpi-principal">${m.variacao_mensal}</span>
       <span class="kpi-secundario">${m.variacao_anual}<small>em 12 meses</small></span></div>
-    <div class="kpi-nota">faixa ${m.intervalo_mensal.replace(" a ", "–")}; conteve o mês realizado em ${m.cobertura} de ${m.meses_testados} meses fora da amostra</div>
+    <div class="kpi-nota">faixa ${m.intervalo_mensal.replace(" a ", "–")}; acertou ${m.cobertura} das vezes</div>
   </div>`;
 }
 
 function montarKpis(c) {
-  const sparklines = ["main_inpc_meta", "main_core_meta", null];   // o não núcleo não tem série no graficos.json
-  document.getElementById("kpis").innerHTML = c.kpis.map((k, i) => cartaoKpi(k, sparklines[i])).join("")
+  document.getElementById("kpis").innerHTML = c.kpis.map((k) => cartaoKpi(k)).join("")
     + (c.mensal_implicito ? cartaoMensalImplicito(c.mensal_implicito) : "");
   if (!c.mensal_implicito) document.querySelectorAll("#kpis .c3").forEach((el) => el.classList.replace("c3", "c4"));
 }
@@ -388,7 +405,7 @@ const COLUNAS_COM_BARRA = ["contribuição", "desvio sazonal ponderado"];
 
 function refinarTabelas(card, slot) {
   card.querySelectorAll("table").forEach((tabela) => {
-    if (slot === "main_ultimos_periodos") return tabela.querySelectorAll("td.numero").forEach((td) => td.classList.add("neutro"));   // níveis de inflação, não deltas
+    if (slot === "main_ultimos_periodos") return arrumarUltimosPeriodos(tabela);
     const titulos = () => [...tabela.querySelectorAll("thead th")].map((th) => th.textContent.trim().toLowerCase());
     // nas contribuições, com duas tabelas lado a lado, o grupo vai para baixo do nome da abertura para caber
     const colunaGrupo = titulos().indexOf("grupo");
@@ -412,6 +429,32 @@ function refinarTabelas(card, slot) {
         td.insertAdjacentHTML("afterbegin", `<span class="barra-inline ${valor > 0 ? "positivo" : "negativo"}" style="width:${Math.round(Math.abs(valor) / maior * 48)}px"></span>`);
       });
     });
+  });
+}
+
+// a ordem segue a árvore do INEGI: o núcleo é mercadorias mais serviços; o não núcleo, agropecuários mais energia e tarifas
+const HIERARQUIA = [["INPC geral", "total"], ["Núcleo", "separador"], ["Mercadorias", "filho"], ["Serviços", "filho"],
+                    ["Não núcleo", "separador"], ["Agropecuários", "filho"], ["Energia e tarifas", "filho"]];
+
+function arrumarUltimosPeriodos(tabela) {
+  // números neutros, porque são níveis de inflação e não deltas
+  tabela.querySelectorAll("td.numero").forEach((td) => td.classList.add("neutro"));
+  const corpo = tabela.querySelector("tbody");
+  const linhas = [...corpo.children];
+  HIERARQUIA.forEach(([nome, tipo]) => {
+    const tr = linhas.find((l) => l.children[0].textContent === nome);
+    if (tipo === "filho") tr.children[0].classList.add("filho");
+    else tr.classList.add(tipo);
+    corpo.appendChild(tr);
+  });
+  // o grupo "Variação no período" tem uma coluna por período; a última dele é a mais recente e a seguinte já é a de 12 meses
+  const grupo = tabela.querySelectorAll("tr.grupo-colunas th");
+  const periodos = Number(grupo[1].getAttribute("colspan"));
+  grupo[1].textContent = DADOS.cabecalho.frequencia === "quinzenal" ? "Variação na quinzena" : "Variação no mês";
+  grupo[2].classList.add("divisa");
+  tabela.querySelectorAll("tr:not(.grupo-colunas)").forEach((tr) => {
+    tr.children[periodos].classList.add("recente");
+    tr.children[periodos + 1].classList.add("divisa");
   });
 }
 
@@ -453,6 +496,17 @@ function fimDoEixoX(dados) {
   return [ultimas[0], fim.toISOString().slice(0, 10)];
 }
 
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+function eixoDoTempo(slot, dados) {
+  // eixo anual em todos os gráficos, menos nas contribuições, que têm uma barra por mês e rótulo "jan/25".
+  // Os rótulos são montados aqui para não depender do idioma do plotly; um a cada 3 meses, contando do último para trás
+  if (slot !== "main_contribuicoes") return { tickformat: "%Y", dtick: "M12", hoverformat: "%m/%Y", range: fimDoEixoX(dados) };
+  const datas = dados[0].x;
+  const marcadas = datas.filter((_, i) => (datas.length - 1 - i) % 3 === 0);
+  return { tickvals: marcadas, ticktext: marcadas.map((x) => `${MESES[Number(x.slice(5, 7)) - 1]}/${x.slice(2, 4)}`), hoverformat: "%m/%Y" };
+}
+
 function estilizarTraco(t, sufixo, eixo) {
   const cor = corDoTraco(t);
   const serie = (t.meta || {}).serie || "";
@@ -489,9 +543,8 @@ function rotulosFinais(dados, sufixo) {
   candidatos.forEach((t) => {
     const i = t.x.length - 1;
     if (escritos.some((a) => Math.abs(a.y - t.y[i]) < 0.3)) return;
-    // o ponto destacado leva o rótulo acima e à esquerda, longe da margem onde fica o "Meta 3%"
-    const posicao = destacado.length ? { xanchor: "right", xshift: -8, yanchor: "bottom", yshift: 6 } : { xanchor: "left", xshift: 8 };
-    escritos.push({ x: t.x[i], y: t.y[i], text: numero(t.y[i], 2, sufixo), showarrow: false, ...posicao,
+    // à direita do último ponto, fora da linha
+    escritos.push({ x: t.x[i], y: t.y[i], text: numero(t.y[i], 2, sufixo), showarrow: false, xanchor: "left", xshift: 8,
                     font: { size: 12, color: css("--ink"), family: css("--fonte") } });
   });
   escritos.forEach((a) => (a.font.weight = 600));
@@ -499,14 +552,25 @@ function rotulosFinais(dados, sufixo) {
 }
 
 function estilizarArvore(figura) {
-  // vermelho quando puxou a inflação para cima, verde quando segurou, mais forte quanto maior a contribuição
+  // degradê de azul: mais escuro quanto maior a contribuição; contribuição negativa em cinza.
+  // as cores são sólidas (misturadas com branco), porque cor transparente deixava o bloco-pai vazar por trás
   const t = figura.data[0];
-  const maior = Math.max(...t.customdata.map(Math.abs));
+  const maior = Math.max(...t.customdata.map(Math.abs)) || 1;   // tudo zero: evita dividir por zero
   const alfas = t.customdata.map((v) => 0.12 + 0.88 * Math.abs(v) / maior);
-  t.marker = { colors: t.customdata.map((v, i) => comAlfa(css(v > 0 ? "--pior" : "--melhor"), alfas[i])),
-               line: { width: 2, color: css("--surface") }, cornerradius: 4 };
-  t.textfont = { family: css("--fonte"), size: 13, color: alfas.map((a) => (a > 0.55 ? css("--branco") : css("--ink"))) };
-  t.hovertemplate = "%{label}: %{customdata:+.2f} pp<extra></extra>";
+  // escala em três paradas: azul bem claro, azul vivo e o marinho; negativo vai do cinza-claro ao cinza
+  const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const entre = (c1, c2, f) => "#" + rgb(c1).map((v, i) => Math.round(v + (rgb(c2)[i] - v) * f).toString(16).padStart(2, "0")).join("");
+  const escalaAzul = (a) => (a < 0.5 ? entre(css("--azul-claro-2"), css("--azul-vivo"), a / 0.5) : entre(css("--azul-vivo"), css("--azul-btg"), (a - 0.5) / 0.5));
+  t.marker = { colors: t.customdata.map((v, i) => (v > 0 ? escalaAzul(alfas[i]) : entre(css("--grade"), css("--ink-3"), alfas[i]))),
+               depthfade: false, line: { width: 2, color: css("--surface") }, cornerradius: 6 };
+  const corTexto = alfas.map((a) => (a > 0.4 ? css("--branco") : css("--ink")));
+  t.textfont = { family: css("--fonte"), size: 13, color: corTexto };
+  t.insidetextfont = { family: css("--fonte"), size: 13, color: corTexto };
+  t.outsidetextfont = { family: css("--fonte"), size: 13, color: corTexto };
+  // o modelo de texto pedia +.2f, mas o plotly ignorava o formato no treemap e mostrava 10 casas; aqui ele sai pronto
+  t.text = t.customdata.map((v) => (v > 0 ? "+" : "") + numero(v, 2, " pp"));
+  t.texttemplate = "%{label}<br>%{text}";
+  t.hovertemplate = "%{label}: %{text}<extra></extra>";
   t.pathbar = { visible: false };
   t.tiling = { pad: 3 };
   return { data: figura.data, layout: { height: parseInt(css("--altura-grafico-alta")), margin: { l: 0, r: 0, t: 0, b: 0 },
@@ -530,6 +594,11 @@ function estilizarFigura(slot, figura) {
   if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => (t.marker.color = css("--azul-btg")));
   const temMeta = (figura.layout.shapes || []).some((s) => s.name === "meta");
   const legendaVisivel = dados.filter((t) => t.showlegend !== false).length >= 2;
+  const rotulos = rotulosFinais(dados, sufixo);
+  // o "Meta 3%" fica na margem direita; se um rótulo final estiver a menos de 0,5 pp da meta, os dois encavalam,
+  // e aí ele vai para dentro do gráfico, no canto esquerdo, logo acima da linha da meta
+  const metaNaMargem = !rotulos.some((a) => Math.abs(a.y - 3) < 0.5);
+  const posicaoMeta = metaNaMargem ? { x: 1, xshift: 6, yanchor: "middle" } : { x: 0, xshift: 4, yanchor: "bottom" };
   // eixo dos valores: grade, sufixo e range com folga; nas barras horizontais ele é o x e a linha de zero fica vertical
   const eixoDeValores = { gridcolor: css("--grade"), gridwidth: 1, zeroline: temBarras, zerolinecolor: css("--zero"), zerolinewidth: 1,
                           ticksuffix: sufixo, tickformat: ".1~f", hoverformat: ".2f", title: { text: "" },
@@ -548,15 +617,14 @@ function estilizarFigura(slot, figura) {
     showlegend: legendaVisivel,
     legend: { orientation: "h", x: 0, xanchor: "left", y: 1, yanchor: "bottom", font: { size: 12, color: css("--ink-2") }, itemclick: false },
     xaxis: horizontal ? eixoDeValores : { showgrid: false, zeroline: false, ticks: "", showline: false, tickfont: { color: css("--ink-3") },
-             title: { text: "" }, ...(temDatas ? { tickformat: "%Y", dtick: "M12", hoverformat: "%m/%Y", range: fimDoEixoX(dados) } : {}) },
+             title: { text: "" }, ...(temDatas ? eixoDoTempo(slot, dados) : {}) },
     yaxis: horizontal ? eixoDeCategorias : eixoDeValores,
     shapes: (figura.layout.shapes || []).map((s) => s.name === "meta"
       ? { ...s, layer: "below", line: { color: css("--ink-3"), width: 1, dash: "dot" } }
       : { ...s, layer: "below", fillcolor: css("--banda-meta"), line: { width: 0 } }),
     annotations: [
-      ...rotulosFinais(dados, sufixo),
-      // "Meta 3%" na margem direita, fora da área dos dados, na altura da linha da meta
-      ...(temMeta ? [{ xref: "paper", x: 1, y: 3, text: "Meta 3%", showarrow: false, xanchor: "left", xshift: 6, yanchor: "middle", font: { size: 11, color: css("--ink-3") } }] : []),
+      ...rotulos,
+      ...(temMeta ? [{ xref: "paper", y: 3, text: "Meta 3%", showarrow: false, xanchor: "left", ...posicaoMeta, font: { size: 11, color: css("--ink-3") } }] : []),
     ],
   };
   return { data: dados, layout };
