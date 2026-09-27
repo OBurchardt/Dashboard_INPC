@@ -62,6 +62,12 @@ def main_ultimos_periodos(componentes, resumo):
     return tabela_html(cabecalho, linhas, grupos=[("", 1), ("Variação no período", 3), ("12 meses", 1)])
 
 
+def periodo_das_aberturas(resumo):
+    """O período das duas tabelas de aberturas, para o chip do card: "Quinzenal · 1ª quinz. set/26"."""
+    destaques = resumo["destaques"]
+    return html.escape(f"{destaques['frequencia'].capitalize()} · {destaques['rotulo_periodo']}")
+
+
 def main_top_incidencias(resumo):
     """Os cinco genéricos que mais puxaram a inflação para cima e os cinco que mais seguraram, em duas tabelas."""
     tabelas = []
@@ -70,7 +76,7 @@ def main_top_incidencias(resumo):
                   f"{celula_numero(item['variacao_periodo'], '%')}{celula_numero(item['incidencia_periodo'], ' pp')}</tr>"
                   for item in resumo["destaques"][chave]]
         tabelas.append(tabela_html(["Abertura", "Grupo", "Variação", "Contribuição"], linhas, titulo))
-    return f'<div class="lado-a-lado">{"".join(tabelas)}</div>'
+    return f'<div class="lado-a-lado" data-periodo="{periodo_das_aberturas(resumo)}">{"".join(tabelas)}</div>'
 
 
 def decomp_desvios(resumo):
@@ -82,7 +88,8 @@ def decomp_desvios(resumo):
             linhas.append(f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_texto(p.NOMES_EXIBICAO[item['subindice']], 'subindice')}"
                           f"{celula_numero(item['variacao_periodo'], '%')}{celula_numero(item['norma_mediana'], '%')}"
                           f"{celula_numero(item['desvio_sazonal_ponderado'], ' pp')}</tr>")
-    return tabela_html(["Abertura", "Grupo", "Variação", "Mediana sazonal", "Desvio sazonal ponderado"], linhas)
+    tabela = tabela_html(["Abertura", "Grupo", "Variação", "Mediana sazonal", "Desvio sazonal ponderado"], linhas)
+    return f'<div data-periodo="{periodo_das_aberturas(resumo)}">{tabela}</div>'
 
 
 if __name__ == "__main__":

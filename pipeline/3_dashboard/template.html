@@ -474,14 +474,26 @@ function montarFaixa(c) {
   document.getElementById("release-titulo").textContent = `INPC ${geral.variacao_anual} em 12 meses`;
   document.getElementById("release-linha").innerHTML = `${termo(nucleo)} ${nucleo.variacao_anual} · ${termo(naoNucleo)} ${naoNucleo.variacao_anual}`
     + ` · variação ${geral.rotulo_periodo} ${geral.variacao_periodo}`;
-  // sem release futuro no calendário, o texto já vem pronto ("calendário 2027 ainda não carregado") e não há contagem de dias
-  const dias = c.dias_ate_proximo;
   document.getElementById("proximo").textContent = c.proximo;
-  document.getElementById("proximo-dias").textContent = dias === null ? "" : dias === 0 ? "hoje" : `em ${dias} ${dias === 1 ? "dia" : "dias"}`;
+  document.getElementById("proximo-dias").textContent = diasAteProximo(c.proximo);
   document.getElementById("atualizado").textContent = `Atualizado ${c.atualizado}`;
   // se a validação falha o pipeline nem chega aqui, então o selo só precisa dizer o que foi conferido
   document.getElementById("conferido").innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">`
     + `<path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2"/></svg>Conferido com o INEGI · ${c.conferido}`;
+}
+
+function diasAteProximo(proximo) {
+  // conto na hora em que a página abre, e não na montagem: o site só é refeito no dia do release, e um número
+  // gravado no HTML ficaria parado até lá. A conta é no fuso da Cidade do México, como o calendário
+  const partes = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2})$/.exec(proximo);
+  if (!partes) return "";   // sem release futuro, o texto já vem pronto ("calendário 2027 ainda não carregado")
+  const release = `${partes[3]}-${partes[2]}-${partes[1]} ${partes[4]}`;
+  // "sv-SE" escreve a data como 2026-09-27 10:36, que compara certo como texto
+  const agora = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Mexico_City", year: "numeric", month: "2-digit", day: "2-digit",
+                                                   hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
+  if (agora >= release) return "aguardando atualização";   // o release já saiu e o site ainda não foi refeito
+  const dias = Math.round((Date.parse(release.slice(0, 10)) - Date.parse(agora.slice(0, 10))) / 864e5);
+  return dias === 0 ? "hoje" : `em ${dias} ${dias === 1 ? "dia" : "dias"}`;
 }
 
 function cartaoKpi(k) {
@@ -578,7 +590,10 @@ function montarCard(card) {
   if (subtitulo) card.querySelector(".sub").textContent = subtitulo;
   const titulo = card.innerHTML;
   const fonte = /^(grupos|explorar)_/.test(slot) ? FONTE.banxico : FONTE.padrao;
-  const chip = figura ? `<span class="chip">${chipDoCard(slot, figura)}</span>` : "";
+  // nas tabelas de aberturas o período vem dentro da própria tabela, tirado do resumo de onde ela saiu
+  const periodoDaTabela = card.dataset.tipo === "tabela" && (/data-periodo="([^"]+)"/.exec(DADOS.tabelas[slot]) || [])[1];
+  const textoDoChip = figura ? chipDoCard(slot, figura) : periodoDaTabela;
+  const chip = textoDoChip ? `<span class="chip">${textoDoChip}</span>` : "";
   const corpo = card.dataset.tipo === "tabela" ? `<div class="tabela">${DADOS.tabelas[slot]}</div>` : `<div class="grafico" data-grafico="${slot}"></div>`;
   card.innerHTML = `<div class="card-topo"><div>${titulo}</div>${chip}</div>${corpo}<p class="fonte">${fonte}</p>`;
   if (card.dataset.tipo === "tabela") refinarTabelas(card, slot);

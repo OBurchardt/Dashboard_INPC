@@ -137,7 +137,9 @@ apagados no fim, como pede o CLAUDE.md.
 O que foi feito com cada um:
 
 - B1: corrigido. Em release mensal os gráficos de meta param no mês (núcleo 3,88%, o mesmo do cartão) e o subtítulo não fala mais em quinzena; no estado atual nada muda na tela.
-- B2, B3 e B7: não corrigidos, por decisão do autor.
+- B2: corrigido depois da reauditoria. O navegador conta os dias no fuso da Cidade do México na hora em que a página abre; se o release já passou e o site não foi refeito, mostra "aguardando atualização". Conferido com o relógio simulado: 27/09 "em 11 dias", véspera "em 1 dia", 08/10 às 05:30 "hoje", 08/10 às 06:00 e 09/10 "aguardando atualização".
+- B7: corrigido depois da reauditoria. As duas tabelas de aberturas ganharam o chip "Quinzenal · 1ª quinz. set/26", tirado dos destaques do resumo, de onde elas saem.
+- B3: não corrigido, por decisão do autor.
 - B4: corrigido no treemap e nas etiquetas dos gráficos; Tarifas do governo aparece "0,00 pp". Foi a única mudança na tela atual.
 - B5, B8 e B10: corrigidos, sem efeito nos números.
 - B6: fica como está.

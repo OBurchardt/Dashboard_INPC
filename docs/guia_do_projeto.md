@@ -250,7 +250,7 @@ tabelas.json e graficos.json: o HTML das tabelas e as figuras do plotly, pelo no
 
 ## 6. As páginas do dashboard
 
-No alto, as quatro abas (Resumo, Composição, Sazonalidade e Explorar) e, visível em todas, a faixa do release: à esquerda o último release, quando saiu e os números do INPC, do núcleo e do não núcleo; à direita o próximo release, a hora da atualização e o selo de conferido com o INEGI. Tudo vem de `metricas_resumo.json` e do calendário.
+No alto, as quatro abas (Resumo, Composição, Sazonalidade e Explorar) e, visível em todas, a faixa do release: à esquerda o último release, quando saiu e os números do INPC, do núcleo e do não núcleo; à direita o próximo release (os dias que faltam são contados pelo navegador, na hora em que a página abre), a hora da atualização e o selo de conferido com o INEGI. Tudo vem de `metricas_resumo.json` e do calendário.
 
 Resumo:
 
@@ -297,7 +297,6 @@ A tolerância é 0,01 pp, a menor diferença visível num número publicado com 
 - As incidências vêm com 3 casas, então as contribuições deixam de fechar com o INPC em até 0,0045 pp. Onde falta incidência, a contribuição fica nula.
 - A soma das incidências dos 292 genéricos difere do INPC na quarta casa (0,3293 contra 0,3291 na 1ª quinzena de setembro): é a diferença entre o meu peso efetivo e o cálculo interno do INEGI.
 - O app "Índices de Precios" não é uma API documentada. Se o INEGI mudar os ids ou o exportador, a ingestão quebra; a validação impede que dado quebrado chegue ao painel, mas não conserta a ingestão.
-- O "em N dias" do próximo release é contado na hora da montagem; no site, entre um release e outro, ele não anda.
 
 ## 9. Como acrescentar um gráfico
 
