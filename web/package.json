@@ -1,0 +1,23 @@
+{
+  "name": "dashboard-inpc-assistente",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "dependencies": {
+    "ai": "7.0.118",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.3",
+    "playwright-core": "1.63.0",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  },
+  "scripts": {
+    "local": "tsx servidor_local.ts",
+    "test": "tsx --test testes/*.test.ts",
+    "tipos": "tsc -p ."
+  }
+}

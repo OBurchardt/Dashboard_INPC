@@ -92,3 +92,12 @@ INICIO_CESTA_2024 = {"quinzenal": "2024-07-Q2", "mensal": "2024-08"}
 MESES_METRICAS_GENERICOS = 24  # quanto histórico de genéricos vai para o dashboard
 MESES_VALIDACAO_ADITIVIDADE = 24  # janela em que confiro se as incidências somam o INPC
 TOLERANCIA_VALIDACAO_PP = 0.01  # o INEGI publica com 2 casas, então 0,01 pp é a menor diferença que dá para ver
+
+# ==== 9. Assistente (só na branch chat) ====
+# a versão online com o chat é um segundo projeto na Vercel, com Root Directory web/; a montagem grava lá a cópia do
+# HTML e o pacote de dados, para o deploy não depender de arquivos fora dessa pasta
+PASTA_WEB = RAIZ / "web"
+ALIASES_SERIES = RAIZ / "config" / "aliases_series.csv"  # nomes em português para a busca do assistente ("tomate", "núcleo")
+URL_VERSAO_ONLINE = "https://dashboard-inpc-assistente.vercel.app"  # troque pelo domínio do projeto novo depois do primeiro deploy
+RELEASE_AUDITADO = "2026-09-Q1"  # o release conferido em docs/auditoria.md; depois dele, a auditoria vale para o método, não para os números
+MINIMO_ANOS_PADRAO_SAZONAL = 8  # com menos anos de 2010-2019 na mediana, o assistente não diz se o dado é normal

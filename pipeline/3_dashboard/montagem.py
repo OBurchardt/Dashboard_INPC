@@ -5,6 +5,8 @@
 # frases de destaque, só com fatos do resumo, sem opinião. "Desvio sazonal" é contra a mediana de
 # 2010 a 2019, não contra expectativa de mercado, por isso não chamo de surpresa. Esta etapa só
 # roda se a validação passou, então tudo o que ela mostra já foi conferido com o INEGI.
+# Na branch chat ela também leva ao HTML o snapshot e o registro das visualizações do assistente, e grava em web/
+# a cópia do HTML e o pacote de dados que a versão online usa.
 
 import html
 import json
@@ -149,11 +151,20 @@ def destaques(resumo):
     return [realizado_x_esperado(resumo["expectativa"]), contribuicao, desvio, espalhamento]
 
 
+# ==== 4. Assistente (só na branch chat) ====
+def assistente(pacote):
+    """O que o painel do chat precisa no navegador: o snapshot, o release, o endereço da versão online e o registro das visualizações."""
+    # os números ficam no servidor; o navegador só precisa saber o que existe na tela para aplicar as ações do chat
+    return {"snapshot_id": pacote["snapshot_id"], "release": pacote["release"]["rotulo"], "frequencia": pacote["release"]["frequencia_do_release"],
+            "url_versao_online": p.URL_VERSAO_ONLINE, "visualizacoes": pacote["visualizacoes"]}
+
+
 if __name__ == "__main__":
     agora = datetime.now(ZoneInfo(p.FUSO))
     resumo = ler("metricas_resumo.json")
+    pacote = ler("pacote_assistente.json")
     dados = {"graficos": ler("graficos.json"), "tabelas": ler("tabelas.json"),
-             "cabecalho": cabecalho(resumo, agora), "destaques": destaques(resumo)}
+             "cabecalho": cabecalho(resumo, agora), "destaques": destaques(resumo), "assistente": assistente(pacote)}
     template = (Path(__file__).parent / "template.html").read_text(encoding="utf-8")
     # cuidado: um "</" dentro do <script> fecharia a tag antes da hora; escapar a barra não muda o JSON
     dados_js = "window.DADOS = " + json.dumps(dados, ensure_ascii=False).replace("</", "<\\/") + ";"
@@ -162,4 +173,9 @@ if __name__ == "__main__":
     destino.write_text(html, encoding="utf-8")
     # o mesmo HTML como index.html, que é a página que a Vercel serve a partir de output/
     (p.PASTA_OUTPUT / "index.html").write_text(html, encoding="utf-8")
+    # a versão online com o chat é servida de web/: a mesma página e o pacote que o servidor consulta
+    (p.PASTA_WEB / "public").mkdir(parents=True, exist_ok=True)
+    (p.PASTA_WEB / "dados").mkdir(parents=True, exist_ok=True)
+    (p.PASTA_WEB / "public" / "index.html").write_text(html, encoding="utf-8")
+    (p.PASTA_WEB / "dados" / "pacote.json").write_text(json.dumps(pacote, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"Montagem: {destino.name} e index.html com {destino.stat().st_size / 1e6:.1f} MB")

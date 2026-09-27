@@ -270,6 +270,64 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
   .card-topo { flex-direction: column; gap: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .abas button { transition: none; } html { scroll-behavior: auto; } }
+/* ==== 8. Assistente (só na branch chat) ====
+   Painel lateral que divide a tela com o dashboard no desktop, para não cobrir o gráfico que está sendo explicado;
+   em tela pequena ocupa a tela e fecha para conferir o gráfico. Só tokens da paleta, sem gradiente nem avatar */
+.botao-assistente { font: inherit; font-size: var(--t-14); font-weight: 600; color: var(--azul-btg); background: var(--surface); border: 1px solid var(--border); border-radius: var(--raio-pilula); padding: 7px 16px; cursor: pointer; white-space: nowrap; }
+.botao-assistente:hover, .botao-assistente[aria-expanded="true"] { background: var(--azul-claro-2); }
+.botao-assistente:focus-visible, .assistente button:focus-visible, .assistente textarea:focus-visible, .assistente a:focus-visible, .assistente input:focus-visible { outline: 2px solid var(--azul-vivo); outline-offset: 2px; }
+.assistente { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; z-index: 30; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; font-size: var(--t-14); color: var(--ink); }
+.assistente[hidden] { display: none; }
+body.com-assistente { margin-right: 400px; }
+.assistente-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--e-12); padding: var(--e-16) var(--e-16) var(--e-8); border-bottom: 1px solid var(--border); }
+.assistente-topo h2 { margin: 0; font-size: var(--t-16); font-weight: 800; color: var(--azul-btg); }
+.assistente-contexto { margin: 2px 0 0; font-size: var(--t-12); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.assistente-fechar { font: inherit; font-size: 20px; line-height: 1; color: var(--ink-3); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+.assistente-fechar:hover { background: var(--bg); }
+.assistente-acompanhar { display: flex; align-items: center; gap: var(--e-8); padding: var(--e-8) var(--e-16); font-size: var(--t-13); color: var(--ink-2); border-bottom: 1px solid var(--border); }
+.assistente-mensagens { flex: 1; overflow-y: auto; padding: var(--e-16); display: flex; flex-direction: column; gap: var(--e-12); }
+.mensagem { line-height: 1.55; }
+.mensagem.usuario { align-self: flex-end; max-width: 88%; background: var(--azul-claro-2); color: var(--ink); padding: 8px 12px; border-radius: 12px; white-space: pre-wrap; }
+.mensagem.assistente-resposta p { margin: 0 0 8px; }
+.mensagem.assistente-resposta ul, .mensagem.assistente-resposta ol { margin: 0 0 8px; padding-left: 20px; }
+.atividade { font-size: var(--t-12); color: var(--ink-3); display: flex; align-items: center; gap: 6px; }
+.atividade.falha { color: var(--pior); }
+.atividade.feita::before { content: "✓"; color: var(--melhor); }
+.evidencia { font: inherit; font-size: 11px; font-weight: 700; color: var(--azul-btg); background: var(--azul-claro-2); border: 1px solid var(--p-azul-claro); border-radius: 6px; padding: 0 5px; margin: 0 1px; cursor: pointer; vertical-align: 1px; font-variant-numeric: tabular-nums; }
+.evidencia.invalida { color: var(--pior); background: none; border-color: var(--pior); cursor: help; }
+.detalhe-evidencia { margin-top: 6px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; font-size: var(--t-12); color: var(--ink-2); }
+.detalhe-evidencia dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
+.detalhe-evidencia dt { color: var(--ink-3); }
+.detalhe-evidencia dd { margin: 0; }
+.detalhe-evidencia pre { white-space: pre-wrap; font: inherit; margin: 6px 0 0; max-height: 180px; overflow-y: auto; }
+.verificacao { font-size: var(--t-12); color: var(--ink-3); margin-top: 4px; }
+.verificacao.alerta { color: var(--pior); }
+.botao-secundario { font: inherit; font-size: var(--t-12); font-weight: 600; color: var(--azul-btg); background: var(--surface); border: 1px solid var(--border); border-radius: var(--raio-pilula); padding: 4px 12px; cursor: pointer; margin: 4px 6px 0 0; text-decoration: none; display: inline-block; }
+.botao-secundario:hover { background: var(--azul-claro-2); }
+.aviso-estado { padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; color: var(--ink-2); font-size: var(--t-13); }
+.assistente-sugestoes[hidden] { display: none; }
+.assistente-sugestoes { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 var(--e-16) var(--e-8); }
+.assistente-sugestoes button { font: inherit; font-size: var(--t-12); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--raio-pilula); padding: 5px 10px; cursor: pointer; }
+.assistente-sugestoes button:hover { background: var(--azul-claro-2); color: var(--azul-btg); }
+.assistente-entrada { display: flex; gap: var(--e-8); padding: var(--e-8) var(--e-16); border-top: 1px solid var(--border); }
+.assistente-entrada textarea { flex: 1; font: inherit; font-size: var(--t-14); color: var(--ink); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; resize: none; }
+.assistente-entrada button { font: inherit; font-size: var(--t-14); font-weight: 700; color: var(--branco); background: var(--azul-btg); border: none; border-radius: 10px; padding: 0 16px; cursor: pointer; }
+.assistente-entrada button.parar { background: var(--p-tinta-2); }
+.assistente-entrada button:disabled { opacity: .5; cursor: default; }
+.assistente-aviso { margin: 0; padding: 0 var(--e-16) var(--e-12); font-size: 11px; color: var(--ink-3); }
+/* o que o chat abriu fica marcado até a próxima ação ou o "desfazer" */
+.card.em-foco { box-shadow: 0 0 0 2px var(--p-azul-vivo); }
+.tabela-dados tbody tr.linha-em-foco td { background: var(--azul-claro-2); }
+/* com o painel aberto sobram uns 1000 px: os pares lado a lado ficariam espremidos, então cada card ocupa a linha */
+@media (min-width: 901px) and (max-width: 1500px) {
+  body.com-assistente .painel.ativo > .c5, body.com-assistente .painel.ativo > .c6, body.com-assistente .painel.ativo > .c7 { grid-column: 1 / -1; }
+  body.com-assistente .faixa-release > * { grid-column: 1 / -1; }
+}
+@media (max-width: 900px) {
+  body.com-assistente { margin-right: 0; }
+  .assistente { width: 100%; border-left: none; }
+}
+@media (prefers-reduced-motion: reduce) { .assistente * { transition: none !important; } }
 </style>
 </head>
 <body>
@@ -283,6 +341,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <button data-aba="sazonalidade">Sazonalidade</button>
       <button data-aba="explorar">Explorar</button>
     </nav>
+    <button type="button" class="botao-assistente" id="abrir-assistente" aria-controls="assistente" aria-expanded="false">Assistente</button>
   </div>
 </header>
 
@@ -415,6 +474,22 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
   <!-- ==== Explorar: o mesmo par de gráficos para todas as categorias, montado a partir dos dados ==== -->
   <section class="painel" id="explorar"></section>
 </main>
+
+<!-- ==== Assistente (só na branch chat): painel lateral do chat da versão online ==== -->
+<aside class="assistente" id="assistente" aria-label="Assistente de análise" hidden>
+  <div class="assistente-topo">
+    <div><h2>Assistente</h2><p class="assistente-contexto" id="assistente-contexto"></p></div>
+    <button type="button" class="assistente-fechar" aria-label="Fechar o assistente">×</button>
+  </div>
+  <label class="assistente-acompanhar"><input type="checkbox" id="acompanhar" checked> Acompanhar no dashboard</label>
+  <div class="assistente-mensagens" id="assistente-mensagens" role="log" aria-live="polite"></div>
+  <div class="assistente-sugestoes" id="assistente-sugestoes"></div>
+  <form class="assistente-entrada" id="assistente-form">
+    <textarea id="assistente-pergunta" rows="2" maxlength="2000" placeholder="Pergunte sobre o release" aria-label="Pergunta ao assistente"></textarea>
+    <button type="submit" id="assistente-enviar">Enviar</button>
+  </form>
+  <p class="assistente-aviso">Respostas geradas por IA a partir dos dados do dashboard.</p>
+</aside>
 
 <footer class="coluna"><div class="rodape">
   Fonte: INEGI (Índices de Precios e tabulados oficiais). Validação: último release confere com o tabulado oficial; contribuições somam o INPC.
@@ -968,6 +1043,426 @@ montarExplorar();
 document.querySelectorAll("[data-card]").forEach(montarCard);
 document.querySelectorAll(".abas button").forEach((b) => b.addEventListener("click", () => trocarAba(b)));
 desenharPainel(document.getElementById("resumo"));
+</script>
+<script>
+// ==== 8. Assistente (só na branch chat) ====
+// O painel do chat da versão online. Os números ficam no servidor: daqui só saem a pergunta, o snapshot deste HTML
+// e o estado da tela. O servidor pede ações de tela pela ferramenta controlar_dashboard; quem as aplica é o
+// adaptador abaixo, que só conhece as visualizações registradas no pacote e responde applied, unsupported,
+// stale_state, cancelled ou error depois que o plotly desenhou. Aberto do disco (file://), o painel não chama
+// servidor nenhum: diz que a análise precisa de conexão e aponta a versão online. Nada da conversa é guardado.
+const ASSISTENTE = DADOS.assistente;
+const REGISTRO = Object.fromEntries(ASSISTENTE.visualizacoes.map((v) => [v.id, v]));
+const MOVIMENTO_REDUZIDO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---- 8.1 Estado da tela, o mesmo para clique manual e ação do chat ----
+const estadoTela = { aba: "resumo", visualizacao_em_foco: null, destaque: null, revisao: 0 };
+const pilhaDeVoltar = [];   // para "desfazer": cada ação do chat guarda como a tela estava antes
+
+document.querySelectorAll(".abas button").forEach((b) => b.addEventListener("click", (evento) => {
+  // troca manual de aba conta como mudança do usuário: uma ação atrasada do chat não passa por cima dela
+  if (!evento.isTrusted) return;
+  Object.assign(estadoTela, { aba: b.dataset.aba, visualizacao_em_foco: null, destaque: null, revisao: estadoTela.revisao + 1 });
+  limparFoco();
+}));
+
+function limparFoco() {
+  document.querySelectorAll(".card.em-foco").forEach((c) => c.classList.remove("em-foco"));
+  document.querySelectorAll("tr.linha-em-foco").forEach((tr) => tr.classList.remove("linha-em-foco"));
+  document.querySelectorAll("[data-grafico]").forEach((div) => {
+    if (div.dataset.destacado) { Plotly.restyle(div, { opacity: 1 }); delete div.dataset.destacado; }
+  });
+}
+
+const esperar = (ms) => new Promise((ok) => setTimeout(ok, ms));
+
+async function desenhado(div) {
+  // em Explorar os gráficos só desenham perto da tela; aqui eu desenho na hora e espero o plotly terminar
+  if (!desenhados.has(div)) { observador.unobserve(div); desenhar(div); }
+  for (let i = 0; i < 40 && !div._fullLayout; i++) await esperar(50);
+  if (!div._fullLayout) throw new Error("o gráfico não terminou de desenhar");
+  await Plotly.Plots.resize(div);
+}
+
+async function destacarSerie(card, serieId) {
+  // gráfico: as outras séries ficam apagadas; tabela: a linha da série ganha fundo. O rótulo vem do registro
+  const rotulo = (REGISTRO[card.dataset.card].series.find((s) => s.serie_id === serieId) || {}).rotulo;
+  const div = card.querySelector("[data-grafico]");
+  if (div) {
+    const alvo = (t) => (t.meta || {}).componente === serieId || String(t.name || "").split(" · ")[0] === rotulo;
+    const opacidades = div.data.map((t) => (alvo(t) ? 1 : 0.2));
+    if (!opacidades.includes(1)) return false;
+    await Plotly.restyle(div, { opacity: opacidades });
+    div.dataset.destacado = "1";
+    return true;
+  }
+  const linhas = [...card.querySelectorAll("tbody tr")].filter((tr) => tr.children[0] && tr.children[0].textContent.trim().startsWith(rotulo));
+  linhas.forEach((tr) => tr.classList.add("linha-em-foco"));
+  return linhas.length > 0;
+}
+
+async function centralizar(card) {
+  // no Explorar os gráficos em volta desenham quando chegam perto da tela e empurram o card; reposiciono até parar
+  for (let i = 0; i < 6; i++) {
+    const caixa = card.getBoundingClientRect();
+    if (Math.abs(caixa.top + caixa.height / 2 - innerHeight / 2) < 40 || (caixa.top >= 70 && caixa.bottom <= innerHeight)) return;
+    card.scrollIntoView({ block: "center", behavior: "auto" });
+    await esperar(200);
+  }
+}
+
+async function irPara(aba, visualizacao, serieId) {
+  const botao = document.querySelector(`.abas button[data-aba="${aba}"]`);
+  if (estadoTela.aba !== aba) trocarAba(botao);
+  const card = document.querySelector(`#${aba} [data-card="${visualizacao}"]`);
+  // no Explorar os gráficos desenham quando chegam perto da tela e mudam a altura da página; desenho antes os que
+  // ficam acima do alvo, para a rolagem parar no lugar certo
+  const acima = [...document.querySelectorAll(`#${aba} [data-grafico]`)].filter((div) => card.compareDocumentPosition(div) & Node.DOCUMENT_POSITION_PRECEDING);
+  for (const div of acima) if (!desenhados.has(div)) { observador.unobserve(div); desenhar(div); }
+  limparFoco();
+  card.classList.add("em-foco");
+  card.scrollIntoView({ block: "center", behavior: MOVIMENTO_REDUZIDO ? "auto" : "smooth" });
+  const div = card.querySelector("[data-grafico]");
+  if (div) await desenhado(div);
+  await esperar(MOVIMENTO_REDUZIDO ? 0 : 450);   // a rolagem suave termina antes de eu confirmar
+  await centralizar(card);
+  const destacou = serieId ? await destacarSerie(card, serieId) : true;
+  Object.assign(estadoTela, { aba, visualizacao_em_foco: visualizacao, destaque: destacou ? serieId || null : null, revisao: estadoTela.revisao + 1 });
+  return destacou;
+}
+
+const fotografia = () => ({ aba: estadoTela.aba, visualizacao_em_foco: estadoTela.visualizacao_em_foco, destaque: estadoTela.destaque, rolagem: scrollY });
+const estadoAplicado = () => ({ aba: estadoTela.aba, visualizacao_em_foco: estadoTela.visualizacao_em_foco, destaque: estadoTela.destaque, revisao: estadoTela.revisao });
+
+async function aplicarAcao(entrada, capturado) {
+  // uma chamada = uma cena. Confere o snapshot e se o usuário mexeu na tela desde que a pergunta saiu
+  const resultado = (status, mensagem) => ({ status, action_id: capturado.action_id, estado_aplicado: estadoAplicado(), ...(mensagem ? { mensagem } : {}) });
+  try {
+    if (capturado.snapshot_id !== ASSISTENTE.snapshot_id) return resultado("error", "snapshot diferente do desta página");
+    if (capturado.revisao !== estadoTela.revisao) return resultado("stale_state", "o usuário mudou a tela durante a resposta; a ação não foi aplicada");
+    if (entrada.acao === "desfazer") {
+      const anterior = pilhaDeVoltar.pop();
+      if (!anterior) return resultado("unsupported", "não há mudança do assistente para desfazer");
+      if (anterior.visualizacao_em_foco) await irPara(anterior.aba, anterior.visualizacao_em_foco, anterior.destaque);
+      else { if (estadoTela.aba !== anterior.aba) trocarAba(document.querySelector(`.abas button[data-aba="${anterior.aba}"]`)); limparFoco();
+             Object.assign(estadoTela, { aba: anterior.aba, visualizacao_em_foco: null, destaque: null, revisao: estadoTela.revisao + 1 }); }
+      scrollTo({ top: anterior.rolagem, behavior: "auto" });
+      return resultado("applied");
+    }
+    if (entrada.acao === "restaurar_inicial") {
+      pilhaDeVoltar.push(fotografia());
+      trocarAba(document.querySelector('.abas button[data-aba="resumo"]'));
+      limparFoco();
+      scrollTo({ top: 0, behavior: "auto" });
+      Object.assign(estadoTela, { aba: "resumo", visualizacao_em_foco: null, destaque: null, revisao: estadoTela.revisao + 1 });
+      return resultado("applied");
+    }
+    const v = REGISTRO[entrada.visualizacao];
+    if (!v) return resultado("unsupported", "visualização não registrada");
+    const aba = entrada.aba || (v.abas.includes(estadoTela.aba) ? estadoTela.aba : v.aba_principal);
+    if (!v.abas.includes(aba) || !document.querySelector(`#${aba} [data-card="${v.id}"]`)) return resultado("unsupported", "a visualização não está nessa aba");
+    if (entrada.destacar_serie && !v.destaques_suportados.length) return resultado("unsupported", "essa visualização não permite destaque");
+    pilhaDeVoltar.push(fotografia());
+    const destacou = await irPara(aba, v.id, entrada.destacar_serie);
+    return destacou ? resultado("applied") : resultado("unsupported", "a visualização foi aberta, mas a série não está nela para destacar");
+  } catch (erro) {
+    return resultado("error", String(erro.message || erro).slice(0, 180));
+  }
+}
+
+// ---- 8.2 Leitura do stream (SSE do AI SDK) ----
+async function* eventosDoStream(resposta, sinal) {
+  // um pedaço da rede não é um evento: acumulo até a linha em branco que fecha cada evento, e o TextDecoder em modo
+  // stream não quebra caractere acentuado que chega dividido em dois pedaços
+  const leitor = resposta.body.getReader();
+  const decodificador = new TextDecoder();
+  let acumulado = "";
+  while (!sinal.aborted) {
+    const { value, done } = await leitor.read();
+    acumulado += decodificador.decode(value || new Uint8Array(), { stream: !done });
+    let fim;
+    while ((fim = acumulado.indexOf("\n\n")) >= 0) {
+      const bloco = acumulado.slice(0, fim);
+      acumulado = acumulado.slice(fim + 2);
+      const dados = bloco.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trimStart()).join("\n");
+      if (!dados) continue;
+      if (dados === "[DONE]") return;
+      yield JSON.parse(dados);
+    }
+    if (done) return;
+  }
+}
+
+// ---- 8.3 Conversa ----
+const conversa = [];            // as mensagens no formato do AI SDK (id, role, parts)
+const executadas = new Set();   // toolCallId já aplicados: evento repetido não aplica a mesma ação duas vezes
+let pedidoEmCurso = null;
+const novoId = () => Math.random().toString(36).slice(2, 12);
+
+function parteDaFerramenta(mensagem, id) { return mensagem.parts.find((p) => p.toolCallId === id); }
+
+function aplicarEvento(mensagem, e) {
+  if (e.type === "text-start") mensagem.parts.push({ type: "text", text: "", id: e.id });
+  else if (e.type === "text-delta") { const p = mensagem.parts.find((x) => x.type === "text" && x.id === e.id); if (p) p.text += e.delta; }
+  else if (e.type === "start-step") mensagem.parts.push({ type: "step-start" });
+  else if (e.type === "tool-input-start") { if (!parteDaFerramenta(mensagem, e.toolCallId)) mensagem.parts.push({ type: `tool-${e.toolName}`, toolCallId: e.toolCallId, state: "input-streaming" }); }
+  else if (e.type === "tool-input-available") {
+    if (!parteDaFerramenta(mensagem, e.toolCallId)) mensagem.parts.push({ type: `tool-${e.toolName}`, toolCallId: e.toolCallId });
+    Object.assign(parteDaFerramenta(mensagem, e.toolCallId), { state: "input-available", input: e.input });
+  }
+  else if (e.type === "tool-input-error" || e.type === "tool-output-error") Object.assign(parteDaFerramenta(mensagem, e.toolCallId) || {}, { state: "output-error", input: e.input, errorText: e.errorText });
+  else if (e.type === "tool-output-available") {
+    const p = parteDaFerramenta(mensagem, e.toolCallId);
+    if (p) Object.assign(p, { state: "output-available", output: e.output });
+    ((e.output || {}).evidencias || []).forEach((ev) => mensagem.evidencias.set(ev.id, ev));
+  }
+  else if (e.type === "data-verificacao") mensagem.verificacao = e.data;
+  else if (e.type === "error") mensagem.erro = e.errorText;
+}
+
+async function rodarTurno(mensagem) {
+  const controle = new AbortController();
+  pedidoEmCurso = controle;
+  atualizarBotao();
+  const capturado = { snapshot_id: ASSISTENTE.snapshot_id, revisao: estadoTela.revisao };
+  try {
+    const resposta = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, signal: controle.signal,
+      body: JSON.stringify({ snapshot_id: ASSISTENTE.snapshot_id, acompanhar: acompanhar(), estado_tela: estadoAplicado(),
+        mensagens: conversa.map(({ id, role, parts }) => ({ id, role, parts: parts.filter((p) => p.type !== "text" || p.text).map(({ id: _, ...p }) => p) })) }) });
+    if (!resposta.ok) {
+      const corpo = await resposta.json().catch(() => ({}));
+      mensagem.erro = corpo.mensagem || `O servidor respondeu ${resposta.status}.`;
+      mensagem.podeTentar = resposta.status !== 409;
+      return;
+    }
+    for await (const evento of eventosDoStream(resposta, controle.signal)) { aplicarEvento(mensagem, evento); desenharConversa(); }
+  } catch (erro) {
+    if (!controle.signal.aborted) { mensagem.erro = "Sem conexão com o servidor do assistente. O dashboard continua funcionando."; mensagem.podeTentar = true; }
+  } finally {
+    if (pedidoEmCurso === controle) pedidoEmCurso = null;
+    atualizarBotao();
+    desenharConversa();
+  }
+  if (controle.signal.aborted) return;
+  // o turno para numa cena pendente: aplico na tela e devolvo o resultado, e o servidor continua a resposta
+  const pendente = mensagem.parts.find((p) => p.type === "tool-controlar_dashboard" && p.state === "input-available" && !executadas.has(p.toolCallId));
+  if (!pendente) return;
+  executadas.add(pendente.toolCallId);
+  pendente.andamento = "aplicando";
+  desenharConversa();
+  pendente.output = acompanhar() ? await aplicarAcao(pendente.input, { ...capturado, action_id: pendente.toolCallId })
+    : { status: "cancelled", action_id: pendente.toolCallId, estado_aplicado: estadoAplicado(), mensagem: "Acompanhar no dashboard está desligado" };
+  pendente.state = "output-available";
+  desenharConversa();
+  await rodarTurno(mensagem);
+}
+
+function enviar(texto) {
+  if (pedidoEmCurso || !texto.trim()) return;
+  conversa.push({ id: novoId(), role: "user", parts: [{ type: "text", text: texto.trim() }] });
+  const resposta = { id: novoId(), role: "assistant", parts: [], evidencias: new Map() };
+  conversa.push(resposta);
+  document.getElementById("assistente-sugestoes").hidden = true;
+  desenharConversa();
+  rodarTurno(resposta);
+}
+
+function parar() {
+  // parar interrompe o stream e marca a cena que ainda não aconteceu como cancelada; nada é reexecutado depois
+  if (!pedidoEmCurso) return;
+  pedidoEmCurso.abort();
+  const ultima = conversa[conversa.length - 1];
+  ultima.parts.filter((p) => p.type === "tool-controlar_dashboard" && p.state !== "output-available").forEach((p) => {
+    executadas.add(p.toolCallId);
+    Object.assign(p, { state: "output-available", output: { status: "cancelled", action_id: p.toolCallId, estado_aplicado: estadoAplicado(), mensagem: "o usuário parou a resposta" } });
+  });
+  ultima.interrompida = true;
+  pedidoEmCurso = null;
+  atualizarBotao();
+  desenharConversa();
+}
+
+// ---- 8.4 Interface ----
+const acompanhar = () => document.getElementById("acompanhar").checked;
+const escapar = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const NOME_DA_ATIVIDADE = { consultar_contexto: "Consultando o contexto", buscar_series: "Buscando no catálogo", consultar_dados: "Consultando dados",
+  analisar_componentes: "Analisando componentes", consultar_metodologia: "Consultando a metodologia" };
+
+function textoSeguro(texto, mensagem) {
+  // nada de HTML do modelo: escapo tudo e só então aplico negrito, listas, parágrafos e as evidências; links não viram link
+  let numero = 0;
+  const numeros = new Map();
+  const comEvidencias = escapar(texto).replace(/\[(E-[0-9a-f]{6})\]/g, (_, id) => {
+    if (!mensagem.evidencias.has(id)) return `<span class="evidencia invalida" title="Evidência inexistente: ${id}">?</span>`;
+    if (!numeros.has(id)) numeros.set(id, ++numero);
+    return `<button type="button" class="evidencia" data-evidencia="${id}" aria-label="Evidência ${numeros.get(id)}: ${escapar(mensagem.evidencias.get(id).rotulo)}">${numeros.get(id)}</button>`;
+  }).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  return comEvidencias.split(/\n{2,}/).map((bloco) => {
+    const linhas = bloco.split("\n");
+    if (linhas.every((l) => /^\s*[-*] /.test(l))) return `<ul>${linhas.map((l) => `<li>${l.replace(/^\s*[-*] /, "")}</li>`).join("")}</ul>`;
+    if (linhas.every((l) => /^\s*\d+\. /.test(l))) return `<ol>${linhas.map((l) => `<li>${l.replace(/^\s*\d+\. /, "")}</li>`).join("")}</ol>`;
+    return `<p>${linhas.join("<br>")}</p>`;
+  }).join("");
+}
+
+function linhaDaAcao(p) {
+  const v = p.input && REGISTRO[p.input.visualizacao];
+  const alvo = p.input ? (p.input.acao === "mostrar" ? `“${v ? v.titulo : p.input.visualizacao}”` : p.input.acao === "desfazer" ? "a tela anterior" : "a visão inicial") : "";
+  if (p.state === "output-error") return `<div class="atividade falha">Ação de tela recusada: ${escapar(p.errorText || "parâmetro inválido")}</div>`;
+  if (!p.output) return `<div class="atividade">${p.input && p.input.acao === "mostrar" ? "Abrindo" : "Voltando para"} ${escapar(alvo)}…</div>`;
+  const s = p.output.status;
+  if (s === "applied") return `<div class="atividade feita">${p.input.acao === "mostrar" ? "Aberto no dashboard" : "Tela restaurada"}: ${escapar(alvo)}</div>`
+    + (matchMedia("(max-width: 900px)").matches ? `<button type="button" class="botao-secundario" data-fechar-para-ver>Ver no dashboard</button>` : "");
+  const motivo = { stale_state: "você mexeu na tela durante a resposta, então não mudei nada", cancelled: "cancelada", unsupported: "não suportada", error: "erro na tela" }[s];
+  return `<div class="atividade falha">Não apliquei ${escapar(alvo)}: ${escapar(p.output.mensagem || motivo)}</div>`;
+}
+
+function desenharMensagem(m) {
+  if (m.role === "user") return `<div class="mensagem usuario">${escapar(m.parts[0].text)}</div>`;
+  const partes = m.parts.map((p) => {
+    if (p.type === "text") return textoSeguro(p.text, m);
+    if (p.type === "tool-controlar_dashboard") return linhaDaAcao(p);
+    if (p.type.startsWith("tool-")) {
+      const nome = NOME_DA_ATIVIDADE[p.type.slice(5)] || "Consultando";
+      return p.state === "output-available" ? `<div class="atividade feita">${nome}</div>` : p.state === "output-error" ? `<div class="atividade falha">${nome}: falhou</div>` : `<div class="atividade">${nome}…</div>`;
+    }
+    return "";
+  }).join("");
+  const emCurso = m === conversa[conversa.length - 1] && pedidoEmCurso;
+  const v = m.verificacao;
+  const verificacao = v ? (v.status === "verificada" ? `<div class="verificacao">Números conferidos com as evidências (${v.numeros_conferidos}).</div>`
+    : `<div class="verificacao alerta">Atenção: ${[v.numeros_sem_evidencia.length ? `${v.numeros_sem_evidencia.length} número(s) sem evidência (${escapar(v.numeros_sem_evidencia.join(", "))})` : "",
+        v.citacoes_inexistentes.length ? "citação de evidência inexistente" : "", v.citacoes_divergentes.length ? "citação que não bate com o número" : "",
+        v.acao_de_tela_sem_confirmacao ? "o texto fala de ação de tela sem confirmação" : ""].filter(Boolean).join("; ")}. Confira antes de usar.</div>`) : "";
+  const estado = emCurso ? "" : m.erro ? `<div class="aviso-estado" role="alert">${escapar(m.erro)}${m.podeTentar ? ` <button type="button" class="botao-secundario" data-tentar="${m.id}">Tentar novamente</button>` : ""}</div>`
+    : m.interrompida ? `<div class="verificacao">Resposta interrompida.</div>` : verificacao;
+  return `<div class="mensagem assistente-resposta" data-mensagem="${m.id}">${partes || (emCurso ? '<div class="atividade">Pensando…</div>' : "")}${estado}<div class="detalhe-lugar"></div></div>`;
+}
+
+function desenharConversa() {
+  const caixa = document.getElementById("assistente-mensagens");
+  const noFim = caixa.scrollHeight - caixa.scrollTop - caixa.clientHeight < 40;
+  caixa.innerHTML = conversa.map(desenharMensagem).join("");
+  if (noFim) caixa.scrollTop = caixa.scrollHeight;
+}
+
+function mostrarEvidencia(botao) {
+  const mensagem = conversa.find((m) => m.id === botao.closest("[data-mensagem]").dataset.mensagem);
+  const ev = mensagem.evidencias.get(botao.dataset.evidencia);
+  const lugar = botao.closest("[data-mensagem]").querySelector(".detalhe-lugar");
+  const linha = (rotulo, valor) => (valor == null || valor === "" ? "" : `<dt>${rotulo}</dt><dd>${escapar(valor)}</dd>`);
+  const valor = ev.valor == null ? null : numero(ev.valor, 2, ev.unidade === "%" ? "%" : ` ${ev.unidade}`);
+  const v = ev.visualizacao && REGISTRO[ev.visualizacao];
+  lugar.innerHTML = `<div class="detalhe-evidencia"><dl>${linha("O quê", ev.rotulo)}${linha("Valor", valor)}${linha("Período", ev.rotulo_periodo)}${linha("Frequência", ev.frequencia)}`
+    + `${linha("Natureza", ev.natureza)}${linha("Origem", ev.origem)}${ev.validacao ? linha("Validação", `${ev.validacao.status}: ${ev.validacao.escopo}`) : ""}${linha("Id", ev.id)}</dl>`
+    + (ev.texto ? `<pre>${escapar(ev.texto)}</pre>` : "")
+    + (v ? `<button type="button" class="botao-secundario" data-ver="${ev.visualizacao}" data-serie="${escapar(ev.serie_id || "")}">Ver no gráfico: ${escapar(v.titulo)}</button>` : "") + "</div>";
+}
+
+async function verNoGrafico(visualizacao, serieId) {
+  // pedido do próprio usuário: aplico na hora, com a revisão atual
+  const v = REGISTRO[visualizacao];
+  const destacar = v.destaques_suportados.length && v.series.some((s) => s.serie_id === serieId) ? serieId : undefined;
+  await aplicarAcao({ acao: "mostrar", visualizacao, destacar_serie: destacar }, { snapshot_id: ASSISTENTE.snapshot_id, revisao: estadoTela.revisao, action_id: "manual" });
+  if (matchMedia("(max-width: 900px)").matches) abrirPainel(false);
+}
+
+function atualizarBotao() {
+  const botao = document.getElementById("assistente-enviar");
+  botao.textContent = pedidoEmCurso ? "Parar" : "Enviar";
+  botao.classList.toggle("parar", Boolean(pedidoEmCurso));
+  botao.disabled = !pedidoEmCurso && !servicoDisponivel;
+}
+
+function redimensionarGraficos() {
+  // o painel muda a largura útil; o plotly só se ajusta sozinho quando a janela muda
+  requestAnimationFrame(() => document.querySelectorAll(".painel.ativo [data-grafico]").forEach((div) => { if (desenhados.has(div)) Plotly.Plots.resize(div); }));
+}
+
+function abrirPainel(abrir) {
+  const painel = document.getElementById("assistente");
+  painel.hidden = !abrir;
+  document.body.classList.toggle("com-assistente", abrir);
+  document.getElementById("abrir-assistente").setAttribute("aria-expanded", String(abrir));
+  redimensionarGraficos();
+  if (abrir) document.getElementById("assistente-pergunta").focus();
+  else document.getElementById("abrir-assistente").focus();
+}
+
+let servicoDisponivel = false;
+
+function avisoDeEstado(html) { document.getElementById("assistente-mensagens").innerHTML = `<div class="aviso-estado">${html}</div>`; }
+
+async function verificarServico() {
+  // o dashboard não depende do servidor: se ele não responde, só o painel avisa
+  if (location.protocol === "file:") {
+    avisoDeEstado(`A análise com IA exige conexão. Este arquivo funciona offline, mas o assistente só roda na versão online.
+      <br><a class="botao-secundario" href="${escapar(ASSISTENTE.url_versao_online)}" target="_blank" rel="noopener">Abrir versão online com assistente</a>`);
+    return atualizarBotao();
+  }
+  try {
+    const resposta = await fetch("/api/estado", { signal: AbortSignal.timeout(6000) });
+    const estado = await resposta.json();
+    const motivo = { chat_desligado: "O assistente está desligado neste momento.", sem_credencial: "O servidor ainda não tem a credencial do AI Gateway (AI_GATEWAY_API_KEY)." }[estado.motivo];
+    if (estado.snapshot_id !== ASSISTENTE.snapshot_id) avisoDeEstado("O servidor tem outro snapshot dos dados. Recarregue a página para analisar o mesmo release.");
+    else if (!estado.chat_disponivel) avisoDeEstado(`${motivo || "O assistente está indisponível."} O dashboard funciona normalmente. <button type="button" class="botao-secundario" data-reverificar>Tentar novamente</button>`);
+    else { servicoDisponivel = true; document.getElementById("assistente-mensagens").innerHTML = ""; document.getElementById("assistente-sugestoes").hidden = false; }
+  } catch {
+    avisoDeEstado(`Não consegui falar com o servidor do assistente. O dashboard funciona normalmente. <button type="button" class="botao-secundario" data-reverificar>Tentar novamente</button>`);
+  }
+  atualizarBotao();
+}
+
+const SUGESTOES = [["O que puxou esta divulgação?", true], ["Como está o núcleo?", true], ["Investigar um item", false], ["Comparar com o padrão sazonal", true]];
+
+function montarAssistente() {
+  document.getElementById("assistente-contexto").textContent =
+    `${ASSISTENTE.release} · ${ASSISTENTE.frequencia === "quinzenal" ? "quinzenal" : "mensal"} · snapshot ${ASSISTENTE.snapshot_id.slice(0, 8)}`;
+  const sugestoes = document.getElementById("assistente-sugestoes");
+  sugestoes.hidden = true;
+  sugestoes.innerHTML = SUGESTOES.map(([texto], i) => `<button type="button" data-sugestao="${i}">${texto}</button>`).join("");
+  sugestoes.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-sugestao]");
+    if (!b || !servicoDisponivel) return;
+    const [texto, direto] = SUGESTOES[b.dataset.sugestao];
+    if (direto) return enviar(texto);
+    // "Investigar um item" precisa do item: deixo a frase pronta para completar
+    const campo = document.getElementById("assistente-pergunta");
+    campo.value = "Investigue o item ";
+    campo.focus();
+  });
+  document.getElementById("abrir-assistente").addEventListener("click", () => abrirPainel(document.getElementById("assistente").hidden));
+  document.querySelector(".assistente-fechar").addEventListener("click", () => abrirPainel(false));
+  document.getElementById("assistente").addEventListener("keydown", (e) => { if (e.key === "Escape") abrirPainel(false); });
+  document.getElementById("assistente-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (pedidoEmCurso) return parar();
+    const campo = document.getElementById("assistente-pergunta");
+    if (!servicoDisponivel) return;
+    enviar(campo.value);
+    campo.value = "";
+  });
+  document.getElementById("assistente-pergunta").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); document.getElementById("assistente-form").requestSubmit(); }
+  });
+  document.getElementById("assistente-mensagens").addEventListener("click", (e) => {
+    const alvo = e.target.closest("[data-evidencia], [data-ver], [data-tentar], [data-reverificar], [data-fechar-para-ver]");
+    if (!alvo) return;
+    if (alvo.dataset.evidencia) mostrarEvidencia(alvo);
+    else if (alvo.dataset.ver) verNoGrafico(alvo.dataset.ver, alvo.dataset.serie);
+    else if (alvo.hasAttribute("data-reverificar")) verificarServico();
+    else if (alvo.hasAttribute("data-fechar-para-ver")) abrirPainel(false);
+    else if (alvo.dataset.tentar) {
+      // tentar de novo refaz o pedido do turno; cenas já aplicadas ficam registradas e não se repetem
+      const m = conversa.find((x) => x.id === alvo.dataset.tentar);
+      Object.assign(m, { erro: null, podeTentar: false });
+      rodarTurno(m);
+    }
+  });
+  verificarServico();
+}
+
+montarAssistente();
 </script>
 </body>
 </html>

@@ -40,6 +40,8 @@ def acrescentar_norma(tabela, chave):
     janela = tabela[tabela["data"].dt.year.between(inicio, fim)]
     norma = janela.groupby([chave, "posicao_no_ano"])["variacao_periodo"].quantile([0.25, 0.5, 0.75]).unstack()
     norma.columns = ["norma_p25", "norma_mediana", "norma_p75"]
+    # quantos anos da janela entraram na mediana: o assistente não chama de "normal" um padrão feito com poucos anos
+    norma["norma_n"] = janela.groupby([chave, "posicao_no_ano"])["variacao_periodo"].count()
     tabela = tabela.merge(norma, left_on=[chave, "posicao_no_ano"], right_index=True, how="left")
     tabela["desvio_norma"] = tabela["variacao_periodo"] - tabela["norma_mediana"]
     return tabela.drop(columns="posicao_no_ano")
@@ -149,7 +151,7 @@ def metricas_componentes(series, dessazonalizadas):
         tabelas.append(acrescentar_norma(tabela, "componente"))
     tabela = acrescentar_ritmo_dessazonalizado(pd.concat(tabelas), dessazonalizadas)
     return tabela[["componente", "nivel", "pai", "frequencia", "periodo", "posicao", "rotulo_periodo", "rotulo_curto", "rotulo_mes", "data", "indice", "variacao_periodo", "variacao_anual",
-                   "incidencia_periodo", "contribuicao_anual", "contribuicao_no_pai", "contribuicao_no_grupo", "norma_mediana", "norma_p25", "norma_p75", "desvio_norma",
+                   "incidencia_periodo", "contribuicao_anual", "contribuicao_no_pai", "contribuicao_no_grupo", "norma_mediana", "norma_p25", "norma_p75", "norma_n", "desvio_norma",
                    "variacao_sa_mensal", "saar_3m", "saar_6m"]]
 
 
@@ -187,8 +189,8 @@ def metricas_genericos(genericos, ponderadores, series):
         tabela["desvio_sazonal_ponderado"] = tabela["peso_efetivo"] * tabela["desvio_norma"]
         tabelas.append(tabela)
     return pd.concat(tabelas)[["codigo_generico", "nome_generico", "subindice", "frequencia", "periodo", "posicao", "rotulo_periodo", "data", "indice",
-                               "variacao_periodo", "variacao_anual", "norma_mediana", "desvio_norma", "incidencia_periodo",
-                               "desvio_sazonal_ponderado"]]
+                               "variacao_periodo", "variacao_anual", "norma_mediana", "norma_p25", "norma_p75", "norma_n", "desvio_norma",
+                               "incidencia_periodo", "desvio_sazonal_ponderado"]]
 
 
 def serie_difusao(genericos, ponderadores):

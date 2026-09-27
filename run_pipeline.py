@@ -1,4 +1,4 @@
-# Este é o botão de rodar: python run_pipeline.py. Ele chama as oito etapas em ordem, cada uma
+# Este é o botão de rodar: python run_pipeline.py. Ele chama as nove etapas em ordem, cada uma
 # pelo caminho do arquivo, porque as pastas começam com número e o Python não importa nome assim.
 # Cada etapa lê e escreve arquivos em data/, então também dá para rodar uma sozinha
 # (python pipeline/1_dados/tratamento.py) quando só mexi nela.
@@ -13,7 +13,8 @@ IMPORTAR_DO_ZERO = False
 
 PIPELINE = Path(__file__).resolve().parent / "pipeline"
 ETAPAS = ["1_dados/ingestao.py", "1_dados/tratamento.py", "1_dados/validacao.py", "1_dados/dessazonalizacao.py",
-          "2_analise/metricas.py", "2_analise/tabelas.py", "2_analise/graficos.py", "3_dashboard/montagem.py"]
+          "2_analise/metricas.py", "2_analise/tabelas.py", "2_analise/graficos.py", "3_dashboard/pacote_assistente.py",
+          "3_dashboard/montagem.py"]
 
 inicio = time.time()
 # depois da ingestão tudo roda sempre: leva segundos, e assim qualquer mudança no código aparece no dashboard.

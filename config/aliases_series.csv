@@ -1,0 +1,85 @@
+id_serie,alias
+indice_general,inpc
+indice_general,inflação
+indice_general,inflação cheia
+indice_general,índice geral
+indice_general,headline
+indice_general,cheio
+subyacente,núcleo
+subyacente,core
+subyacente,subjacente
+subyacente,inflação subjacente
+no_subyacente,não núcleo
+no_subyacente,non-core
+no_subyacente,não subjacente
+mercancias,mercadorias
+mercancias,bens
+servicios,serviços
+servicios,services
+agropecuarios,agropecuários
+agropecuarios,agro
+energeticos_y_tarifas,energia e tarifas
+alimentos_bebidas_y_tabaco,alimentos
+alimentos_bebidas_y_tabaco,alimentos processados
+mercancias_no_alimenticias,mercadorias não alimentícias
+mercancias_no_alimenticias,bens não alimentícios
+vivienda,habitação
+vivienda,moradia
+educacion_colegiaturas,educação
+educacion_colegiaturas,mensalidades escolares
+otros_servicios,outros serviços
+frutas_y_verduras,frutas e verduras
+frutas_y_verduras,hortifrúti
+pecuarios,pecuários
+pecuarios,carnes e ovos
+energeticos,energia
+energeticos,energéticos
+tarifas_autorizadas_por_el_gobierno,tarifas do governo
+tarifas_autorizadas_por_el_gobierno,tarifas públicas
+g070,tomate
+g070,tomate vermelho
+g076,tomate
+g076,tomatillo
+g061,cebola
+g073,batata
+g022,frango
+g031,ovo
+g034,leite
+g018,carne bovina
+g018,carne de boi
+g017,carne suína
+g017,carne de porco
+g045,abacate
+g048,limão
+g055,banana
+g049,maçã
+g051,laranja
+g068,feijão
+g082,açúcar
+g108,cerveja
+g100,refrigerante
+g014,tortilha
+g014,tortilha de milho
+g008,pão
+g214,gasolina comum
+g213,gasolina premium
+g145,gás de cozinha
+g145,glp
+g144,eletricidade
+g144,energia elétrica
+g144,luz
+g138,aluguel
+g139,moradia própria
+g227,passagem aérea
+g223,ônibus
+g206,automóveis
+g206,carros
+g265,lanchonetes
+g268,restaurantes
+g257,ensino fundamental
+g260,universidade
+g233,telefonia móvel
+g234,internet
+g292,serviços profissionais
+g270,hotéis
+g109,cigarros

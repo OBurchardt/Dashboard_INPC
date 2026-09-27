@@ -1,5 +1,9 @@
 # Dashboard da inflação do México (INPC)
 
+> **Branch `chat`.** Esta branch acrescenta ao dashboard um assistente com IA numa versão online separada. Ela é um
+> retrato do release da 1ª quinzena de setembro de 2026: a atualização automática só roda na main. Tudo sobre o
+> assistente está em `docs/assistente.md` e na seção "Versão online com assistente", no fim deste arquivo.
+
 Pipeline em Python que baixa do INEGI as séries do Índice Nacional de Preços ao Consumidor (INPC) do México, confere com os números que o INEGI publica no release, calcula as métricas e gera um dashboard num único HTML, que abre sem internet. É feito para ser aberto no momento do release, às 06:00 da Cidade do México, e se atualiza sozinho no GitHub nesses dias.
 
 ## Estrutura
@@ -14,6 +18,7 @@ requirements.txt                    dependências Python
 config/
   parametros.py                     caminhos, fuso, URLs e ids do INEGI, janela de atualização
   catalogo_series.csv               lista das séries do INEGI a baixar
+  aliases_series.csv                [branch chat] apelidos em português para a busca do assistente
   calendario_releases.csv           calendário oficial de divulgação do INPC
   expectativas_manuais.csv          expectativa de mercado digitada na véspera do release
 pipeline/
@@ -27,24 +32,37 @@ pipeline/
     tabelas.py                      formata as tabelas do dashboard
     graficos.py                     desenha os gráficos do dashboard
   3_dashboard/
+    pacote_assistente.py            [branch chat] junta resultados, catálogo, registro de visualizações e metodologia no pacote do assistente
     montagem.py                     junta tabelas e gráficos no template
     template.html                   esqueleto HTML do dashboard
 docs/
   metodologia.md                    registro das escolhas metodológicas e justificativas
   guia_do_projeto.md                como rodar, fluxo, fórmulas, dicionário de dados e páginas
   auditoria.md                      auditoria final: cada número conferido com o INEGI e o Banxico, e os bugs achados
+  assistente.md                     [branch chat] pacote, contratos das ferramentas, registro de visualizações, limites, testes e texto para o Word
 .github/workflows/
   atualizar_inpc.yml                no dia do release, roda o pipeline no GitHub e grava o HTML novo na main
 data/                               [gerada pelo pipeline]
   raw/                              CSVs período x série, árvores de genéricos, ponderadores e tabulados
   processed/                        series, genericos, ponderadores, tabulado_oficial, metricas_* (.parquet), resumo, gráficos, tabelas e validação (.json)
 output/                             [gerada pelo pipeline e versionada] dashboard_inpc.html e index.html, o mesmo HTML
+web/                                [branch chat] a versão online com o assistente (Root Directory do segundo projeto na Vercel)
+  package.json, package-lock.json   dependências fixas (AI SDK 7, zod) e os scripts local e test
+  vercel.json                       pasta pública, duração e arquivos incluídos nas funções
+  .env.example                      variáveis do servidor, sem valores
+  prompt_sistema.md                 system prompt do assistente, versionado
+  servidor_local.ts                 roda a versão online em localhost
+  api/chat.ts, api/estado.ts        funções da Vercel
+  lib/                              pacote.ts, ferramentas.ts, chat.ts, verificacao.ts, limites.ts
+  testes/                           38 testes (node:test; os de navegador usam o Edge)
+  public/index.html                 [gerada pela montagem] cópia do output/index.html
+  dados/pacote.json                 [gerada pela montagem] cópia do pacote do assistente
 ```
 
 ## Fluxo
 
 ```
-INEGI (indicesdeprecios, ponderadores, tabulados) → ingestao → data/raw → tratamento → data/processed → validacao → dessazonalizacao → metricas → tabelas + graficos → montagem → output/dashboard_inpc.html
+INEGI (indicesdeprecios, ponderadores, tabulados) → ingestao → data/raw → tratamento → data/processed → validacao → dessazonalizacao → metricas → tabelas + graficos → pacote_assistente → montagem → output/dashboard_inpc.html (e, na branch chat, web/)
 ```
 
 ## Como rodar
@@ -102,3 +120,47 @@ Actions; não há token novo.
 O `config/calendario_releases.csv` só tem os releases de 2026; depois do último, o dashboard avisa que falta o calendário.
 Quando o INEGI publicar o calendário do ano seguinte, acrescente uma linha por release no mesmo formato
 (data, 06:00, America/Mexico_City, tipo e mês de referência) e rode o pipeline normalmente.
+
+## Versão online com assistente (branch `chat`)
+
+O HTML desta branch tem um botão "Assistente". Aberto do disco, o painel diz que a análise com IA precisa de conexão
+e aponta a versão online; o dashboard funciona igual. Na versão online, o painel conversa com `/api/chat`, que usa o
+Vercel AI Gateway. O que o assistente faz, e o que não faz, está em `docs/assistente.md`.
+
+Instalar e gerar os dados (Node 24 e o Python do projeto):
+
+```
+python run_pipeline.py              gera o pacote e grava web/public/index.html e web/dados/pacote.json
+cd web
+npm ci
+```
+
+Configurar: copie `web/.env.example` para `web/.env` e preencha `AI_GATEWAY_API_KEY` (a chave do AI Gateway, em
+vercel.com → AI Gateway → API Keys). O `.env` nunca é versionado; a chave não aparece no código nem nos logs.
+
+Rodar e testar:
+
+```
+npm run local                       versão online em http://localhost:3000 (sem chave, o painel diz que falta AI_GATEWAY_API_KEY)
+npm test                            38 testes com modelo simulado; os de navegador usam o Microsoft Edge instalado
+npm run tipos                       checagem de tipos
+```
+
+Publicar como projeto novo na Vercel (sem mexer no projeto `dashboard-inpc`, que continua servindo a main):
+
+1. vercel.com → Add New → Project → Import do mesmo repositório `Dashboard_INPC`.
+2. Project Name: `dashboard-inpc-assistente` (se usar outro, troque `URL_VERSAO_ONLINE` em `config/parametros.py`,
+   rode o pipeline e commite).
+3. Framework Preset: Other. Root Directory: `web`. Build Command: vazio. Install Command: `npm ci`. Output
+   Directory: `public` (já está no `vercel.json`). Com a raiz em `web/`, o `requirements.txt` da raiz fica fora do
+   projeto e a Vercel não procura funções Python.
+4. Environment Variables: `AI_GATEWAY_API_KEY` (ou deixe vazia e use a autenticação OIDC do próprio projeto, que o
+   Gateway aceita em deploys da Vercel), `AI_MODEL=anthropic/claude-sonnet-5` e, se quiser, os limites do `.env.example`.
+5. Deploy. Na importação a Vercel usa a branch padrão (main), que não tem `web/`: esse primeiro deploy falha, e é o
+   esperado. Em Settings → Git, ponha a Production Branch em `chat` e dispare o deploy da `chat` (Deployments →
+   Redeploy do último commit da branch, ou um push nela).
+6. Teto de gasto: vercel.com → AI Gateway → Budgets (ou `vercel ai-gateway budgets set project dashboard-inpc-assistente
+   --limit <US$> --refresh-period monthly`). Esse é o limite global; o limite por IP do código vale só por instância.
+   Para limite global por IP, crie em Firewall uma regra de rate limit para `/api/chat`.
+7. Para desligar o chat sem derrubar o dashboard: `CHAT_ATIVO=false` e redeploy.
+
