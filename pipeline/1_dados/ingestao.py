@@ -1,5 +1,5 @@
 # Etapa 1.1: Ingestão
-# Aqui eu trago do INEGI tudo o que o dashboard usa e guardo em data/raw, em CSVs que abrem no
+# Trago do INEGI tudo o que o dashboard usa e guardo em data/raw, em CSVs que abrem no
 # Excel (uma linha por período, uma coluna por série). A fonte principal é o app "Índices de
 # Precios", que é o único lugar com os subíndices e os 292 genéricos com histórico; junto vêm os
 # xlsx de ponderadores e os tabulados do release, que uso como gabarito na validação.
@@ -28,7 +28,7 @@ MESES = {"Ene": 1, "Feb": 2, "Mar": 3, "Abr": 4, "May": 5, "Jun": 6, "Jul": 7, "
 
 # ==== 1. Rede ====
 def pedir(metodo, url, **argumentos):
-    """Chamada ao INEGI com algumas tentativas, porque o servidor derruba conexão sem avisar."""
+    """GET ou POST ao INEGI com até 3 tentativas, porque o servidor derruba conexão sem avisar."""
     for tentativa in range(1, p.TENTATIVAS_REDE + 1):
         try:
             resposta = requests.request(metodo, url, timeout=p.TEMPO_LIMITE_SEGUNDOS, headers={"User-Agent": "Mozilla/5.0"}, **argumentos)
@@ -49,7 +49,7 @@ def periodo_padrao(rotulo):
 
 
 def mes_do_periodo(periodo):
-    """Número do mês contado desde o ano zero, só para medir quantos meses a base está atrasada."""
+    """Meses desde o ano zero, só para medir quantos meses a base está atrasada."""
     return int(periodo[:4]) * 12 + int(periodo[5:7]) - 1
 
 
@@ -84,7 +84,7 @@ def varrer_arvore(estrutura, raiz):
 
 def baixar_arvore(frequencia):
     """Salva a árvore; se vier faltando genérico eu varro de novo, porque uma cesta incompleta passaria despercebida."""
-    # o servidor às vezes devolve nós sem o id da série; a segunda varredura costuma vir inteira
+    # às vezes o servidor devolve nó sem o id da série; a segunda varredura costuma vir inteira
     for _ in range(2):
         nos = varrer_arvore(*p.ARVORES[frequencia])
         genericos = sum(no["generico"] for no in nos)
@@ -191,7 +191,6 @@ def baixar_historico_completo():
         salvar_tabela(nome, exportar(estrutura, ids, 1969, datetime.now(ZoneInfo(p.FUSO)).year))  # 1969 é o primeiro ano que o app oferece
     baixar_tabulados()
     print(f"Histórico completo baixado (último dado: {ultimo_na_base()})")
-    return True
 
 
 def avisar_se_o_calendario_acabou():
@@ -208,10 +207,11 @@ def atualizar():
     divulgado, base = ultimo_divulgado(), ultimo_na_base()
     if base == divulgado:
         print(f"Já atualizado (último dado: {base['mensal']} e {base['quinzenal']})")
-        return False
+        return
     if base is None or max(mes_do_periodo(divulgado[f]) - mes_do_periodo(base[f]) for f in base) > p.MESES_JANELA_ATUALIZACAO:
         print("Base vazia ou muito atrasada: rodando histórico completo")
-        return baixar_historico_completo()
+        baixar_historico_completo()
+        return
     # o exportador só filtra por ano, então peço desde o ano do mês que fica 6 meses antes do último divulgado;
     # isso também fecha sozinho qualquer release que eu tenha deixado de rodar
     ano_inicio = (mes_do_periodo(divulgado["mensal"]) - p.MESES_JANELA_ATUALIZACAO) // 12
@@ -219,10 +219,12 @@ def atualizar():
         salvar_tabela(nome, exportar(estrutura, ids, ano_inicio, datetime.now(ZoneInfo(p.FUSO)).year), sobrescrever_periodos=True)
     baixar_tabulados()
     print(f"Base atualizada de {base} para {ultimo_na_base()} (janela desde {ano_inicio})")
-    return True
 
 
 if __name__ == "__main__":
     inicio = time.time()
-    baixar_historico_completo() if globals().get("importar_do_zero") else atualizar()  # a opção chega pelo run_pipeline.py
+    if globals().get("importar_do_zero"):  # a opção chega pelo run_pipeline.py; rodando a etapa sozinha, é False
+        baixar_historico_completo()
+    else:
+        atualizar()
     print(f"Ingestão: {time.time() - inicio:.1f} s")

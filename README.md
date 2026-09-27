@@ -1,6 +1,6 @@
 # Dashboard da inflação do México (INPC)
 
-Pipeline em Python que baixa as séries do Índice Nacional de Preços ao Consumidor (INPC) diretamente do INEGI, trata, dessazonaliza, valida contra os números oficiais, calcula métricas analíticas e gera um dashboard HTML autocontido. O dashboard é aberto por um economista no momento do release (06:00, horário da Cidade do México) e se atualiza de forma automática e reproduzível.
+Pipeline em Python que baixa do INEGI as séries do Índice Nacional de Preços ao Consumidor (INPC) do México, confere com os números que o INEGI publica no release, calcula as métricas e gera um dashboard num único HTML, que abre sem internet. É feito para ser aberto no momento do release, às 06:00 da Cidade do México, e se atualiza sozinho no GitHub nesses dias.
 
 ## Estrutura
 
@@ -29,7 +29,7 @@ pipeline/
     template.html                   esqueleto HTML do dashboard
 docs/
   metodologia.md                    registro das escolhas metodológicas e justificativas
-  guia_do_projeto.md                guia completo: como rodar, fluxo, fórmulas, dicionário de dados, páginas
+  guia_do_projeto.md                como rodar, fluxo, fórmulas, dicionário de dados e páginas
   auditoria.md                      auditoria final: cada número conferido com o INEGI e o Banxico, e os bugs achados
 .github/workflows/
   atualizar_inpc.yml                no dia do release, roda o pipeline no GitHub e grava o HTML novo na main

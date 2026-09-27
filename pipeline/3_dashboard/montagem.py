@@ -1,11 +1,10 @@
 # Etapa 3.1: Montagem do dashboard
-# Aqui eu junto tudo num único HTML que abre sem internet, porque ele vai por e-mail: o template com
-# o visual, o plotly.js embutido e os dados do release. A parte que é só desta etapa é o cabeçalho:
-# qual release saiu e quando, quando sai o próximo, e os números dos cartões já formatados. As quatro
-# frases de destaque também nascem aqui, por regra, só com fatos do resumo; nada de opinião. Nelas
-# uso as palavras do leitor brasileiro (contribuição, núcleo, desvio sazonal ponderado) e 2 casas em tudo.
-# "Desvio sazonal" é contra a mediana de 2010 a 2019, não contra expectativa de mercado; não chamo de surpresa.
-# Esta etapa só roda se a validação passou, então tudo o que ela mostra já foi conferido com o INEGI.
+# Junto tudo num único HTML que abre sem internet, porque ele vai por e-mail: o template com o
+# visual, o plotly.js embutido e os dados do release. O que é só desta etapa é o cabeçalho (qual
+# release saiu e quando, quando sai o próximo, os números dos cartões já formatados) e as quatro
+# frases de destaque, só com fatos do resumo, sem opinião. "Desvio sazonal" é contra a mediana de
+# 2010 a 2019, não contra expectativa de mercado, por isso não chamo de surpresa. Esta etapa só
+# roda se a validação passou, então tudo o que ela mostra já foi conferido com o INEGI.
 
 import json
 import sys
@@ -20,8 +19,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # para rodar a eta
 from config import parametros as p
 
 
+# ==== 1. Leitura e formatação ====
+def ler(nome_arquivo):
+    """Um JSON de data/processed."""
+    return json.loads((p.PASTA_PROCESSED / nome_arquivo).read_text(encoding="utf-8"))
 
-# ==== 1. Formatação ====
+
 def numero(valor, casas=2, sufixo="%", sinal=False):
     """Número como a gente escreve: vírgula decimal, o sinal de menos de verdade e o sufixo."""
     if round(valor, casas) == 0:
@@ -101,11 +104,6 @@ def destaques(resumo):
     # sem ": " no texto, porque o template usa o primeiro ": " da frase para separar o rótulo
     espalhamento = f"{numero(difusao['pct_cesta_anual_acima_3'], 0)} do peso da cesta com alta acima de 3% em 12 meses ({difusao['rotulo_periodo']})"
     return [nucleo, contribuicao, desvio, espalhamento]
-
-
-def ler(nome_arquivo):
-    """Um JSON de data/processed."""
-    return json.loads((p.PASTA_PROCESSED / nome_arquivo).read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

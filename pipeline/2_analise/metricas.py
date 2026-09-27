@@ -1,5 +1,5 @@
 # Etapa 2.1: Métricas
-# Aqui estão as contas que eu faço no dia do release, já em cima da base validada. Para os 16
+# As contas do dia do release, feitas em cima da base já validada. Para os 16
 # componentes: variação no período e em 12 meses, incidência, contribuição para a inflação anual,
 # comparação com o "normal" daquele mês (norma sazonal de 2010 a 2019) e o ritmo dessazonalizado
 # anualizado. Para os 292 genéricos, as mesmas leituras e a incidência de cada um. No fim monto um
@@ -67,11 +67,11 @@ def acrescentar_contribuicao_anual(tabela, periodos_no_ano):
 
 def contribuicao_na_base(tabela, coluna_base):
     """Contribuição de cada componente para a variação em 12 meses do componente indicado em coluna_base (pp)."""
-    # a contribuição anual está na base do INPC; multiplicar pela variação anual do pai e dividir pela soma das
-    # contribuições dos irmãos (mesmo pai, mesmo nível) leva para a base do pai. Com cesta fixa a conta é exata:
-    # ex.: habitação 1,63 + educação 0,39 + outros 2,32 = serviços 4,34. Divido pelos irmãos e não pela contribuição
-    # publicada do pai porque o arredondamento das incidências (até 0,004 pp) é ampliado quando o pai quase não varia:
-    # agropecuários a 0,17% em jul/2025 deixava os filhos 0,035 pp longe do pai; assim eles somam o pai exatamente
+    # a contribuição anual está na base do INPC; vezes a variação anual do pai, dividida pela soma das contribuições
+    # dos irmãos (mesmo pai, mesmo nível), ela vai para a base do pai: habitação 1,63 + educação 0,39 + outros 2,32
+    # = serviços 4,34. Divido pelos irmãos, e não pela contribuição publicada do pai, porque o arredondamento das
+    # incidências (até 0,004 pp) cresce quando o pai quase não varia: com agropecuários a 0,17% em jul/2025, os
+    # filhos ficavam 0,035 pp longe do pai. Assim eles somam o pai exatamente
     variacoes = tabela[["componente", "periodo", "variacao_anual"]].rename(columns={"componente": coluna_base, "variacao_anual": "variacao_base"})
     variacao_base = tabela[[coluna_base, "periodo"]].merge(variacoes, on=[coluna_base, "periodo"], how="left")["variacao_base"].values
     soma_dos_irmaos = tabela.groupby([coluna_base, "periodo", "nivel"], dropna=False)["contribuicao_anual"].transform("sum").values
@@ -107,7 +107,7 @@ def conferir_contribuicao_no_pai(componentes, meses):
         diferenca = (soma - pai).abs()
         if diferenca.max() > p.TOLERANCIA_VALIDACAO_PP:
             componente, periodo = diferenca.idxmax()
-            raise ValueError(f"Contribuição no pai não fecha: {componente} em {periodo} ({frequencia}), diferença de {diferenca.max():.4f} pp")
+            raise SystemExit(f"Contribuição no pai não fecha: {componente} em {periodo} ({frequencia}), diferença de {diferenca.max():.4f} pp. Pipeline interrompido.")
 
 
 def residuo_da_contribuicao_anual(componentes, meses):
@@ -193,10 +193,10 @@ def metricas_genericos(genericos, ponderadores, series):
 
 def serie_difusao(genericos, ponderadores):
     """Mês a mês, quão espalhada está a inflação: quanto da cesta subiu no mês e quanto está acima de 3% em 12 meses."""
-    # 3% é a meta do Banxico para o INPC; aqui é só uma régua, porque
-    # item nenhum tem meta própria. Cada mês usa os pesos da cesta que valia na época. Cada medida conta só os itens
-    # que têm o dado que ela usa (variação no mês, ou variação em 12 meses) e divide pelo peso desses itens; a
-    # cobertura diz quanto do peso total da cesta esses itens somam, para ninguém ler 60% de 80% como 60% de tudo
+    # 3% é a meta do Banxico para o INPC; aqui é só uma régua, porque item nenhum tem meta própria. Cada mês usa os
+    # pesos da cesta que valia na época. Cada medida conta só os itens que têm o dado que ela usa (variação no mês ou
+    # em 12 meses) e divide pelo peso desses itens; a cobertura diz quanto do peso total eles somam, para ninguém ler
+    # 60% de 80% como 60% de tudo
     mensal = genericos[(genericos["frequencia"] == "mensal") & (genericos["data"].dt.year >= p.ANO_INICIO_GRAFICOS)].copy()
     mensal["cesta"] = mensal["periodo"].ge(p.INICIO_CESTA_2024["mensal"]).map({True: "2024", False: "2018"})
     pesos = ponderadores.dropna(subset=["codigo_generico"]).set_index(["cesta", "codigo_generico"])["ponderador"]
@@ -318,9 +318,9 @@ def ritmo_do_nucleo(componentes):
 def mensal_implicito(componentes, mes):
     """Minha estimativa do mês fechado no dia em que só a 1a quinzena saiu, com a faixa tirada dos erros do backtest."""
     # no dia da 1a quinzena metade da média já está publicada, e a 2a parte do mesmo nível; o único incerto é quanto
-    # ela sobe sobre a 1a. A estimativa central usa a mediana dessa alta em 2010-2019. A faixa não é mais o p25-p75
-    # dessa alta, que conteve o mês realizado em só 35% dos casos: é a central mais os quartis 25 e 75 dos erros de
-    # previsão da variação mensal, cada série com os seus
+    # ela sobe sobre a 1a. A central usa a mediana dessa alta em 2010-2019. A faixa é a central mais os quartis 25 e
+    # 75 dos erros do próprio método, cada série com os seus; o p25-p75 da alta da 2a quinzena, que usei antes,
+    # conteve o mês realizado em só 35% dos casos
     quinzenal = componentes[componentes["frequencia"] == "quinzenal"]
     mensal = componentes[componentes["frequencia"] == "mensal"].set_index(["componente", "periodo"])["indice"]
     mes_anterior, mes_do_ano_anterior = str(pd.Period(mes) - 1), str(pd.Period(mes) - 12)

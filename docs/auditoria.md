@@ -145,3 +145,24 @@ O que foi feito com cada um:
 
 A auditoria anterior (`auditoria_pre_chat.md`) saiu. Os números que ela sustentava (backtest da estimativa do mês,
 revisão do SAAR, difusão) estão resumidos na `metodologia.md` e foram reconferidos acima.
+
+## Reauditoria
+
+Depois das correções e da revisão do código e dos textos, rodei de novo todas as conferências acima, com os mesmos
+scripts, sobre o código final:
+
+- Tabulados, comunicados, BIE, colunas de 2024 e 2025, Banxico e calendário: os mesmos resultados, diferença zero.
+- Identidades e métricas: 62 de 62 checagens dentro da tolerância, com as mesmas diferenças da primeira rodada.
+- Tela: 46 de 46 números da faixa, cartões, destaques e tabela conferidos; 21 gráficos de contribuição somam a linha;
+  60 gráficos desenhados nas 4 abas, a 1440 e 390 px, offline, sem erro de JavaScript e sem rolagem horizontal. As
+  etiquetas, chips e eixos são os mesmos de antes da revisão, e os screenshots das 4 abas só diferem na hora de
+  "Atualizado".
+- Estados simulados (depois do release mensal, dez/25 e 1ª quinz. jan/26), ingestão com relógio simulado e os trechos
+  do workflow: os mesmos resultados, agora com B1 e B5 corrigidos (no estado mensal, núcleo 3,88% no gráfico e no cartão).
+- `data/processed` (13 arquivos) e o DADOS dos dois HTMLs, comparados com a cópia de antes da revisão: idênticos. No
+  HTML, só mudou o comentário do topo do template.
+- Clone limpo do código final, venv novo, sem variável de ambiente: `pip install` ok; do zero com o `False` commitado,
+  273 s; incremental em seguida, 12 s ("Já atualizado"); com `IMPORTAR_DO_ZERO = True`, 259 s. As três rodadas
+  deram `data/processed` e HTML idênticos aos do projeto.
+- Continua não verificado: a execução do workflow no GitHub e o histórico completo dos 9 subíndices contra uma fonte
+  externa.

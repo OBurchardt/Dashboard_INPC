@@ -1,10 +1,9 @@
 # Etapa 2.2: Tabelas
 # Transformo em HTML as três tabelas do dashboard. Não calculo nada aqui: os números já vêm prontos
 # das métricas, e eu só escolho quais entram, formato com vírgula decimal e o sufixo certo ("%" para
-# variação, "pp" para contribuição) e marco cada número como positivo ou negativo. Os textos da tela
-# falam a língua do leitor brasileiro: incidência vira contribuição, genérico vira abertura, subíndice
-# vira grupo e norma vira mediana sazonal. O que eu chamava de surpresa é só o desvio contra a mediana de
-# 2010 a 2019, e não contra expectativa de mercado; a tela diz isso. O visual fica por conta do template.
+# variação, "pp" para contribuição) e marco cada número como positivo ou negativo. Os textos falam a
+# língua do leitor brasileiro: incidência vira contribuição, genérico vira abertura, subíndice vira
+# grupo e norma vira mediana sazonal. O visual fica por conta do template.
 
 import html
 import json
@@ -42,12 +41,12 @@ def tabela_html(cabecalho, linhas, titulo="", grupos=()):
 
 
 def grupo(titulo, colunas):
-    """Uma linha de título no meio da tabela, para separar blocos como "acima" e "abaixo" da norma."""
+    """Uma linha de título no meio da tabela, para separar blocos como "acima" e "abaixo" da mediana."""
     return f'<tr class="grupo"><th colspan="{colunas}">{html.escape(titulo)}</th></tr>'
 
 
 # ==== 2. Tabelas do dashboard ====
-def main_ultimos_periodos(componentes, resumo, nomes):
+def main_ultimos_periodos(componentes, resumo):
     """Os três últimos períodos do release lado a lado, mais a variação em 12 meses do mais recente."""
     frequencia = resumo["frequencia_do_release"]
     da_frequencia = componentes[componentes["frequencia"] == frequencia]
@@ -59,28 +58,28 @@ def main_ultimos_periodos(componentes, resumo, nomes):
     for componente in (*p.COMPONENTES_PRINCIPAIS, *p.COMPONENTES_NIVEL_2):
         celulas = [celula_numero(valores.at[(componente, periodo), "variacao_periodo"], "%") for periodo in periodos]
         celulas.append(celula_numero(valores.at[(componente, periodos[-1]), "variacao_anual"], "%"))
-        linhas.append(f"<tr>{celula_texto(nomes[componente], 'componente')}{''.join(celulas)}</tr>")
+        linhas.append(f"<tr>{celula_texto(p.NOMES_EXIBICAO[componente], 'componente')}{''.join(celulas)}</tr>")
     return tabela_html(cabecalho, linhas, grupos=[("", 1), ("Variação no período", 3), ("12 meses", 1)])
 
 
-def main_top_incidencias(componentes, resumo, nomes):
+def main_top_incidencias(resumo):
     """Os cinco genéricos que mais puxaram a inflação para cima e os cinco que mais seguraram, em duas tabelas."""
     tabelas = []
     for titulo, chave in (("Maiores contribuições", "maiores_incidencias"), ("Menores contribuições", "menores_incidencias")):
-        linhas = [f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_texto(nomes[item['subindice']], 'subindice')}"
+        linhas = [f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_texto(p.NOMES_EXIBICAO[item['subindice']], 'subindice')}"
                   f"{celula_numero(item['variacao_periodo'], '%')}{celula_numero(item['incidencia_periodo'], ' pp')}</tr>"
                   for item in resumo["destaques"][chave]]
         tabelas.append(tabela_html(["Abertura", "Grupo", "Variação", "Contribuição"], linhas, titulo))
     return f'<div class="lado-a-lado">{"".join(tabelas)}</div>'
 
 
-def decomp_desvios(componentes, resumo, nomes):
+def decomp_desvios(resumo):
     """Os genéricos cujo desvio contra a mediana sazonal, vezes o peso efetivo, mais pesou no INPC, para cima e para baixo."""
     linhas = []
     for titulo, chave in (("Acima da mediana sazonal", "acima_da_norma"), ("Abaixo da mediana sazonal", "abaixo_da_norma")):
         linhas.append(grupo(titulo, 5))
         for item in resumo["destaques"][chave]:
-            linhas.append(f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_texto(nomes[item['subindice']], 'subindice')}"
+            linhas.append(f"<tr>{celula_texto(item['nome_generico'], 'generico')}{celula_texto(p.NOMES_EXIBICAO[item['subindice']], 'subindice')}"
                           f"{celula_numero(item['variacao_periodo'], '%')}{celula_numero(item['norma_mediana'], '%')}"
                           f"{celula_numero(item['desvio_sazonal_ponderado'], ' pp')}</tr>")
     return tabela_html(["Abertura", "Grupo", "Variação", "Mediana sazonal", "Desvio sazonal ponderado"], linhas)
@@ -89,8 +88,10 @@ def decomp_desvios(componentes, resumo, nomes):
 if __name__ == "__main__":
     inicio = time.time()
     componentes = pd.read_parquet(p.PASTA_PROCESSED / "metricas_componentes.parquet")
-    nomes = p.NOMES_EXIBICAO
     resumo = json.loads((p.PASTA_PROCESSED / "metricas_resumo.json").read_text(encoding="utf-8"))
-    tabelas = {slot.__name__: slot(componentes, resumo, nomes) for slot in (main_ultimos_periodos, main_top_incidencias, decomp_desvios)}
+    # a chave de cada tabela é o data-card do espaço dela no template
+    tabelas = {"main_ultimos_periodos": main_ultimos_periodos(componentes, resumo),
+               "main_top_incidencias": main_top_incidencias(resumo),
+               "decomp_desvios": decomp_desvios(resumo)}
     (p.PASTA_PROCESSED / "tabelas.json").write_text(json.dumps(tabelas, ensure_ascii=False), encoding="utf-8")
     print(f"Tabelas: {len(tabelas)} tabelas; {time.time() - inicio:.1f} s")

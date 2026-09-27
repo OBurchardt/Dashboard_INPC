@@ -1,5 +1,5 @@
 # Etapa 1.2: Tratamento
-# Aqui o bruto vira tabela que dá para usar: tudo em formato longo (uma linha por série e período),
+# O bruto vira tabela que dá para usar: tudo em formato longo (uma linha por série e período),
 # com a data certa de cada quinzena e os rótulos que vão aparecer na tela. É o único lugar que
 # entende as manias do INEGI: o "N/E" antes do começo das séries, o código de 3 dígitos no nome
 # do genérico, o X da planilha de ponderadores e o JSON do tabulado. Não calculo nada analítico
@@ -7,10 +7,9 @@
 
 import json
 import re
+import sys
 import time
 import unicodedata
-
-import sys
 from pathlib import Path
 
 import pandas as pd
@@ -34,7 +33,7 @@ def normalizar(nome):
 
 
 def rotulos_do_periodo(periodo):
-    """Os três jeitos de escrever um período na tela: '1ª quinz. ago/26', '1ª q. ago' para cabeçalho estreito, e só o mês."""
+    """Os três jeitos de escrever um período na tela: '1ª quinz. ago/26', '1ª q. ago' (cabeçalho estreito) e só o mês."""
     mes = f"{MESES[int(periodo[5:7]) - 1]}/{periodo[2:4]}"
     if "-Q" not in periodo:
         return mes, mes, mes
@@ -47,7 +46,7 @@ def data_do_periodo(periodo):
 
 
 def posicao_do_periodo(periodo):
-    """Um número que sobe de 1 em 1 de um período para o seguinte; com ele um lag é uma subtração e um buraco na série aparece."""
+    """Número que sobe de 1 em 1 de um período para o seguinte: um lag vira subtração e um buraco na série aparece."""
     mes = int(periodo[:4]) * 12 + int(periodo[5:7]) - 1
     return mes * 2 + int(periodo[-1]) - 1 if "-Q" in periodo else mes
 

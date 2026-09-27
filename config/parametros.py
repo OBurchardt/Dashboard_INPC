@@ -17,17 +17,15 @@ for pasta in (PASTA_RAW, PASTA_PROCESSED, PASTA_OUTPUT):
 
 # ==== 2. Tempo ====
 FUSO = "America/Mexico_City"  # o INEGI divulga às 06:00 de lá
-MESES_JANELA_ATUALIZACAO = 6  # no dia a dia rebaixo só os últimos 6 meses; atrasado mais que isso, rerodo todo o pipeline
+MESES_JANELA_ATUALIZACAO = 6  # no dia a dia rebaixo só os últimos 6 meses; se a base atrasou mais que isso, baixo o histórico inteiro
 
 # ==== 3. Rede ====
 TENTATIVAS_REDE = 3  # o servidor do INEGI derruba conexão de vez em quando; na terceira quase sempre vai
 TEMPO_LIMITE_SEGUNDOS = 120  # um lote de 120 genéricos com o histórico inteiro leva uns 15 s, então sobra folga
-LOTE_EXPORTACAO_IDS = 120  # pedir os 463 de uma vez passava de um minuto e às vezes caía, limitar entrada por vez
+LOTE_EXPORTACAO_IDS = 120  # pedir os 463 ids de uma vez passava de um minuto e às vezes caía
 
 # ==== 4. Fontes do INEGI ====
-URL_EXPORTADOR = (
-    "https://www.inegi.org.mx/app/indicesdeprecios/Exportacion.aspx?INPtipoExporta=CSV"
-)
+URL_EXPORTADOR = "https://www.inegi.org.mx/app/indicesdeprecios/Exportacion.aspx?INPtipoExporta=CSV"
 URL_ARVORE = "https://www.inegi.org.mx/app/indicesdeprecios/servicios/ArbolAjaxInteraccion.asmx/ObtieneNodosV2"
 URL_TABULADO = "https://www.inegi.org.mx/app/tabulados/inp2/serviciocuadros/wsDataService.svc/obtienetabuladoinp/{cuadro}/4/1"
 URLS_PONDERADORES = {
@@ -48,22 +46,14 @@ ARVORES = {
     "mensal": ("112001700030", "1120017000300010"),
     "quinzenal": ("112001600030", "1120016000300010"),
 }
-# o tabulado que o INEGI publica no release é o gabarito da validação para ver se puxou o dado certo
+# o tabulado que o INEGI publica no release é o gabarito da validação
 TABULADOS = {"mensal": "CA55_2018A", "quinzenal": "CA56_2018A"}
 
-# ==== 6. Componentes e nomes de exibição ====
-PERIODOS_POR_ANO = {
-    "mensal": 12,
-    "quinzenal": 24,
-}  # para a variação anual: 12 meses atrás, ou 24 quinzenas
+# ==== 6. Componentes e nomes na tela ====
+PERIODOS_POR_ANO = {"mensal": 12, "quinzenal": 24}  # a variação anual compara com 12 meses ou 24 quinzenas antes
 COMPONENTES_PRINCIPAIS = ("indice_general", "subyacente", "no_subyacente")
-COMPONENTES_NIVEL_2 = (
-    "mercancias",
-    "servicios",
-    "agropecuarios",
-    "energeticos_y_tarifas",
-)
-# Mudando os nomes de componentes que aparecem no dash, para não ficarem em espanhol.
+COMPONENTES_NIVEL_2 = ("mercancias", "servicios", "agropecuarios", "energeticos_y_tarifas")
+# o leitor é brasileiro, então na tela os componentes aparecem em português
 NOMES_EXIBICAO = {
     "indice_general": "INPC geral",
     "subyacente": "Núcleo",
@@ -84,17 +74,12 @@ NOMES_EXIBICAO = {
 }
 
 # ==== 7. Janelas das análises e tolerância da validação ====
-ANO_INICIO_DESSAZONALIZACAO = (
-    2000  # antes disso a inflação era alta e o padrão sazonal se perde no ruído
-)
-ANOS_NORMA_SAZONAL = (
-    2010,
-    2019,
-)  # uma década de inflação comportada, antes da pandemia bagunçar tudo
-ANO_INICIO_GRAFICOS = 2019  # começo o histórico dos gráficos um ano antes da pandemia, alterar conforme preferência.
-MES_BASE_NAO_NUCLEO = "2024-07"  # pico recente do não núcleo (10,36% a/a); mostra o que explicou a queda desde então
-ABERTURAS_POR_SUBINDICE = 4  # na aba Explorar; a paleta fechada só tem 4 cores bem distintas, o resto vira "Demais"
-# a cesta 2024 entrou na 2a quinzena de julho de 2024; o primeiro período em que ele e o anterior já estão nela
+ANO_INICIO_DESSAZONALIZACAO = 2000  # antes disso a inflação era alta e o padrão sazonal se perde no ruído
+ANOS_NORMA_SAZONAL = (2010, 2019)  # uma década de inflação comportada, antes da pandemia
+ANO_INICIO_GRAFICOS = 2019  # um ano antes da pandemia
+MES_BASE_NAO_NUCLEO = "2024-07"  # pico recente do não núcleo (10,36% em 12 meses); o gráfico mostra o que explicou a queda desde então
+ABERTURAS_POR_SUBINDICE = 4  # na aba Explorar; a paleta só tem 4 cores bem distintas, o resto vira "Demais"
+# a cesta 2024 entrou na 2a quinzena de julho de 2024; aqui vai o primeiro período em que ele e o anterior já estão nela
 INICIO_CESTA_2024 = {"quinzenal": "2024-07-Q2", "mensal": "2024-08"}
 MESES_METRICAS_GENERICOS = 24  # quanto histórico de genéricos vai para o dashboard
 MESES_VALIDACAO_ADITIVIDADE = 24  # janela em que confiro se as incidências somam o INPC
