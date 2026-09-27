@@ -1,5 +1,5 @@
-# No dia de um release do calendário, roda o pipeline numa máquina limpa do GitHub e grava o HTML novo na main;
-# a Vercel publica o output/index.html. São três tentativas, 06:01, 06:05 e 06:10 na Cidade do México (12:01,
+# No dia de um release do calendário, roda o pipeline numa máquina limpa do GitHub e grava na main o HTML novo e o
+# pacote do assistente; a Vercel publica o output/index.html (dashboard) e a pasta web/ (dashboard com assistente). São três tentativas, 06:01, 06:05 e 06:10 na Cidade do México (12:01,
 # 12:05 e 12:10 UTC, lá não há horário de verão), uma de cada vez. Nos outros dias o job encerra sem fazer nada.
 # A máquina começa sem data/, então baixa o histórico inteiro do INEGI (uns 5 minutos). Se o INEGI ainda não
 # publicou o período ou a validação falha, o job fica vermelho e não commita; a tentativa seguinte refaz.
@@ -98,12 +98,12 @@ jobs:
           path: output/dashboard_inpc.html
           if-no-files-found: error
 
-      - name: Gravar o dashboard na main
+      - name: Gravar o dashboard e o pacote do assistente na main
         if: steps.release.outputs.periodo != '' && steps.feito.outputs.ja != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add output/index.html output/dashboard_inpc.html
+          git add output/index.html output/dashboard_inpc.html web/dados/pacote.json web/public/index.html
           git commit -m "Atualização automática: ${{ steps.release.outputs.periodo }}"
           git push
 
