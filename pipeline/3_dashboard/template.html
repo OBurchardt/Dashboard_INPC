@@ -524,7 +524,7 @@ function montarEstimativa(m) {
 }
 
 function montarDestaques(frases) {
-  const rotulos = ["Realizado x expectativa", "Maior contribuição", "Maior desvio sazonal", "Difusão"];
+  const rotulos = ["Realizado x expectativa", "Maiores contribuições", "Maior desvio sazonal", "Difusão"];
   document.getElementById("destaques").innerHTML = frases.map((f, i) =>
     `<div class="destaque"><div class="destaque-rotulo">${rotulos[i]}</div>
      <div class="destaque-texto">${f}</div></div>`).join("");

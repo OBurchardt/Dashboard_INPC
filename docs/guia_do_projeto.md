@@ -257,7 +257,7 @@ No alto, as quatro abas (Resumo, Composição, Sazonalidade e Explorar) e, visí
 Resumo:
 
 - Cartões: INPC, Núcleo, Serviços e Mercadorias, o que o mercado cita no release. Cada um tem a taxa em 12 meses, a variação no período e a pílula com a mudança da taxa em 12 meses contra um mês antes ("▼ −0,14 pp vs 1ª quinz. ago"; no release mensal, "vs jul"). O não núcleo fica na faixa do release.
-- Destaques: realizado x expectativa (a diferença é entre os dois números já arredondados, como na pílula, e o card diz de onde veio a expectativa), maior contribuição, maior desvio sazonal ("Acima do padrão: Jitomate +0,08 pp · Abaixo: Gasolina de bajo octanaje −0,02 pp") e difusão.
+- Destaques: realizado x expectativa (a diferença é entre os dois números já arredondados, como na pílula, e o card diz de onde veio a expectativa), maiores contribuições (a que mais puxou para cima e a que mais puxou para baixo), maior desvio sazonal ("Acima do padrão: Jitomate +0,08 pp · Abaixo: Gasolina de bajo octanaje −0,02 pp") e difusão.
 - INPC geral e Núcleo vs meta: a linha é mensal e, em release de quinzena, o ponto destacado é a última quinzena. Em todo gráfico com a meta, o eixo mostra a banda de 2% a 4% inteira. Nos gráficos com o ponto da quinzena, cada linha do tooltip diz o período do próprio ponto ("Núcleo (ago/26): 3,88%" e "Núcleo (1ª quinz. set/26): 3,79%").
 - Os quatro gráficos de grupo mais usados, os mesmos da aba Composição.
 - Último período vs padrão sazonal: barras dos sete principais com a mediana e o intervalo p25 a p75.

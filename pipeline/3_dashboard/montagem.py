@@ -118,11 +118,14 @@ def realizado_x_esperado(expectativa):
 
 
 def destaques(resumo):
-    """As quatro frases do topo (realizado x expectativa, maior contribuição, maior desvio sazonal e difusão), só com os fatos; o rótulo de cada uma fica no template."""
+    """As quatro frases do topo (realizado x expectativa, maiores contribuições, maior desvio sazonal e difusão), só com os fatos; o rótulo de cada uma fica no template."""
     maior = resumo["destaques"]["maiores_incidencias"][0]
     acima, abaixo = resumo["destaques"]["acima_da_norma"][0], resumo["destaques"]["abaixo_da_norma"][0]
     difusao = resumo["difusao"]
-    contribuicao = f"{nome(maior)} {numero(maior['incidencia_periodo'], sufixo=' pp', sinal=True)} ({numero(maior['variacao_periodo'], sinal=True)})"
+    # a que mais puxou e a que mais segurou, uma por linha
+    menor = resumo["destaques"]["menores_incidencias"][0]
+    contribuicao = "\n".join(f"{lado}: {nome(item)} {numero(item['incidencia_periodo'], sufixo=chr(160) + 'pp', sinal=True)} "
+                             f"({numero(item['variacao_periodo'], sinal=True)})" for lado, item in (("Para cima", maior), ("Para baixo", menor)))
     # espaço não separável antes do "pp", para a unidade não quebrar de linha longe do número
     desvio = (f"Acima do padrão: {nome(acima)} {numero(acima['desvio_sazonal_ponderado'], sufixo=chr(160) + 'pp', sinal=True)} · "
               f"Abaixo: {nome(abaixo)} {numero(abaixo['desvio_sazonal_ponderado'], sufixo=chr(160) + 'pp', sinal=True)}")
