@@ -273,8 +273,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
     <nav class="abas">
       <button data-aba="resumo" class="ativa">Resumo</button>
       <button data-aba="composicao">Composição</button>
-      <button data-aba="tendencia">Tendência</button>
-      <button data-aba="grupos">Grupos</button>
+      <button data-aba="sazonalidade">Sazonalidade</button>
       <button data-aba="explorar">Explorar</button>
     </nav>
   </div>
@@ -308,10 +307,10 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
       <h3>Núcleo vs meta</h3><p class="sub">Variação em 12 meses (%); ponto destacado: última quinzena</p>
     </div>
     <div class="card c6" data-card="grupos_inpc_contrib">
-      <h3>Contribuições para o INPC</h3><p class="sub">Contribuição do núcleo e do não núcleo para a variação em 12 meses do INPC, pp</p>
+      <h3>Contribuições para o INPC</h3><p class="sub">Contribuição para a variação em 12 meses do INPC (%): a soma das barras é a linha</p>
     </div>
     <div class="card c6" data-card="grupos_nucleo_contrib">
-      <h3>Contribuições para o núcleo</h3><p class="sub">Contribuição de mercadorias e serviços para a variação em 12 meses do núcleo, pp</p>
+      <h3>Contribuições para o núcleo</h3><p class="sub">Contribuição para a variação em 12 meses do núcleo (%): a soma das barras é a linha</p>
     </div>
     <div class="card c6" data-card="grupos_nucleo_anual">
       <h3>Núcleo</h3><p class="sub">Variação em 12 meses do núcleo e dos seus dois grupos, %</p>
@@ -330,7 +329,8 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
     </div>
   </section>
 
-  <!-- ==== Composição ==== -->
+  <!-- ==== Composição: de onde vem a inflação. A parte de grupos replica a seção de inflação do Informe Trimestral
+       do Banxico; os subtítulos descrevem, não concluem ==== -->
   <section class="painel" id="composicao">
     <div class="card c12" data-card="decomp_arvore">
       <h3>Decomposição da variação do período</h3><p class="sub">Contribuição (pp); área proporcional ao tamanho da contribuição de cada grupo</p>
@@ -338,55 +338,51 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
     <div class="card c12" data-card="decomp_desvios" data-tipo="tabela">
       <h3>Desvio em relação à mediana sazonal (2010–2019)</h3><p class="sub">Variação no período menos a mediana do mesmo mês ou quinzena em 2010–2019, vezes o peso efetivo da abertura: desvio sazonal ponderado (pp). Não é expectativa de mercado, e as medianas das aberturas não somam a mediana do INPC.</p>
     </div>
-</section>
-
-  <!-- ==== Tendência ==== -->
-  <section class="painel" id="tendencia">
-    <div class="card c6" data-card="tend_dessazonalizado">
-      <h3>Variação mensal dessazonalizada</h3><p class="sub">INPC geral e núcleo, ajuste STL (%)</p>
-    </div>
-    <div class="card c6" data-card="tend_momentum" data-nota="Fim de amostra: a ponta costuma ser revisada em cerca de 1 pp. No exercício pseudo-tempo-real (37 cortes mensais de jun/2022 a jun/2025), a revisão média da ponta foi de 1,00 pp no SAAR 6 meses e 1,25 pp no 3 meses.">
-      <h3>Momentum do núcleo</h3><p class="sub">Variação dessazonalizada anualizada de 6 meses (em destaque) e de 3 meses, e variação em 12 meses (%)</p>
-    </div>
-    <div class="card c6" data-card="tend_perfil_sazonal">
-      <h3>Perfil sazonal do INPC</h3><p class="sub">Variação mensal (%): faixa p25 a p75 e mediana de 2010–2019; ano corrente</p>
-    </div>
-    <div class="card c6" data-card="tend_difusao">
+    <div class="card c12" data-card="tend_difusao">
       <h3>Difusão</h3><p class="sub">% do peso da cesta com alta no mês e com alta acima de 3% em 12 meses. O 3% é a meta do Banxico para o INPC, usada aqui só como régua: item nenhum tem meta. O tooltip mostra a cobertura de cada medida.</p>
     </div>
-  </section>
-
-  <!-- ==== Grupos: réplica da seção de inflação do Informe Trimestral do Banxico; subtítulos descrevem, não concluem ==== -->
-  <section class="painel" id="grupos">
     <div class="card c6" data-card="grupos_inpc_anual">
       <h3>INPC, núcleo e não núcleo</h3><p class="sub">Variação em 12 meses do INPC e dos seus dois grupos, %</p>
     </div>
     <div class="card c6" data-card="grupos_inpc_contrib">
-      <h3>Contribuições para o INPC</h3><p class="sub">Contribuição do núcleo e do não núcleo para a variação em 12 meses do INPC, pp</p>
+      <h3>Contribuições para o INPC</h3><p class="sub">Contribuição para a variação em 12 meses do INPC (%): a soma das barras é a linha</p>
     </div>
     <div class="card c6" data-card="grupos_nucleo_anual">
       <h3>Núcleo</h3><p class="sub">Variação em 12 meses do núcleo e dos seus dois grupos, %</p>
     </div>
     <div class="card c6" data-card="grupos_nucleo_contrib">
-      <h3>Contribuições para o núcleo</h3><p class="sub">Contribuição de mercadorias e serviços para a variação em 12 meses do núcleo, pp</p>
+      <h3>Contribuições para o núcleo</h3><p class="sub">Contribuição para a variação em 12 meses do núcleo (%): a soma das barras é a linha</p>
     </div>
     <div class="card c6" data-card="grupos_mercadorias_anual">
       <h3>Mercadorias</h3><p class="sub">Variação em 12 meses de mercadorias e dos seus dois grupos, %</p>
     </div>
     <div class="card c6" data-card="grupos_mercadorias_contrib">
-      <h3>Contribuições para mercadorias</h3><p class="sub">Contribuição de cada grupo para a variação em 12 meses de mercadorias, pp</p>
+      <h3>Contribuições para mercadorias</h3><p class="sub">Contribuição para a variação em 12 meses de mercadorias (%): a soma das barras é a linha</p>
     </div>
     <div class="card c6" data-card="grupos_servicos_anual">
       <h3>Serviços</h3><p class="sub">Variação em 12 meses de serviços e dos seus três grupos, %</p>
     </div>
     <div class="card c6" data-card="grupos_servicos_contrib">
-      <h3>Contribuições para serviços</h3><p class="sub">Contribuição de habitação, educação e outros serviços para a variação em 12 meses de serviços, pp</p>
+      <h3>Contribuições para serviços</h3><p class="sub">Contribuição para a variação em 12 meses de serviços (%): a soma das barras é a linha</p>
     </div>
     <div class="card c6" data-card="grupos_nao_nucleo_anual">
       <h3>Não núcleo</h3><p class="sub">Variação em 12 meses do não núcleo e dos seus dois grupos, %</p>
     </div>
     <div class="card c6" data-card="grupos_nao_nucleo_desde_base">
       <h3>Não núcleo desde o mês-base</h3><p class="sub"></p>
+    </div>
+  </section>
+
+  <!-- ==== Sazonalidade: o que é ajuste e padrão sazonal ==== -->
+  <section class="painel" id="sazonalidade">
+    <div class="card c6" data-card="tend_dessazonalizado">
+      <h3>Variação mensal dessazonalizada</h3><p class="sub">INPC geral e núcleo, ajuste STL (%)</p>
+    </div>
+    <div class="card c6" data-card="tend_momentum" data-nota="Fim de amostra: a ponta costuma ser revisada em cerca de 1 pp. No exercício pseudo-tempo-real (37 cortes mensais de jun/2022 a jun/2025), a revisão média da ponta foi de 1,00 pp no SAAR 6 meses e 1,25 pp no 3 meses.">
+      <h3>Momentum do núcleo</h3><p class="sub">Variação dessazonalizada anualizada de 6 meses (em destaque) e de 3 meses, e variação em 12 meses (%)</p>
+    </div>
+    <div class="card c12" data-card="tend_perfil_sazonal">
+      <h3>Perfil sazonal do INPC</h3><p class="sub">Variação mensal (%): faixa p25 a p75 e mediana de 2010–2019; ano corrente</p>
     </div>
   </section>
 
@@ -669,11 +665,10 @@ function eixoDoTempo(dados) {
   return { tickvals: marcadas, ticktext: marcadas.map(mesCurto), hoverformat: "%m/%Y", range: [deslocarDias(todas[0], -16), deslocarDias(todas[todas.length - 1], 16)] };
 }
 
-function estilizarTraco(t, sufixo, eixo) {
+function estilizarTraco(t, eixo) {
   const cor = corDoTraco(t);
   const serie = (t.meta || {}).serie || "";
-  // nos gráficos de contribuição a unidade vem por traço: barras em pp, a linha do pai em %
-  t.hovertemplate = `${t.name}: %{${eixo}:.2f}${(t.meta || {}).unidade || sufixo}<extra></extra>`;
+  t.hovertemplate = `${t.name}: %{${eixo}:.2f}%<extra></extra>`;
   // na difusão, cada ponto diz quanto do peso da cesta tinha dado para a medida
   if ((t.meta || {}).cobertura) t.hovertemplate = `${t.name}: %{y:.2f}%<br>cobertura: %{customdata[0]:.0f}% do peso, %{customdata[1]} itens<extra></extra>`;
   const meta = t.meta || {};
@@ -707,7 +702,7 @@ function estilizarTraco(t, sufixo, eixo) {
   }
 }
 
-function rotulosFinais(dados, sufixo) {
+function rotulosFinais(dados) {
   // escrevo o último valor ao lado do ponto final, no lugar da legenda. Se houver ponto destacado (a última quinzena),
   // só ele leva rótulo; e um rótulo a menos de 0,3 pp de outro já escrito fica só no tooltip, para não encavalar
   const destacado = dados.filter((t) => t.mode === "markers" && !t.error_y && !t.error_x);
@@ -717,7 +712,7 @@ function rotulosFinais(dados, sufixo) {
     const i = t.x.length - 1;
     if (escritos.some((a) => Math.abs(a.y - t.y[i]) < 0.3)) return;
     // à direita do último ponto, fora da linha
-    escritos.push({ x: t.x[i], y: t.y[i], text: numero(t.y[i], 2, sufixo), showarrow: false, xanchor: "left", xshift: 8,
+    escritos.push({ x: t.x[i], y: t.y[i], text: numero(t.y[i], 2, "%"), showarrow: false, xanchor: "left", xshift: 8,
                     font: { size: 12, color: css("--ink"), family: css("--fonte") } });
   });
   escritos.forEach((a) => (a.font.weight = 600));
@@ -732,7 +727,7 @@ const corDoTexto = (cor) => TEXTO_DA_COR[cor] || cor;
 
 const nomeCurto = (nome) => (nome.length > 18 ? nome.slice(0, 17) + "…" : nome);   // o nome inteiro fica no hover
 
-function rotulosNaPonta(dados, sufixo, comNome, faixa, alturaUtil) {
+function rotulosNaPonta(dados, comNome, faixa, alturaUtil) {
   // um rótulo por série, no último valor dela (a quinzena, quando houver), na cor da série, como o Banxico faz.
   // A barra leva o rótulo no meio do seu pedaço da pilha, meio mês depois da data, para começar além da borda dela. Rótulos a menos de 17 px um do outro descem, para não encavalar
   const ultimos = new Map();
@@ -747,7 +742,7 @@ function rotulosNaPonta(dados, sufixo, comNome, faixa, alturaUtil) {
     if (r.t.type === "bar" && r.valor > 0) { y = positivo + r.valor / 2; positivo += r.valor; }
     if (r.t.type === "bar" && r.valor <= 0) { y = negativo + r.valor / 2; negativo += r.valor; }
     const nome = nomeCurto(r.t.name.split(" · ")[0]);   // o traço da quinzena carrega o período no nome
-    return { x: r.t.type === "bar" ? deslocarDias(r.x, 16) : r.x, y, text: (comNome ? `${nome} ` : "") + numero(r.valor, 2, r.t.meta.unidade || sufixo), showarrow: false, xanchor: "left", xshift: 10,
+    return { x: r.t.type === "bar" ? deslocarDias(r.x, 16) : r.x, y, text: (comNome ? `${nome} ` : "") + numero(r.valor, 2, "%"), showarrow: false, xanchor: "left", xshift: 10,
              yanchor: "middle", font: { size: 12, color: corDoTexto(corDoTraco(r.t)), family: css("--fonte"), weight: 600 } };
   });
   const distancia = 17 * (faixa[1] - faixa[0]) / alturaUtil;
@@ -786,13 +781,13 @@ function rotuloDoTooltip() {
 function estilizarFigura(slot, figura) {
   if (figura.data[0].type === "treemap") return estilizarArvore(figura);
   const dados = figura.data;
-  const sufixo = figura.layout.barmode === "relative" ? " pp" : "%";   // barras empilhadas são sempre contribuições
+  // tudo em %, inclusive as contribuições, no formato do Banxico; só o treemap, que é a incidência do período, fica em pp
   const temDatas = dados.some((t) => /^\d{4}-\d{2}-\d{2}/.test(String((t.x || [])[0])));
   const temBarras = dados.some((t) => t.type === "bar");
   const horizontal = dados.some((t) => t.orientation === "h");
   const eixoValores = horizontal ? "x" : "y";
   if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => { t.meta = {}; t.showlegend = false; t.width = 0.4; });
-  dados.forEach((t) => estilizarTraco(t, sufixo, eixoValores));
+  dados.forEach((t) => estilizarTraco(t, eixoValores));
   if (slot === "main_vs_norma") dados.filter((t) => t.type === "bar").forEach((t) => (t.marker.color = css("--azul-btg")));
   const temMeta = (figura.layout.shapes || []).some((s) => s.name === "meta");
   // nos gráficos do Banxico a etiqueta da ponta substitui a legenda: nome (cortado em 18 letras) e valor. Nos blocos de
@@ -804,15 +799,15 @@ function estilizarFigura(slot, figura) {
   const altura = parseInt(css(ALTA.has(slot) ? "--altura-grafico-alta" : "--altura-grafico"));
   const margem = { l: horizontal ? 8 : 40, r: comNome ? 196 : banxico ? 76 : 56, t: legendaVisivel ? 28 : 8, b: 32 };
   const faixa = faixaDosValores(dados, figura.layout.barmode === "relative", eixoValores);
-  const rotulos = banxico ? rotulosNaPonta(dados, sufixo, comNome, faixa, altura - margem.t - margem.b) : rotulosFinais(dados, sufixo);
+  const rotulos = banxico ? rotulosNaPonta(dados, comNome, faixa, altura - margem.t - margem.b) : rotulosFinais(dados);
   // o "Meta 3%" fica na margem direita; se um rótulo final estiver a menos de 0,5 pp da meta, os dois encavalam,
   // e aí ele vai para dentro do gráfico, no canto esquerdo, logo acima da linha da meta. Nos gráficos do Banxico a
   // margem direita é das etiquetas, então ele fica sempre dentro
   const metaNaMargem = !banxico && !rotulos.some((a) => Math.abs(a.y - 3) < 0.5);
   const posicaoMeta = metaNaMargem ? { x: 1, xshift: 6, yanchor: "middle" } : { x: 0, xshift: 4, yanchor: "bottom" };
-  // eixo dos valores: grade, sufixo e range com folga; nas barras horizontais ele é o x e a linha de zero fica vertical
+  // eixo dos valores: grade, "%" e range com folga; nas barras horizontais ele é o x e a linha de zero fica vertical
   const eixoDeValores = { gridcolor: css("--grade"), gridwidth: 1, zeroline: temBarras, zerolinecolor: css("--zero"), zerolinewidth: 1,
-                          tickangle: 0, ticksuffix: sufixo, tickformat: ".1~f", hoverformat: ".2f", title: { text: "" },
+                          tickangle: 0, ticksuffix: "%", tickformat: ".1~f", hoverformat: ".2f", title: { text: "" },
                           range: faixa, fixedrange: true };
   const eixoDeCategorias = { ...(figura.layout.yaxis || {}), showgrid: false, zeroline: false, ticks: "", automargin: true,
                              tickfont: { color: css("--ink-2") }, title: { text: "" } };

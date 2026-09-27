@@ -100,7 +100,7 @@ def decomp_arvore(componentes, nomes, resumo):
     return figura
 
 
-# ==== 4. Tendência ====
+# ==== 4. Sazonalidade e difusão (a difusão aparece na aba Composição) ====
 def tend_dessazonalizado(componentes, nomes, resumo):
     """Tirada a sazonalidade, a inflação de cada mês está acelerando ou perdendo força?"""
     barras = [go.Bar(x=serie(componentes, c).tail(36)["data"], y=serie(componentes, c).tail(36)["variacao_sa_mensal"],
@@ -143,7 +143,7 @@ def tend_difusao(difusao, resumo):
     return go.Figure(tracos).update_layout(yaxis_title="% do peso da cesta")
 
 
-# ==== 5. Grupos, no formato do Informe Trimestral do Banxico ====
+# ==== 5. Composição: grupos no formato do Informe Trimestral do Banxico ====
 # cada categoria vira um par: à esquerda a variação em 12 meses do pai e dos filhos, à direita quanto cada filho
 # contribuiu para a variação em 12 meses do pai. As duas funções genéricas servem a qualquer pai e filhos
 def valores(componentes, componente, coluna, inicio, mes_base):
@@ -156,11 +156,10 @@ def valores(componentes, componente, coluna, inicio, mes_base):
     return mensal.assign(**{coluna: mensal[coluna] - base}), quinzena.assign(**{coluna: quinzena[coluna] - base})
 
 
-def traco(tabela, coluna, componente, nome, papel, tipo, unidade, quinzena=False):
-    """Uma linha ou barra; papel (pai ou filho), unidade e a marca de quinzena vão em meta para o template escolher o visual."""
-    # a última quinzena entra como um ponto depois do último mês, como o Banxico faz ("F1-August").
-    # A unidade vai por traço porque, num gráfico de contribuição, as barras são pp e a linha do pai é %
-    meta = {"componente": componente, "papel": papel, "unidade": unidade, "quinzena": quinzena}
+def traco(tabela, coluna, componente, nome, papel, tipo, quinzena=False):
+    """Uma linha ou barra; o papel (pai ou filho) e a marca de quinzena vão em meta para o template escolher o visual."""
+    # a última quinzena entra como um ponto depois do último mês, como o Banxico faz ("F1-August")
+    meta = {"componente": componente, "papel": papel, "quinzena": quinzena}
     if quinzena:
         nome = f"{nome} · {tabela['rotulo_periodo'].iloc[0]} (quinzenal)"
         meta["rotulo_quinzena"] = tabela["rotulo_periodo"].iloc[0]
@@ -168,18 +167,18 @@ def traco(tabela, coluna, componente, nome, papel, tipo, unidade, quinzena=False
     return classe(x=tabela["data"], y=tabela[coluna], name=nome, showlegend=not quinzena, meta=meta, **modo)
 
 
-def tracos_da_serie(componentes, nomes, resumo, componente, coluna, papel, tipo, unidade, inicio="", mes_base=None):
+def tracos_da_serie(componentes, nomes, resumo, componente, coluna, papel, tipo, inicio="", mes_base=None):
     """O traço mensal de um componente e, se o último release foi de quinzena, o ponto dela na ponta."""
     mensal, quinzena = valores(componentes, componente, coluna, inicio, mes_base)
-    tracos = [traco(mensal, coluna, componente, nomes[componente], papel, tipo, unidade)]
+    tracos = [traco(mensal, coluna, componente, nomes[componente], papel, tipo)]
     if resumo["frequencia_do_release"] == "quinzenal":
-        tracos.append(traco(quinzena, coluna, componente, nomes[componente], papel, tipo, unidade, quinzena=True))
+        tracos.append(traco(quinzena, coluna, componente, nomes[componente], papel, tipo, quinzena=True))
     return tracos
 
 
 def par_anual(componentes, nomes, resumo, pai, filhos):
     """Variação em 12 meses do pai (a linha escura) e de cada filho."""
-    tracos = [t for c in [pai, *filhos] for t in tracos_da_serie(componentes, nomes, resumo, c, "variacao_anual", "pai" if c == pai else "filho", "linha", "%")]
+    tracos = [t for c in [pai, *filhos] for t in tracos_da_serie(componentes, nomes, resumo, c, "variacao_anual", "pai" if c == pai else "filho", "linha")]
     return go.Figure(tracos).update_layout(yaxis_title="variação em 12 meses (%)")
 
 
@@ -189,11 +188,10 @@ def par_contribuicoes(componentes, nomes, resumo, pai, filhos, coluna="contribui
     # no primeiro mês com contribuição: o INEGI não publica a incidência de ago/2018, quando a base mudou,
     # e a soma de 12 meses precisa de todas, então antes de ago/2019 não há barra para bater com a linha
     inicio = mes_base or serie(componentes, filhos[0]).dropna(subset=[coluna])["periodo"].iloc[0]
-    # a linha é a variação em 12 meses do pai, em %; desde um mês-base ela vira diferença de taxas, em pp
-    barras = [t for c in filhos for t in tracos_da_serie(componentes, nomes, resumo, c, coluna, "filho", "barra", " pp", inicio, mes_base)]
-    unidade_da_linha = "%" if mes_base is None else " pp"
-    linha_do_pai = tracos_da_serie(componentes, nomes, resumo, pai, "variacao_anual", "pai", "linha", unidade_da_linha, inicio, mes_base)
-    return go.Figure(barras + linha_do_pai).update_layout(barmode="relative", yaxis_title="contribuição (pp)")
+    # tudo sai em %, no formato do Banxico: a barra é quanto cada filho soma à variação em 12 meses do pai, que é a linha
+    barras = [t for c in filhos for t in tracos_da_serie(componentes, nomes, resumo, c, coluna, "filho", "barra", inicio, mes_base)]
+    linha_do_pai = tracos_da_serie(componentes, nomes, resumo, pai, "variacao_anual", "pai", "linha", inicio, mes_base)
+    return go.Figure(barras + linha_do_pai).update_layout(barmode="relative", yaxis_title="contribuição (%)")
 
 
 def grupos_inpc_anual(componentes, nomes, resumo):
@@ -247,10 +245,8 @@ def grupos_nao_nucleo_desde_base(componentes, nomes, resumo):
     subindices = ["frutas_y_verduras", "pecuarios", "energeticos", "tarifas_autorizadas_por_el_gobierno"]
     figura = par_contribuicoes(componentes, nomes, resumo, "no_subyacente", subindices, "contribuicao_no_grupo", p.MES_BASE_NAO_NUCLEO)
     base = serie(componentes, "no_subyacente").set_index("periodo").loc[p.MES_BASE_NAO_NUCLEO]
-    valor = f"{base['variacao_anual']:.2f}".replace(".", ",")
     # o subtítulo vai junto da figura porque depende do mês-base, que é parâmetro
-    subtitulo = (f"Mudança desde {base['rotulo_periodo']} da contribuição de cada subíndice para a variação em 12 meses do não núcleo "
-                 f"(não núcleo em {base['rotulo_periodo']}: {valor}%), pp")
+    subtitulo = f"Mudança desde {base['rotulo_periodo']} na contribuição de cada subíndice para a variação em 12 meses do não núcleo (%)"
     return figura.update_layout(meta={"subtitulo": subtitulo})
 
 
@@ -276,7 +272,8 @@ def explorar(componentes, aberturas, ponderadores, nomes, resumo):
         filhos = catalogo.loc[catalogo["pai"] == componente, "componente"].tolist()
         if filhos:
             tabela, nomes_do_bloco, barras = componentes, nomes, filhos
-            subtitulos = (f"{nome} e seus grupos: variação em 12 meses, %", f"{nome}: contribuição de cada grupo para a variação em 12 meses, pp")
+            subtitulos = (f"{nome} e seus grupos: variação em 12 meses, %",
+                          f"Contribuição para a variação em 12 meses de {nome} (%): a soma das barras é a linha")
         else:
             do_subindice = aberturas[aberturas["pai"] == componente]
             tabela = pd.concat([componentes[componentes["componente"] == componente], do_subindice])
@@ -285,8 +282,9 @@ def explorar(componentes, aberturas, ponderadores, nomes, resumo):
             primeiro = do_subindice[do_subindice["frequencia"] == "mensal"].dropna(subset=["contribuicao_no_pai"]).sort_values("data")["rotulo_periodo"].iloc[0]
             quantas = len(barras) - ("demais" in barras)
             subtitulos = (f"{nome} e as {quantas} aberturas de maior peso na cesta 2024: variação em 12 meses, %",
-                          f"{nome}: contribuição das {quantas} aberturas de maior peso{' e das demais' if 'demais' in barras else ''} para a variação "
-                          f"em 12 meses, pp. As barras começam em {primeiro}, o primeiro mês com 12 meses inteiros na cesta 2024")
+                          f"Contribuição para a variação em 12 meses de {nome} (%): a soma das barras é a linha. As barras são as "
+                          f"{quantas} aberturas de maior peso{' e as demais' if 'demais' in barras else ''} e começam em {primeiro}, "
+                          f"o primeiro mês com 12 meses inteiros na cesta 2024")
         linhas = [b for b in barras if b != "demais"]  # "Demais" é resto, não tem variação própria
         anual = par_anual(tabela, nomes_do_bloco, resumo, componente, linhas)
         figuras[f"explorar_{componente}_anual"] = (com_meta(anual) if componente == "indice_general" else anual).update_layout(

@@ -81,7 +81,7 @@ pipeline/
   2_analise/
     metricas.py              todas as contas: variações, incidências, norma, SAAR, difusão, resumo
     tabelas.py               as três tabelas em HTML
-    graficos.py              as figuras em JSON do plotly, inclusive os pares do Banxico (abas Grupos e Explorar)
+    graficos.py              as figuras em JSON do plotly, inclusive os pares do Banxico (abas Composição e Explorar)
   3_dashboard/
     montagem.py              cabeçalho, cartões, destaques e o HTML final
     template.html            o visual inteiro: layout, cores, fontes e o JavaScript que desenha
@@ -284,7 +284,7 @@ Uma decisão importante acontece aqui e só aqui: se o último quinzenal termina
 
 Uma função por gráfico, com o mesmo nome do espaço que ele ocupa no template. As figuras saem sem estilo nenhum; cada traço leva em `meta` o componente a que se refere, e o template decide a cor por ele. As funções de apoio são `serie`, `linha` e `com_meta` (a última desenha a meta de 3% e a banda de 2% a 4%).
 
-Os pares no formato do Banxico saem de duas funções genéricas: `par_anual(pai, filhos)`, a variação em 12 meses do pai e dos filhos, e `par_contribuicoes(pai, filhos)`, as barras com a contribuição de cada filho e a linha do pai. Os 10 gráficos `grupos_*` só chamam as duas, e `explorar` usa as mesmas para as 16 categorias, com a hierarquia tirada da coluna `pai` do catálogo. Em release de quinzena, cada série ganha um ponto a mais depois do último mês, com a última quinzena. Cada traço leva em `meta` o papel (pai ou filho) e a unidade: nos gráficos de contribuição as barras são pp e a linha do pai é %, exceto desde o mês-base, onde a linha é diferença de taxas, em pp.
+Os pares no formato do Banxico saem de duas funções genéricas: `par_anual(pai, filhos)`, a variação em 12 meses do pai e dos filhos, e `par_contribuicoes(pai, filhos)`, as barras com a contribuição de cada filho e a linha do pai. Os 10 gráficos `grupos_*` só chamam as duas, e `explorar` usa as mesmas para as 16 categorias, com a hierarquia tirada da coluna `pai` do catálogo. Em release de quinzena, cada série ganha um ponto a mais depois do último mês, com a última quinzena. Cada traço leva em `meta` o papel (pai ou filho). Nos gráficos tudo sai em %, inclusive as contribuições, como no Informe do Banxico: a barra é quanto o filho soma à variação em 12 meses do pai, e o subtítulo diz isso ("a soma das barras é a linha"), para não ser lida como variação de preço. A única exceção é o treemap, que mostra a incidência do período, em pp. Tabelas, pílulas e destaques continuam em pp.
 
 ### pipeline/3_dashboard/montagem.py
 
@@ -358,7 +358,7 @@ Toda figura tem uma pergunta, que também é a docstring da função em `grafico
 
 ### Barra de navegação e faixa do release
 
-No alto, uma barra branca com "INPC México · Monitor do release" à esquerda e as cinco abas à direita. Logo abaixo, e visível em todas as abas, a faixa do release em dois blocos:
+No alto, uma barra branca com "INPC México · Monitor do release" à esquerda e as quatro abas à direita: Resumo, Composição, Sazonalidade e Explorar. Logo abaixo, e visível em todas as abas, a faixa do release em dois blocos:
 
 - à esquerda, em azul: "Último release · 1ª quinzena set/26 · divulgado 24/09 06:00 CDMX", "INPC 3,42% em 12 meses" e "Núcleo 3,79% · Não núcleo 2,17% · variação na quinzena 0,33%";
 - à direita, em azul claro: o próximo release (08/10/2026 06:00, em 12 dias), a hora da atualização e o selo "Conferido com o INEGI · 1ª quinz. set/26".
@@ -370,7 +370,7 @@ Os dados vêm de `metricas_resumo.json` e do calendário.
 - **Cartões.** INPC, Núcleo e Não núcleo no período e em 12 meses, com a seta da mudança da anual, mais o cartão do mensal implícito (estimativa) no dia da 1ª quinzena, com a faixa tirada dos erros do backtest e a cobertura dela fora da amostra. Fonte: `metricas_resumo.json`.
 - **Destaques.** As quatro frases da seção 1. Fonte: `metricas_resumo.json`.
 - **INPC geral vs meta** e **Núcleo vs meta.** A inflação cheia está dentro da meta, e para onde aponta a última quinzena? O núcleo está convergindo para 3%? A linha é mensal e o ponto é a última quinzena (3,42% no INPC e 3,79% no núcleo). Fonte: `metricas_componentes`.
-- **Contribuições para o INPC** e **Contribuições para o núcleo**, **Núcleo** e **Não núcleo.** Os quatro gráficos de grupo mais usados, a mesma figura da aba Grupos. Fonte: `contribuicao_no_pai` e `variacao_anual`.
+- **Contribuições para o INPC** e **Contribuições para o núcleo**, **Núcleo** e **Não núcleo.** Os quatro gráficos de grupo mais usados, a mesma figura da aba Composição. Fonte: `contribuicao_no_pai` e `variacao_anual`.
 - **Último período vs padrão sazonal.** O último dado veio acima ou abaixo do que costuma acontecer nessa época do ano? Barras dos sete principais, com a mediana e o intervalo p25 a p75. No exemplo, o não núcleo subiu 0,88% e o INPC 0,33% contra um padrão de 0,32%. Fonte: `metricas_componentes`.
 - **Últimos períodos.** Tabela com as três últimas quinzenas (ou meses) e a variação em 12 meses. Fonte: `metricas_componentes`.
 - **Contribuições por abertura.** As cinco que mais puxaram e as cinco que mais seguraram, com o grupo embaixo do nome: Jitomate +0,11 pp, Primaria +0,03 e Cebolla +0,03 de um lado; Servicios profesionales −0,04 e Papa y otros tubérculos −0,03 do outro. O subtítulo define contribuição em uma linha. Fonte: `destaques` do resumo.
@@ -379,17 +379,16 @@ Os dados vêm de `metricas_resumo.json` e do calendário.
 
 - **Decomposição da variação do período.** Do INPC até os grupos, quanto cada parte puxou? Treemap com a contribuição publicada pelo INEGI. No exemplo: Núcleo +0,13 pp e Não núcleo +0,20 pp, e dentro deste, Frutas e verduras +0,14 pp. Fonte: `incidencia_periodo` dos componentes.
 - **Desvio em relação à mediana sazonal (2010 a 2019).** Quais aberturas se mexeram fora do normal, com peso? Colunas: Abertura, Grupo, Variação, Mediana sazonal e Desvio sazonal ponderado, esta a única com cor e barrinha, em duas seções ("Acima da mediana sazonal" e "Abaixo da mediana sazonal"). O subtítulo avisa que não é expectativa de mercado e que as medianas não somam. Para cima, Jitomate +0,08, Pollo +0,02 e Gas doméstico LP +0,02; para baixo, Gasolina de bajo octanaje −0,02, Automóviles −0,02 e Papa y otros tubérculos −0,02. Fonte: `destaques` do resumo.
+- **Difusão.** A inflação está espalhada ou concentrada? Parte da cesta com alta no mês e com alta acima de 3% em 12 meses; o tooltip mostra a cobertura de cada medida, e o subtítulo diz que o 3% é régua, não meta do item. Fonte: `metricas_difusao`.
+- **Grupos, no formato do Banxico.** A seção de inflação do Informe Trimestral, em 10 gráficos (5 linhas de 2): à esquerda a variação em 12 meses do pai e dos filhos, à direita a contribuição de cada filho para a variação em 12 meses do pai, em %. INPC, núcleo, mercadorias, serviços e não núcleo; no não núcleo, a direita mostra a mudança desde jul/2024 da contribuição dos quatro subíndices. A etiqueta da ponta, na cor da série, faz o papel da legenda, e o ponto vazado (ou a barra mais clara) é a última quinzena. Fonte: `contribuicao_no_pai`, `contribuicao_no_grupo` e `variacao_anual`.
 
-### Tendência
+### Sazonalidade
+
+Só o que é ajuste e padrão sazonal.
 
 - **Variação mensal dessazonalizada.** Sem sazonalidade, a inflação de cada mês está acelerando? Barras de 36 meses do INPC e do núcleo. Fonte: `variacao_sa_mensal`.
 - **Momentum do núcleo.** O ritmo recente está acima ou abaixo da anual? SAAR de 6 meses em destaque, SAAR de 3 meses em linha fina e a variação em 12 meses. A nota traz o tamanho da revisão de fim de amostra medido no exercício pseudo-tempo-real. Fonte: `saar_6m`, `saar_3m`.
 - **Perfil sazonal do INPC.** Este ano está subindo mais ou menos do que é normal em cada mês? A faixa de 2010-2019 e a linha de 2026 até agosto. Fonte: padrão sazonal (`norma_*`) e `variacao_periodo` mensal.
-- **Difusão.** A inflação está espalhada ou concentrada? Parte da cesta com alta no mês e com alta acima de 3% em 12 meses; o tooltip mostra a cobertura de cada medida, e o subtítulo diz que o 3% é régua, não meta do item. Fonte: `metricas_difusao`.
-
-### Grupos
-
-A seção de inflação do Informe Trimestral do Banxico, em 10 gráficos (5 linhas de 2): à esquerda a variação em 12 meses do pai e dos filhos, à direita a contribuição de cada filho para a variação em 12 meses do pai. INPC, núcleo, mercadorias, serviços e não núcleo; no não núcleo, a direita mostra a mudança desde jul/2024 da contribuição dos quatro subíndices. A etiqueta da ponta, na cor da série, faz o papel da legenda, e o ponto vazado (ou a barra mais clara) é a última quinzena. Fonte: `contribuicao_no_pai`, `contribuicao_no_grupo` e `variacao_anual`.
 
 ### Explorar
 
