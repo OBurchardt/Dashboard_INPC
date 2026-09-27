@@ -314,26 +314,30 @@ def cobertura_fora_da_amostra(erros, primeiros=24):
     return sum(dentro) / len(dentro) * 100, len(dentro)
 
 
-def expectativa(principais, periodo, rotulo, frequencia):
-    """Realizado contra esperado no último release, para o INPC e o núcleo, com a fonte de cada expectativa."""
+def expectativas_de_mercado(periodo, rotulo, frequencia):
+    """A variação esperada para um período, INPC e núcleo, com a fonte; serve ao card do release e ao próximo número mensal."""
     # a prioridade é a linha digitada em config/expectativas_manuais.csv (a expectativa de mercado da véspera); sem ela,
-    # num release mensal, a mediana da pesquisa do Banxico daquele mês; sem nenhuma, o indicador fica sem expectativa
+    # num período mensal, a mediana da pesquisa do Banxico daquele mês; sem nenhuma, o indicador fica sem expectativa
     manuais = pd.read_csv(p.EXPECTATIVAS_MANUAIS, dtype={"periodo": str, "indicador": str, "fonte": str}, encoding="utf-8")
     arquivo_banxico = p.PASTA_RAW / "expectativas_banxico.csv"
     banxico = pd.read_csv(arquivo_banxico, dtype={"periodo": str}, encoding="utf-8") if arquivo_banxico.exists() else None
-    resultado = {"periodo": periodo, "rotulo_periodo": rotulo, "indicadores": {}}
+    esperadas = {}
     for indicador in ("indice_general", "subyacente"):
         manual = manuais[(manuais["periodo"] == periodo) & (manuais["indicador"] == indicador)]
         pesquisa = banxico[(banxico["periodo"] == periodo) & (banxico["indicador"] == indicador)] if banxico is not None else []
         if len(manual):
-            esperado, fonte = manual["variacao_esperada"].iloc[0], manual["fonte"].iloc[0]
+            esperadas[indicador] = {"esperado": arredondar(manual["variacao_esperada"].iloc[0]), "fonte": manual["fonte"].iloc[0]}
         elif frequencia == "mensal" and len(pesquisa):
-            esperado, fonte = pesquisa["variacao_esperada"].iloc[0], f"Pesquisa Banxico, {rotulo}"
-        else:
-            continue
-        resultado["indicadores"][indicador] = {"realizado": arredondar(principais[indicador]["variacao_periodo"]),
-                                               "esperado": arredondar(esperado), "fonte": fonte}
-    return resultado
+            esperadas[indicador] = {"esperado": arredondar(pesquisa["variacao_esperada"].iloc[0]), "fonte": f"Pesquisa Banxico, {rotulo}"}
+    return esperadas
+
+
+def expectativa(principais, periodo, rotulo, frequencia):
+    """Realizado contra esperado no último release, para o INPC e o núcleo, com a fonte de cada expectativa."""
+    esperadas = expectativas_de_mercado(periodo, rotulo, frequencia)
+    return {"periodo": periodo, "rotulo_periodo": rotulo,
+            "indicadores": {indicador: {"realizado": arredondar(principais[indicador]["variacao_periodo"]), **item}
+                            for indicador, item in esperadas.items()}}
 
 
 def mensal_implicito(componentes, mes):
@@ -345,7 +349,9 @@ def mensal_implicito(componentes, mes):
     quinzenal = componentes[componentes["frequencia"] == "quinzenal"]
     mensal = componentes[componentes["frequencia"] == "mensal"].set_index(["componente", "periodo"])["indice"]
     mes_anterior, mes_do_ano_anterior = str(pd.Period(mes) - 1), str(pd.Period(mes) - 12)
-    resultado = {"mes": mes, "rotulo_mes": quinzenal[quinzenal["periodo"] == f"{mes}-Q1"]["rotulo_mes"].iloc[0]}
+    rotulo_mes = quinzenal[quinzenal["periodo"] == f"{mes}-Q1"]["rotulo_mes"].iloc[0]
+    # a expectativa de mercado para o mesmo mês, para o bloco do próximo release pôr as duas lado a lado
+    resultado = {"mes": mes, "rotulo_mes": rotulo_mes, "expectativa": expectativas_de_mercado(mes, rotulo_mes, "mensal")}
     for componente in ("indice_general", "subyacente"):
         da_serie, do_mes = quinzenal[quinzenal["componente"] == componente].set_index("periodo"), mensal.loc[componente]
         mediana = da_serie[da_serie.index.str.endswith(f"{mes[5:]}-Q2")].iloc[-1]["norma_mediana"]  # a mediana é igual em todos os anos

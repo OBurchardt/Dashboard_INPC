@@ -520,6 +520,8 @@ function montarEstimativa(m) {
     + `quartis 25 e 75 dos erros do método desde 2020; conteve o mês realizado em ${m.cobertura} de ${m.meses_testados} meses testados `
     + `fora da amostra. Em 12 meses: ${m.intervalo_anual}. Núcleo: ${m.subyacente}.`;
   caixa.innerHTML = `<div>Estimativa para ${m.mes}: <strong>${m.variacao_mensal}</strong> no mês · <strong>${m.variacao_anual}</strong> em 12 meses</div>`
+    // a expectativa de mercado para o mesmo mês (manual, ou a pesquisa do Banxico), com a fonte inteira no tooltip
+    + (m.mercado ? `<div title="Fonte: ${m.mercado.fonte}">${m.mercado.texto}</div>` : "")
     + `<div>Intervalo provável: ${m.intervalo_mensal}</div>`;
 }
 
@@ -844,6 +846,19 @@ function rotuloDoTooltip() {
   return { bgcolor: css("--surface"), bordercolor: css("--border"), font: { family: css("--fonte"), size: 12, color: css("--ink") } };
 }
 
+function abrirEspacoParaMeta(rotulos, faixa, alturaUtil) {
+  // o "Meta 3%" fica sempre na margem direita, na altura de 3%. Quem sai do caminho são as etiquetas de valor:
+  // as de valor acima de 3% ficam acima da meta e as de baixo, abaixo, na ordem dos valores, com 21 px de centro a
+  // centro (as caixas de texto, com o fundo branco, têm uns 20 px). O valor sai do texto da etiqueta ("3,42%"), porque
+  // o y dela pode já ter sido afastado de outra; gráfico com meta só tem linhas, então o texto termina no valor
+  const linha = 21 * (faixa[1] - faixa[0]) / alturaUtil;
+  const valor = (r) => lerNumero(r.text.split(" ").pop());
+  let limite = 3;
+  rotulos.filter((r) => valor(r) >= 3).sort((a, b) => valor(a) - valor(b)).forEach((r) => { r.y = Math.max(valor(r), limite + linha); limite = r.y; });
+  limite = 3;
+  rotulos.filter((r) => valor(r) < 3).sort((a, b) => valor(b) - valor(a)).forEach((r) => { r.y = Math.min(valor(r), limite - linha); limite = r.y; });
+}
+
 function estilizarFigura(slot, figura) {
   if (figura.data[0].type === "treemap") return estilizarArvore(figura);
   const dados = figura.data;
@@ -878,11 +893,7 @@ function estilizarFigura(slot, figura) {
   // com a meta no gráfico, o eixo mostra a banda de 2% a 4% inteira, com meio ponto de folga, e não corta a linha dos 3%
   if (temMeta) { faixa[0] = Math.min(faixa[0], 1.5); faixa[1] = Math.max(faixa[1], 4.5); }
   const rotulos = banxico ? rotulosNaPonta(dados, comNome, faixa, altura - margem.t - margem.b) : rotulosFinais(dados);
-  // o "Meta 3%" fica na margem direita; se um rótulo final estiver a menos de 0,5 pp da meta, os dois encavalam,
-  // e aí ele vai para dentro do gráfico, no canto esquerdo, logo acima da linha da meta. Nos gráficos do Banxico a
-  // margem direita é das etiquetas, então ele fica sempre dentro
-  const metaNaMargem = !banxico && !rotulos.some((a) => Math.abs(a.y - 3) < 0.5);
-  const posicaoMeta = metaNaMargem ? { x: 1, xshift: 6, yanchor: "middle" } : { x: 0, xshift: 4, yanchor: "bottom" };
+  if (temMeta) abrirEspacoParaMeta(rotulos, faixa, altura - margem.t - margem.b);
   // eixo dos valores: grade, "%" e range com folga; nas barras horizontais ele é o x e a linha de zero fica vertical
   const eixoDeValores = { gridcolor: css("--grade"), gridwidth: 1, zeroline: temBarras, zerolinecolor: css("--zero"), zerolinewidth: 1,
                           tickangle: 0, ticksuffix: "%", tickformat: ".1~f", hoverformat: ".2f", title: { text: "" },
@@ -911,7 +922,7 @@ function estilizarFigura(slot, figura) {
     annotations: [
       ...rotulos,
       // o fundo branco semitransparente deixa o texto legível quando as linhas passam por trás dele
-      ...(temMeta ? [{ xref: "paper", y: 3, text: "Meta 3%", showarrow: false, xanchor: "left", ...posicaoMeta, bgcolor: "rgba(255, 255, 255, 0.85)",
+      ...(temMeta ? [{ xref: "paper", x: 1, xshift: 6, y: 3, yanchor: "middle", text: "Meta 3%", showarrow: false, xanchor: "left", bgcolor: "rgba(255, 255, 255, 0.85)",
                        borderpad: 2, font: { size: 11, color: css("--ink-3") } }] : []),
     ],
   };

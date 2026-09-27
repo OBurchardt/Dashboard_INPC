@@ -63,7 +63,23 @@ def mensal_implicito(implicito):
             "intervalo_mensal": f"{numero(geral['p25']['variacao_mensal'])} a {numero(geral['p75']['variacao_mensal'])}",
             "intervalo_anual": f"{numero(geral['p25']['variacao_anual'])} a {numero(geral['p75']['variacao_anual'])}",
             "cobertura": numero(geral["cobertura_da_faixa"], 0), "meses_testados": geral["meses_testados"],
-            "subyacente": f"{numero(nucleo['mediana']['variacao_mensal'])} no mês · {numero(nucleo['mediana']['variacao_anual'])} em 12 meses"}
+            "subyacente": f"{numero(nucleo['mediana']['variacao_mensal'])} no mês · {numero(nucleo['mediana']['variacao_anual'])} em 12 meses",
+            "mercado": expectativa_do_mercado(implicito["expectativa"])}
+
+
+def expectativa_do_mercado(esperadas):
+    """A linha "Encuesta Citi espera 0,37% (núcleo 0,27%)" do bloco do próximo release, ou None sem expectativa."""
+    geral, nucleo = esperadas.get("indice_general"), esperadas.get("subyacente")
+    if not (geral or nucleo):
+        return None
+    fontes = list(dict.fromkeys(item["fonte"] for item in (geral, nucleo) if item))
+    quem = fontes[0].split(",")[0].strip()  # o nome sem a data; a fonte inteira vai no tooltip
+    if geral:
+        texto = f"{quem} espera {numero(geral['esperado'])}" + (f" (núcleo {numero(nucleo['esperado'])})" if nucleo else "")
+    else:
+        texto = f"{quem} espera núcleo de {numero(nucleo['esperado'])}"
+    # a fonte é texto livre do CSV manual e vai para dentro do HTML, então escapo
+    return {"texto": html.escape(texto), "fonte": html.escape("; ".join(fontes))}
 
 
 def proximo_release(calendario, agora):
