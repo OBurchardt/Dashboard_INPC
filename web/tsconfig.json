@@ -6,7 +6,17 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "typeRoots": [
+      "./node_modules/@types"
+    ]
   },
-  "include": ["api", "lib", "testes", "servidor_local.ts"]
+  "include": [
+    "api",
+    "lib",
+    "testes",
+    "servidor_local.ts"
+  ]
 }

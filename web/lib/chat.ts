@@ -6,7 +6,6 @@
 // (a pergunta e suas continuações depois de cada cena) tem orçamento de 8 consultas e 3 cenas.
 
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, isStepCount, streamText, toUIMessageStream, tool,
   type LanguageModel, type ToolSet, type UIMessage,
@@ -116,7 +115,8 @@ function ferramentas(contexto: Contexto, contador: { dados: number; limite: numb
 
 // ==== 4. A rota ====
 let promptDoSistema: string | null = null;
-const lerPrompt = () => (promptDoSistema ??= readFileSync(join(process.cwd(), "prompt_sistema.md"), "utf-8"));
+// relativo a este arquivo, como o pacote: na Vercel o process.cwd() não é a pasta web/
+const lerPrompt = () => (promptDoSistema ??= readFileSync(new URL("../prompt_sistema.md", import.meta.url), "utf-8"));
 
 export async function responderChat(request: Request, dependencias: { modelo?: LanguageModel; pacote?: Pacote } = {}): Promise<Response> {
   const inicio = Date.now();

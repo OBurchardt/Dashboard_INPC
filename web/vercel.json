@@ -2,10 +2,20 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
   "functions": {
-    "api/chat.ts": { "maxDuration": 90, "includeFiles": "{dados/pacote.json,prompt_sistema.md}" },
-    "api/estado.ts": { "includeFiles": "dados/pacote.json" }
+    "api/**/*.ts": {
+      "maxDuration": 90,
+      "includeFiles": "{dados/**,prompt_sistema.md}"
+    }
   },
   "headers": [
-    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
   ]
 }

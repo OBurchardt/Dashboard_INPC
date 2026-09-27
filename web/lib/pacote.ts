@@ -6,7 +6,6 @@
 
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 
 // ==== 1. Tipos e carga ====
 export type Frequencia = "mensal" | "quinzenal";
@@ -38,8 +37,9 @@ export type Pacote = {
 
 let emCache: Pacote | null = null;
 
-export function carregarPacote(caminho = join(process.cwd(), "dados", "pacote.json")): Pacote {
-  // leio uma vez por instância da função; o pacote é o retrato do release e não muda enquanto ela vive
+export function carregarPacote(caminho: string | URL = new URL("../dados/pacote.json", import.meta.url)): Pacote {
+  // leio uma vez por instância da função; o pacote é o retrato do release e não muda enquanto ela vive. O caminho é
+  // relativo a este arquivo, e não ao diretório de trabalho: na Vercel o process.cwd() não é a pasta web/
   if (!emCache) emCache = JSON.parse(readFileSync(caminho, "utf-8")) as Pacote;
   return emCache;
 }
