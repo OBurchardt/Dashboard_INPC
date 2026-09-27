@@ -100,6 +100,7 @@
      não entende color-mix */
   --banda-meta: rgba(107, 120, 144, 0.12);
   --branco: var(--p-branco);
+  --faixa-sazonal: rgba(176, 210, 255, 0.45);   /* faixa p25-p75 do padrão sazonal: --p-azul-claro a 45% */
 
   /* tipografia */
   --fonte: "DM Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -384,6 +385,24 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
     <div class="card c12" data-card="tend_perfil_sazonal">
       <h3>Perfil sazonal do INPC</h3><p class="sub">Variação mensal (%): faixa p25 a p75 e mediana de 2010–2019; ano corrente</p>
     </div>
+    <div class="card c6" data-card="sazon_perfil_subyacente">
+      <h3>Perfil sazonal: Núcleo</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+    </div>
+    <div class="card c6" data-card="sazon_perfil_no_subyacente">
+      <h3>Perfil sazonal: Não núcleo</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+    </div>
+    <div class="card c6" data-card="sazon_perfil_mercancias">
+      <h3>Perfil sazonal: Mercadorias</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+    </div>
+    <div class="card c6" data-card="sazon_perfil_servicios">
+      <h3>Perfil sazonal: Serviços</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+    </div>
+    <div class="card c6" data-card="sazon_perfil_agropecuarios">
+      <h3>Perfil sazonal: Agropecuários</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+    </div>
+    <div class="card c6" data-card="sazon_perfil_energeticos">
+      <h3>Perfil sazonal: Energia e tarifas</h3><p class="sub">Variação mensal (%): ano corrente vs mediana e faixa p25–p75 de 2010–2019</p>
+    </div>
   </section>
 
   <!-- ==== Explorar: o mesmo par de gráficos para todas as categorias, montado a partir dos dados ==== -->
@@ -512,7 +531,8 @@ function chipDoCard(slot, figura) {
   // o chip conta de cara se o gráfico é mensal ou quinzenal e que janela ele cobre
   const frequencia = DADOS.cabecalho.frequencia === "quinzenal" ? "Quinzenal" : "Mensal";
   if (RELEASE.has(slot)) return `${frequencia} · ${DADOS.cabecalho.release}`;
-  if (slot === "tend_perfil_sazonal") return `Mensal · padrão sazonal 2010–2019 e ${DADOS.cabecalho.ano}`;   // eixo em meses do ano
+  // os perfis sazonais têm eixo em meses do ano, e cada um tem a sua escala (agropecuários e energia oscilam muito mais)
+  if (/perfil/.test(slot)) return `Mensal · 2010–2019 e ${DADOS.cabecalho.ano} · escala própria`;
   // com a última quinzena na ponta, o chip diz até que mês vai a série mensal e qual quinzena foi acrescentada
   const quinzena = figura.data.find((t) => (t.meta || {}).rotulo_quinzena);
   if (quinzena) {
@@ -684,8 +704,8 @@ function estilizarTraco(t, eixo) {
     t.line = { width: 2, color: cor };
     t.marker = { color: cor, size: 4 };
   } else if (serie.startsWith("norma_p")) {
-    t.line = { width: 0, color: css("--azul-claro-2") };   // sem cor, o plotly poria a dele no contorno invisível
-    t.fillcolor = css("--azul-claro-2");
+    t.line = { width: 0, color: css("--faixa-sazonal") };   // sem cor, o plotly poria a dele no contorno invisível
+    t.fillcolor = css("--faixa-sazonal");
     t.showlegend = serie === "norma_p75";
     t.name = serie === "norma_p75" ? "Padrão sazonal p25–p75" : t.name;
     t.hoverinfo = "skip";
@@ -697,7 +717,7 @@ function estilizarTraco(t, eixo) {
     // linha fina com só o último ponto marcado, que é onde o olho tem de ir
     const ultimo = t.x.length - 1;
     t.mode = "lines+markers";
-    t.line = { width: LARGURA_MEDIDA[(t.meta || {}).medida] || 2, color: cor, dash: serie === "norma_mediana" ? "dot" : "solid" };
+    t.line = { width: LARGURA_MEDIDA[(t.meta || {}).medida] || 2, color: cor, dash: serie === "norma_mediana" ? "dash" : "solid" };
     t.marker = { color: cor, size: t.x.map((_, i) => (i === ultimo ? 8 : 0)), line: { color: css("--surface"), width: t.x.map((_, i) => (i === ultimo ? 2 : 0)) } };
   }
 }
@@ -712,8 +732,9 @@ function rotulosFinais(dados) {
     const i = t.x.length - 1;
     if (escritos.some((a) => Math.abs(a.y - t.y[i]) < 0.3)) return;
     // à direita do último ponto, fora da linha
+    // o fundo branco semitransparente mantém o número legível quando outra linha passa por trás (a mediana, no perfil sazonal)
     escritos.push({ x: t.x[i], y: t.y[i], text: numero(t.y[i], 2, "%"), showarrow: false, xanchor: "left", xshift: 8,
-                    font: { size: 12, color: css("--ink"), family: css("--fonte") } });
+                    bgcolor: "rgba(255, 255, 255, 0.85)", font: { size: 12, color: css("--ink"), family: css("--fonte") } });
   });
   escritos.forEach((a) => (a.font.weight = 600));
   return escritos;

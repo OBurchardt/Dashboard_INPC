@@ -118,19 +118,56 @@ def tend_momentum(componentes, nomes, resumo):
     return com_meta(go.Figure(tracos).update_layout(yaxis_title="% ao ano"))
 
 
-def tend_perfil_sazonal(componentes, nomes, resumo):
-    """Este ano está subindo mais ou menos do que é normal em cada mês?"""
-    # a faixa vai do p25 ao p75 da variação mensal de 2010-2019, e a linha pontilhada é a mediana
-    geral = componentes[(componentes["componente"] == "indice_general") & (componentes["frequencia"] == "mensal")]
-    norma = geral.assign(mes=geral["data"].dt.month).drop_duplicates("mes").sort_values("mes")  # a norma se repete todo ano, basta uma linha por mês
-    ano = geral[geral["data"].dt.year == geral["data"].max().year]
+def perfil_sazonal(componentes, componente):
+    """A variação mensal do ano corrente de um componente contra o seu padrão sazonal de 2010-2019."""
+    # a faixa vai do p25 ao p75 da variação mensal de 2010-2019, e a linha tracejada é a mediana; tudo já vem das métricas
+    mensal = componentes[(componentes["componente"] == componente) & (componentes["frequencia"] == "mensal")]
+    norma = mensal.assign(mes=mensal["data"].dt.month).drop_duplicates("mes").sort_values("mes")  # a norma se repete todo ano, basta uma linha por mês
+    ano = mensal[mensal["data"].dt.year == mensal["data"].max().year].sort_values("data")
     meses = norma["rotulo_mes"].str[:3].tolist()  # "ago/26" vira "ago", porque aqui o eixo é o mês do ano e não uma data
     tracos = [go.Scatter(x=meses, y=norma["norma_p25"], mode="lines", name="Padrão sazonal p25", meta={"serie": "norma_p25"}),
               go.Scatter(x=meses, y=norma["norma_p75"], mode="lines", fill="tonexty", name="Padrão sazonal p75", meta={"serie": "norma_p75"}),
               go.Scatter(x=meses, y=norma["norma_mediana"], mode="lines", name="Padrão sazonal (mediana)", meta={"serie": "norma_mediana"}),
               go.Scatter(x=meses[:len(ano)], y=ano["variacao_periodo"], mode="lines+markers", name=str(ano["data"].max().year),
-                         meta={"componente": "indice_general"})]
-    return go.Figure(tracos).update_layout(yaxis_title="variação mensal do INPC (%)")
+                         meta={"componente": componente})]
+    return go.Figure(tracos).update_layout(yaxis_title="variação mensal (%)")
+
+
+def tend_perfil_sazonal(componentes, nomes, resumo):
+    """Este ano o INPC está subindo mais ou menos do que é normal em cada mês?"""
+    return perfil_sazonal(componentes, "indice_general")
+
+
+# o nível logo abaixo do INPC e do núcleo, e os dois grupos do não núcleo, onde a sazonalidade é mais forte
+# (o subsídio de verão da eletricidade em abr-mai e a volta em out-nov, por exemplo)
+def sazon_perfil_subyacente(componentes, nomes, resumo):
+    """O núcleo está subindo mais ou menos do que é normal em cada mês?"""
+    return perfil_sazonal(componentes, "subyacente")
+
+
+def sazon_perfil_no_subyacente(componentes, nomes, resumo):
+    """O não núcleo está subindo mais ou menos do que é normal em cada mês?"""
+    return perfil_sazonal(componentes, "no_subyacente")
+
+
+def sazon_perfil_mercancias(componentes, nomes, resumo):
+    """Mercadorias estão subindo mais ou menos do que é normal em cada mês?"""
+    return perfil_sazonal(componentes, "mercancias")
+
+
+def sazon_perfil_servicios(componentes, nomes, resumo):
+    """Serviços estão subindo mais ou menos do que é normal em cada mês?"""
+    return perfil_sazonal(componentes, "servicios")
+
+
+def sazon_perfil_agropecuarios(componentes, nomes, resumo):
+    """Agropecuários estão subindo mais ou menos do que é normal em cada mês?"""
+    return perfil_sazonal(componentes, "agropecuarios")
+
+
+def sazon_perfil_energeticos(componentes, nomes, resumo):
+    """Energia e tarifas estão subindo mais ou menos do que é normal em cada mês?"""
+    return perfil_sazonal(componentes, "energeticos_y_tarifas")
 
 
 def tend_difusao(difusao, resumo):
@@ -301,6 +338,8 @@ if __name__ == "__main__":
     resumo = json.loads((p.PASTA_PROCESSED / "metricas_resumo.json").read_text(encoding="utf-8"))
     slots = [main_inpc_meta, main_core_meta, main_vs_norma, decomp_arvore,
              tend_dessazonalizado, tend_momentum, tend_perfil_sazonal,
+             sazon_perfil_subyacente, sazon_perfil_no_subyacente, sazon_perfil_mercancias, sazon_perfil_servicios,
+             sazon_perfil_agropecuarios, sazon_perfil_energeticos,
              grupos_inpc_anual, grupos_inpc_contrib, grupos_nucleo_anual, grupos_nucleo_contrib, grupos_mercadorias_anual,
              grupos_mercadorias_contrib, grupos_servicos_anual, grupos_servicos_contrib, grupos_nao_nucleo_anual, grupos_nao_nucleo_desde_base]
     figuras = {slot.__name__: slot(componentes, nomes, resumo) for slot in slots}
