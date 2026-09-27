@@ -149,7 +149,7 @@ npm run tipos                       checagem de tipos
 Publicar como projeto novo na Vercel (sem mexer no projeto `dashboard-inpc`, que continua servindo a main):
 
 1. vercel.com → Add New → Project → Import do mesmo repositório `Dashboard_INPC`.
-2. Project Name: `dashboard-inpc-assistente` (se usar outro, troque `URL_VERSAO_ONLINE` em `config/parametros.py`,
+2. Project Name: `dashboard-inpc-chat` (se usar outro, troque `URL_VERSAO_ONLINE` em `config/parametros.py`,
    rode o pipeline e commite).
 3. Framework Preset: Other. Root Directory: `web`. Build Command: vazio. Install Command: `npm ci`. Output
    Directory: `public` (já está no `vercel.json`). Com a raiz em `web/`, o `requirements.txt` da raiz fica fora do
@@ -161,7 +161,7 @@ Publicar como projeto novo na Vercel (sem mexer no projeto `dashboard-inpc`, que
 5. Deploy. Na importação a Vercel usa a branch padrão (main), que não tem `web/`: esse primeiro deploy falha, e é o
    esperado. Em Settings → Git, ponha a Production Branch em `chat` e dispare o deploy da `chat` (Deployments →
    Redeploy do último commit da branch, ou um push nela).
-6. Teto de gasto: vercel.com → AI Gateway → Budgets (ou `vercel ai-gateway budgets set project dashboard-inpc-assistente
+6. Teto de gasto: vercel.com → AI Gateway → Budgets (ou `vercel ai-gateway budgets set project dashboard-inpc-chat
    --limit <US$> --refresh-period monthly`). Esse é o limite global; o limite por IP do código vale só por instância.
    Para limite global por IP, crie em Firewall uma regra de rate limit para `/api/chat`.
 7. Para desligar o chat sem derrubar o dashboard: `CHAT_ATIVO=false` e redeploy.
