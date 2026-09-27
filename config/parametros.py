@@ -93,7 +93,7 @@ MESES_METRICAS_GENERICOS = 24  # quanto histórico de genéricos vai para o dash
 MESES_VALIDACAO_ADITIVIDADE = 24  # janela em que confiro se as incidências somam o INPC
 TOLERANCIA_VALIDACAO_PP = 0.01  # o INEGI publica com 2 casas, então 0,01 pp é a menor diferença que dá para ver
 
-# ==== 9. Assistente (só na branch chat) ====
+# ==== 9. Assistente ====
 # a versão online com o chat é um segundo projeto na Vercel, com Root Directory web/; a montagem grava lá a cópia do
 # HTML e o pacote de dados, para o deploy não depender de arquivos fora dessa pasta
 PASTA_WEB = RAIZ / "web"

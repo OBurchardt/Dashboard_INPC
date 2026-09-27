@@ -270,7 +270,7 @@ main { padding-top: var(--e-24); padding-bottom: var(--e-32); }
   .card-topo { flex-direction: column; gap: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .abas button { transition: none; } html { scroll-behavior: auto; } }
-/* ==== 8. Assistente (só na branch chat) ====
+/* ==== 8. Assistente ====
    Painel lateral que divide a tela com o dashboard no desktop, para não cobrir o gráfico que está sendo explicado;
    em tela pequena ocupa a tela e fecha para conferir o gráfico. Só tokens da paleta, sem gradiente nem avatar */
 .botao-assistente { font: inherit; font-size: var(--t-14); font-weight: 600; color: var(--azul-btg); background: var(--surface); border: 1px solid var(--border); border-radius: var(--raio-pilula); padding: 7px 16px; cursor: pointer; white-space: nowrap; }
@@ -475,7 +475,7 @@ body.com-assistente { margin-right: 400px; }
   <section class="painel" id="explorar"></section>
 </main>
 
-<!-- ==== Assistente (só na branch chat): painel lateral do chat da versão online ==== -->
+<!-- ==== Assistente: painel lateral do chat da versão online ==== -->
 <aside class="assistente" id="assistente" aria-label="Assistente de análise" hidden>
   <div class="assistente-topo">
     <div><h2>Assistente</h2><p class="assistente-contexto" id="assistente-contexto"></p></div>
@@ -1045,7 +1045,7 @@ document.querySelectorAll(".abas button").forEach((b) => b.addEventListener("cli
 desenharPainel(document.getElementById("resumo"));
 </script>
 <script>
-// ==== 8. Assistente (só na branch chat) ====
+// ==== 8. Assistente ====
 // O painel do chat da versão online. Os números ficam no servidor: daqui só saem a pergunta, o snapshot deste HTML
 // e o estado da tela. O servidor pede ações de tela pela ferramenta controlar_dashboard; quem as aplica é o
 // adaptador abaixo, que só conhece as visualizações registradas no pacote e responde applied, unsupported,

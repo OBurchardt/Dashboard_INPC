@@ -5,7 +5,7 @@
 # frases de destaque, só com fatos do resumo, sem opinião. "Desvio sazonal" é contra a mediana de
 # 2010 a 2019, não contra expectativa de mercado, por isso não chamo de surpresa. Esta etapa só
 # roda se a validação passou, então tudo o que ela mostra já foi conferido com o INEGI.
-# Na branch chat ela também leva ao HTML o snapshot e o registro das visualizações do assistente, e grava em web/
+# Ela também leva ao HTML o snapshot e o registro das visualizações do assistente, e grava em web/
 # a cópia do HTML e o pacote de dados que a versão online usa.
 
 import html
@@ -151,7 +151,7 @@ def destaques(resumo):
     return [realizado_x_esperado(resumo["expectativa"]), contribuicao, desvio, espalhamento]
 
 
-# ==== 4. Assistente (só na branch chat) ====
+# ==== 4. Assistente ====
 def assistente(pacote):
     """O que o painel do chat precisa no navegador: o snapshot, o release, o endereço da versão online e o registro das visualizações."""
     # os números ficam no servidor; o navegador só precisa saber o que existe na tela para aplicar as ações do chat

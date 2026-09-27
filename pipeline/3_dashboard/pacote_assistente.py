@@ -1,4 +1,4 @@
-# Etapa 3.0: Pacote do assistente (só na branch chat)
+# Etapa 3.0: Pacote do assistente
 # O chat da versão online não pode ler números de figura nem de texto arredondado, então junto aqui, num JSON só,
 # os mesmos resultados que alimentam o dashboard: o catálogo das séries (componentes, genéricos e os itens que
 # saíram da cesta 2018), os valores sem arredondar além das 6 casas de sempre, o que cada métrica é e como foi
