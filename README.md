@@ -4,8 +4,7 @@ Pipeline em Python que baixa do INEGI as séries do Índice Nacional de Preços 
 o INEGI publica no release, calcula as métricas e gera um dashboard num único HTML, que abre sem internet. Uma versão
 online acrescenta um assistente de IA que consulta os mesmos números e conduz o leitor pelos gráficos.
 
-- Dashboard: https://dashboard-inpc.vercel.app
-- Dashboard com assistente de IA: https://dashboard-inpc-chat.vercel.app
+- Dashboard: https://dashboard-inpc-chat.vercel.app
 
 Os dois se atualizam sozinhos no dia do release, às 06:00 da Cidade do México. O código do assistente, que nasceu na
 branch `chat`, está na main; a branch fica só como histórico.
